@@ -71,11 +71,16 @@ The application will be available at:
 
 Ask natural language questions about sports statistics:
 
-- "Who are the top scorers this season?"
-- "How did the Lakers perform against the Warriors?"
-- "Compare LeBron James and Kevin Durant's stats"
-- "What are the current standings in the Western Conference?"
-- "Show me rookie statistics for this season"
+- "Who are the top goal scorers this season?"
+- "Which teams have the best completion percentage?"
+- "Who has the most assists in the league?"
+- "Show me the current division standings"
+- "Which players have the best plus-minus rating?"
+- "Who has the most blocks this season?"
+- "What's the average completion percentage across all teams?"
+- "Show me players with the most throwaways"
+- "Which team has scored the most points?"
+- "Compare offensive vs defensive point efficiency"
 
 ## Architecture
 

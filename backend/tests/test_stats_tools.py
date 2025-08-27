@@ -1,6 +1,6 @@
 """
 Test Stats Tools module functionality.
-Tests all SQL query tools used by the AI system for sports statistics.
+Tests StatsToolManager and its tools for sports statistics queries.
 """
 
 import pytest
@@ -36,613 +36,360 @@ class TestStatsToolManager:
         manager = StatsToolManager(mock_db)
         
         assert manager.db is mock_db
-        assert hasattr(manager, 'get_player_stats')
-        assert hasattr(manager, 'get_team_stats')
-        assert hasattr(manager, 'get_game_results')
+        assert hasattr(manager, 'last_sources')
+        assert manager.last_sources == []
         
-    def test_get_tool_schemas(self, tool_manager):
-        """Test getting tool schemas for AI"""
-        schemas = tool_manager.get_tool_schemas()
-        
-        assert isinstance(schemas, list)
-        assert len(schemas) > 0
-        
-        # Check that all expected tools are present
-        tool_names = [schema["name"] for schema in schemas]
-        expected_tools = [
-            "get_player_stats",
-            "get_team_stats", 
-            "get_game_results",
-            "get_league_leaders",
-            "compare_players",
-            "search_players",
-            "get_standings"
-        ]
-        
-        for expected_tool in expected_tools:
-            assert expected_tool in tool_names
+    def test_init_without_db(self):
+        """Test StatsToolManager initialization without providing database"""
+        with patch('stats_tools.SQLDatabase') as mock_sql_db_class:
+            mock_db_instance = Mock()
+            mock_sql_db_class.return_value = mock_db_instance
             
+            manager = StatsToolManager()
+            
+            assert manager.db is mock_db_instance
+            mock_sql_db_class.assert_called_once()
+        
+    def test_get_tool_definitions(self, tool_manager):
+        """Test getting tool definitions for AI"""
+        definitions = tool_manager.get_tool_definitions()
+        
+        assert isinstance(definitions, list)
+        assert len(definitions) == 1  # Currently returns only execute_custom_query
+        
+        # Check the custom query tool definition
+        custom_query_tool = definitions[0]
+        assert custom_query_tool["name"] == "execute_custom_query"
+        assert "description" in custom_query_tool
+        assert "input_schema" in custom_query_tool
+        
         # Verify schema structure
-        for schema in schemas:
-            assert "name" in schema
-            assert "description" in schema
-            assert "parameters" in schema
-            assert "type" in schema["parameters"]
-            assert schema["parameters"]["type"] == "object"
+        schema = custom_query_tool["input_schema"]
+        assert schema["type"] == "object"
+        assert "properties" in schema
+        assert "query" in schema["properties"]
+        assert "parameters" in schema["properties"]
+        assert "explanation" in schema["properties"]
+        assert schema["required"] == ["query", "explanation"]
+
+    def test_execute_tool_unknown_tool(self, tool_manager):
+        """Test executing unknown tool"""
+        result = tool_manager.execute_tool("unknown_tool", param="value")
+        
+        assert "Error: Unknown tool 'unknown_tool'" in result
+
+    def test_execute_tool_exception(self, tool_manager):
+        """Test execute_tool handles exceptions"""
+        # Mock the _execute_custom_query method to raise an exception
+        with patch.object(tool_manager, '_execute_custom_query', side_effect=Exception("Test error")):
+            result = tool_manager.execute_tool("execute_custom_query", query="SELECT 1", explanation="test")
+            
+            assert "Error executing tool: Test error" in result
 
 
-class TestGetPlayerStats:
-    """Test get_player_stats tool functionality"""
+class TestCustomQueryTool:
+    """Test execute_custom_query tool functionality"""
+    
+    @pytest.fixture
+    def mock_db_with_data(self):
+        """Mock database with sample data"""
+        mock = Mock(spec=SQLDatabase)
+        mock.execute_query.return_value = [
+            {"id": 1, "name": "Test Player", "points": 25},
+            {"id": 2, "name": "Another Player", "points": 20}
+        ]
+        return mock
+    
+    @pytest.fixture
+    def tool_manager(self, mock_db_with_data):
+        """StatsToolManager instance with mock database"""
+        return StatsToolManager(mock_db_with_data)
+    
+    def test_execute_custom_query_success(self, tool_manager, mock_db_with_data):
+        """Test successful custom query execution"""
+        query = "SELECT name, points FROM players WHERE points > 20"
+        explanation = "Get players with more than 20 points"
+        
+        result = tool_manager.execute_tool("execute_custom_query", 
+                                         query=query, 
+                                         explanation=explanation)
+        
+        # Result should be JSON string
+        parsed_result = json.loads(result)
+        assert "results" in parsed_result
+        assert "explanation" in parsed_result
+        assert "query" in parsed_result
+        assert len(parsed_result["results"]) == 2
+        assert parsed_result["explanation"] == explanation
+        assert parsed_result["query"] == query
+        
+        # Verify database was called correctly
+        mock_db_with_data.execute_query.assert_called_once()
+
+    def test_execute_custom_query_with_parameters(self, tool_manager, mock_db_with_data):
+        """Test custom query execution with parameters"""
+        query = "SELECT * FROM players WHERE points > :min_points"
+        parameters = {"min_points": 20}
+        explanation = "Get players with points above threshold"
+        
+        result = tool_manager.execute_tool("execute_custom_query",
+                                         query=query,
+                                         parameters=parameters,
+                                         explanation=explanation)
+        
+        parsed_result = json.loads(result)
+        assert "results" in parsed_result
+        assert "parameters" in parsed_result
+        assert parsed_result["parameters"] == parameters
+
+    def test_execute_custom_query_invalid_sql(self, tool_manager):
+        """Test custom query with invalid SQL (non-SELECT)"""
+        query = "DELETE FROM players WHERE id = 1"
+        explanation = "Try to delete a player"
+        
+        result = tool_manager.execute_tool("execute_custom_query",
+                                         query=query,
+                                         explanation=explanation)
+        
+        parsed_result = json.loads(result)
+        assert "error" in parsed_result
+        assert "Only SELECT queries are allowed" in parsed_result["error"]
+
+    def test_execute_custom_query_database_error(self, tool_manager, mock_db_with_data):
+        """Test custom query handles database errors"""
+        mock_db_with_data.execute_query.side_effect = Exception("Database connection failed")
+        
+        query = "SELECT * FROM players"
+        explanation = "Get all players"
+        
+        result = tool_manager.execute_tool("execute_custom_query",
+                                         query=query,
+                                         explanation=explanation)
+        
+        parsed_result = json.loads(result)
+        assert "error" in parsed_result
+        assert "Database connection failed" in parsed_result["error"]
+
+    def test_execute_custom_query_empty_results(self, tool_manager):
+        """Test custom query with empty results"""
+        mock_db = Mock(spec=SQLDatabase)
+        mock_db.execute_query.return_value = []
+        tool_manager.db = mock_db
+        
+        query = "SELECT * FROM players WHERE name = 'Nonexistent Player'"
+        explanation = "Search for non-existent player"
+        
+        result = tool_manager.execute_tool("execute_custom_query",
+                                         query=query,
+                                         explanation=explanation)
+        
+        parsed_result = json.loads(result)
+        assert parsed_result["results"] == []
+        assert parsed_result["row_count"] == 0
+
+
+class TestLegacyToolMethods:
+    """Test the private tool methods that are called by execute_tool"""
     
     @pytest.fixture
     def mock_db_with_player_data(self):
         """Mock database with player stats data"""
         mock = Mock(spec=SQLDatabase)
-        mock.execute_query.return_value = [
-            {
-                "player_id": 1,
-                "name": "LeBron James",
-                "team_name": "Los Angeles Lakers",
-                "position": "Forward",
-                "games_played": 70,
-                "points_per_game": 25.2,
-                "rebounds_per_game": 7.8,
-                "assists_per_game": 6.9,
-                "field_goal_percentage": 54.1
-            }
-        ]
+        # Mock different responses based on the query
+        def mock_execute_query(query, params=None):
+            if "FROM players p" in query and "LIKE" in query:
+                # Player lookup query
+                return [
+                    {
+                        "id": 1,
+                        "name": "Test Player",
+                        "team_name": "Test Team", 
+                        "position": "Forward",
+                        "jersey_number": 23
+                    }
+                ]
+            elif "player_season_stats" in query:
+                # Season stats query
+                return [
+                    {
+                        "player_id": 1,
+                        "season": "2024",
+                        "team_name": "Test Team",
+                        "total_goals": 15,
+                        "total_assists": 8,
+                        "total_blocks": 3,
+                        "games_played": 20
+                    }
+                ]
+            elif "status = 'active'" in query:
+                # Search players query
+                return [
+                    {
+                        "id": 1,
+                        "name": "Test Player",
+                        "team_name": "Test Team",
+                        "position": "Forward",
+                        "jersey_number": 23,
+                        "status": "active"
+                    }
+                ]
+            else:
+                # Default empty response
+                return []
+        
+        mock.execute_query.side_effect = mock_execute_query
         return mock
-    
-    def test_get_player_stats_by_name(self, mock_db_with_player_data):
-        """Test getting player stats by name"""
-        tool_manager = StatsToolManager(mock_db_with_player_data)
-        
-        result = tool_manager.get_player_stats(player_name="LeBron James")
-        
-        assert isinstance(result, str)
-        result_data = json.loads(result)
-        assert len(result_data) == 1
-        assert result_data[0]["name"] == "LeBron James"
-        assert result_data[0]["points_per_game"] == 25.2
-        
-        # Verify correct SQL query was called
-        mock_db_with_player_data.execute_query.assert_called_once()
-        call_args = mock_db_with_player_data.execute_query.call_args
-        assert "LeBron James" in str(call_args)
-        
-    def test_get_player_stats_by_team(self, mock_db_with_player_data):
-        """Test getting player stats by team"""
-        tool_manager = StatsToolManager(mock_db_with_player_data)
-        
-        result = tool_manager.get_player_stats(team_name="Los Angeles Lakers")
-        
-        assert isinstance(result, str)
-        result_data = json.loads(result)
-        assert len(result_data) == 1
-        assert result_data[0]["team_name"] == "Los Angeles Lakers"
-        
-    def test_get_player_stats_season_filter(self, mock_db_with_player_data):
-        """Test getting player stats with season filter"""
-        tool_manager = StatsToolManager(mock_db_with_player_data)
-        
-        result = tool_manager.get_player_stats(
-            player_name="LeBron James",
-            season=2024
-        )
-        
-        # Verify season filter was applied in query
-        call_args = mock_db_with_player_data.execute_query.call_args
-        assert "2024" in str(call_args)
-        
-    def test_get_player_stats_stat_type_game(self, mock_db_with_player_data):
-        """Test getting individual game stats"""
-        # Mock game stats data
-        mock_db_with_player_data.execute_query.return_value = [
-            {
-                "game_date": "2024-01-15",
-                "opponent": "Boston Celtics",
-                "points": 28,
-                "rebounds": 9,
-                "assists": 7,
-                "minutes_played": 38
-            }
-        ]
-        
-        tool_manager = StatsToolManager(mock_db_with_player_data)
-        
-        result = tool_manager.get_player_stats(
-            player_name="LeBron James",
-            stat_type="game"
-        )
-        
-        result_data = json.loads(result)
-        assert result_data[0]["points"] == 28
-        assert result_data[0]["opponent"] == "Boston Celtics"
-        
-    def test_get_player_stats_no_results(self, mock_db):
-        """Test getting player stats when no data found"""
-        mock_db.execute_query.return_value = []
-        tool_manager = StatsToolManager(mock_db)
-        
-        result = tool_manager.get_player_stats(player_name="Unknown Player")
-        
-        result_data = json.loads(result)
-        assert result_data == []
-        
-    def test_get_player_stats_database_error(self, mock_db):
-        """Test handling database errors in get_player_stats"""
-        mock_db.execute_query.side_effect = Exception("Database connection error")
-        tool_manager = StatsToolManager(mock_db)
-        
-        result = tool_manager.get_player_stats(player_name="LeBron James")
-        
-        # Should return error message or empty result
-        assert isinstance(result, str)
-        result_data = json.loads(result)
-        assert "error" in result_data or result_data == []
-
-
-class TestGetTeamStats:
-    """Test get_team_stats tool functionality"""
     
     @pytest.fixture
-    def mock_db_with_team_data(self):
-        """Mock database with team stats data"""
-        mock = Mock(spec=SQLDatabase)
-        mock.execute_query.return_value = [
-            {
-                "team_id": 1,
-                "name": "Los Angeles Lakers", 
-                "wins": 45,
-                "losses": 37,
-                "win_percentage": 54.9,
-                "points_per_game": 115.2,
-                "points_allowed_per_game": 112.8,
-                "conference": "Western",
-                "division": "Pacific"
-            }
-        ]
-        return mock
+    def tool_manager(self, mock_db_with_player_data):
+        """StatsToolManager instance with mock database"""
+        return StatsToolManager(mock_db_with_player_data)
     
-    def test_get_team_stats_by_name(self, mock_db_with_team_data):
-        """Test getting team stats by name"""
-        tool_manager = StatsToolManager(mock_db_with_team_data)
+    def test_get_player_stats_tool(self, tool_manager, mock_db_with_player_data):
+        """Test get_player_stats tool execution"""
+        result = tool_manager.execute_tool("get_player_stats", 
+                                         player_name="Test Player",
+                                         season="2024")
         
-        result = tool_manager.get_team_stats(team_name="Los Angeles Lakers")
+        parsed_result = json.loads(result)
+        assert "player" in parsed_result
+        assert "season_stats" in parsed_result
+        assert parsed_result["player"]["name"] == "Test Player"
+        assert parsed_result["season_stats"]["total_goals"] == 15
         
-        assert isinstance(result, str)
-        result_data = json.loads(result)
-        assert len(result_data) == 1
-        assert result_data[0]["name"] == "Los Angeles Lakers"
-        assert result_data[0]["wins"] == 45
+        # Verify database was called
+        mock_db_with_player_data.execute_query.assert_called()
+
+    def test_get_team_stats_tool(self, tool_manager):
+        """Test get_team_stats tool execution"""
+        # Create a separate mock for team stats
+        mock_db = Mock(spec=SQLDatabase)
+        def mock_team_execute_query(query, params=None):
+            if "FROM teams" in query:
+                # Team lookup query
+                return [{"id": 1, "name": "Test Team", "abbreviation": "TT"}]
+            elif "team_season_stats" in query:
+                # Team stats query
+                return [
+                    {
+                        "team_id": 1,
+                        "season": "2024",
+                        "wins": 10,
+                        "losses": 5,
+                        "points_for": 150,
+                        "points_against": 120
+                    }
+                ]
+            else:
+                return []
         
-    def test_get_team_stats_roster_info(self, mock_db_with_team_data):
-        """Test getting team stats with roster information"""
-        # Mock roster data
-        mock_db_with_team_data.execute_query.return_value = [
-            {
-                "player_name": "LeBron James",
-                "position": "Forward",
-                "jersey_number": 23,
-                "points_per_game": 25.2
-            },
-            {
-                "player_name": "Anthony Davis",
-                "position": "Forward-Center", 
-                "jersey_number": 3,
-                "points_per_game": 22.1
-            }
-        ]
+        mock_db.execute_query.side_effect = mock_team_execute_query
+        team_tool_manager = StatsToolManager(mock_db)
         
-        tool_manager = StatsToolManager(mock_db_with_team_data)
+        result = team_tool_manager.execute_tool("get_team_stats",
+                                              team_name="Test Team",
+                                              season="2024")
         
-        result = tool_manager.get_team_stats(
-            team_name="Los Angeles Lakers",
-            include_roster=True
-        )
+        parsed_result = json.loads(result)
+        assert "team" in parsed_result
+        assert "season_stats" in parsed_result
+        assert parsed_result["team"]["name"] == "Test Team"
+        assert parsed_result["season_stats"]["wins"] == 10
+
+    def test_search_players_tool(self, tool_manager, mock_db_with_player_data):
+        """Test search_players tool execution"""
+        result = tool_manager.execute_tool("search_players",
+                                         search_term="Test")
         
-        result_data = json.loads(result)
-        assert len(result_data) == 2  # Two players
-        assert result_data[0]["player_name"] == "LeBron James"
-        
-    def test_get_team_stats_season_filter(self, mock_db_with_team_data):
-        """Test getting team stats with season filter"""
-        tool_manager = StatsToolManager(mock_db_with_team_data)
-        
-        result = tool_manager.get_team_stats(
-            team_name="Los Angeles Lakers",
-            season=2024
-        )
-        
-        # Verify season filter was applied
-        call_args = mock_db_with_team_data.execute_query.call_args
-        assert "2024" in str(call_args)
+        parsed_result = json.loads(result)
+        assert "players" in parsed_result
+        assert len(parsed_result["players"]) == 1
 
 
-class TestGetGameResults:
-    """Test get_game_results tool functionality"""
-    
-    @pytest.fixture  
-    def mock_db_with_game_data(self):
-        """Mock database with game results data"""
-        mock = Mock(spec=SQLDatabase)
-        mock.execute_query.return_value = [
-            {
-                "game_id": 1,
-                "game_date": "2024-01-15",
-                "home_team": "Los Angeles Lakers",
-                "away_team": "Boston Celtics",
-                "home_score": 110,
-                "away_score": 105,
-                "venue": "Crypto.com Arena"
-            }
-        ]
-        return mock
-    
-    def test_get_game_results_by_team(self, mock_db_with_game_data):
-        """Test getting game results by team"""
-        tool_manager = StatsToolManager(mock_db_with_game_data)
-        
-        result = tool_manager.get_game_results(team_name="Los Angeles Lakers")
-        
-        assert isinstance(result, str)
-        result_data = json.loads(result)
-        assert len(result_data) == 1
-        assert result_data[0]["home_team"] == "Los Angeles Lakers"
-        assert result_data[0]["home_score"] == 110
-        
-    def test_get_game_results_by_date(self, mock_db_with_game_data):
-        """Test getting game results by date"""
-        tool_manager = StatsToolManager(mock_db_with_game_data)
-        
-        result = tool_manager.get_game_results(date="2024-01-15")
-        
-        call_args = mock_db_with_game_data.execute_query.call_args
-        assert "2024-01-15" in str(call_args)
-        
-    def test_get_game_results_limit(self, mock_db_with_game_data):
-        """Test getting game results with limit"""
-        tool_manager = StatsToolManager(mock_db_with_game_data)
-        
-        result = tool_manager.get_game_results(
-            team_name="Los Angeles Lakers",
-            limit=5
-        )
-        
-        call_args = mock_db_with_game_data.execute_query.call_args
-        assert "LIMIT 5" in str(call_args) or "5" in str(call_args)
-
-
-class TestGetLeagueLeaders:
-    """Test get_league_leaders tool functionality"""
+class TestSourcesTracking:
+    """Test sources tracking functionality"""
     
     @pytest.fixture
-    def mock_db_with_leaders_data(self):
-        """Mock database with league leaders data"""
-        mock = Mock(spec=SQLDatabase)
-        mock.execute_query.return_value = [
-            {
-                "player_name": "Luka Doncic",
-                "team_name": "Dallas Mavericks",
-                "stat_value": 32.8,
-                "rank": 1
-            },
-            {
-                "player_name": "Joel Embiid", 
-                "team_name": "Philadelphia 76ers",
-                "stat_value": 30.4,
-                "rank": 2
-            }
-        ]
-        return mock
+    def tool_manager(self):
+        """StatsToolManager instance with mock database"""
+        mock_db = Mock(spec=SQLDatabase)
+        return StatsToolManager(mock_db)
     
-    def test_get_league_leaders_points(self, mock_db_with_leaders_data):
-        """Test getting league leaders for points"""
-        tool_manager = StatsToolManager(mock_db_with_leaders_data)
-        
-        result = tool_manager.get_league_leaders(stat_category="points")
-        
-        assert isinstance(result, str)
-        result_data = json.loads(result)
-        assert len(result_data) == 2
-        assert result_data[0]["player_name"] == "Luka Doncic"
-        assert result_data[0]["stat_value"] == 32.8
-        
-    def test_get_league_leaders_custom_limit(self, mock_db_with_leaders_data):
-        """Test getting league leaders with custom limit"""
-        tool_manager = StatsToolManager(mock_db_with_leaders_data)
-        
-        result = tool_manager.get_league_leaders(
-            stat_category="rebounds",
-            limit=10
-        )
-        
-        call_args = mock_db_with_leaders_data.execute_query.call_args
-        assert "10" in str(call_args)
-        
-    def test_get_league_leaders_season_filter(self, mock_db_with_leaders_data):
-        """Test getting league leaders with season filter"""
-        tool_manager = StatsToolManager(mock_db_with_leaders_data)
-        
-        result = tool_manager.get_league_leaders(
-            stat_category="assists",
-            season=2024
-        )
-        
-        call_args = mock_db_with_leaders_data.execute_query.call_args
-        assert "2024" in str(call_args)
+    def test_get_last_sources(self, tool_manager):
+        """Test getting last sources"""
+        sources = tool_manager.get_last_sources()
+        assert sources == []
+    
+    def test_reset_sources(self, tool_manager):
+        """Test resetting sources"""
+        tool_manager.last_sources = ["test source"]
+        tool_manager.reset_sources()
+        assert tool_manager.last_sources == []
 
-
-class TestComparePlayers:
-    """Test compare_players tool functionality"""
-    
-    @pytest.fixture
-    def mock_db_with_comparison_data(self):
-        """Mock database with player comparison data"""
-        mock = Mock(spec=SQLDatabase)
-        mock.execute_query.return_value = [
-            {
-                "player_name": "LeBron James",
-                "team_name": "Los Angeles Lakers",
-                "points_per_game": 25.2,
-                "rebounds_per_game": 7.8,
-                "assists_per_game": 6.9,
-                "field_goal_percentage": 54.1
-            },
-            {
-                "player_name": "Kevin Durant",
-                "team_name": "Phoenix Suns", 
-                "points_per_game": 28.1,
-                "rebounds_per_game": 6.7,
-                "assists_per_game": 5.2,
-                "field_goal_percentage": 56.3
-            }
-        ]
-        return mock
-    
-    def test_compare_players_basic(self, mock_db_with_comparison_data):
-        """Test basic player comparison"""
-        tool_manager = StatsToolManager(mock_db_with_comparison_data)
+    def test_sources_updated_after_tool_execution(self, tool_manager):
+        """Test that sources are updated after tool execution"""
+        # Mock a method that returns sources
+        mock_result = {
+            "data": [{"test": "data"}],
+            "sources": ["query1", "query2"]
+        }
         
-        result = tool_manager.compare_players([
-            "LeBron James",
-            "Kevin Durant"
-        ])
-        
-        assert isinstance(result, str)
-        result_data = json.loads(result)
-        assert len(result_data) == 2
-        
-        # Verify both players are in results
-        player_names = [player["player_name"] for player in result_data]
-        assert "LeBron James" in player_names
-        assert "Kevin Durant" in player_names
-        
-    def test_compare_players_with_season(self, mock_db_with_comparison_data):
-        """Test player comparison with season filter"""
-        tool_manager = StatsToolManager(mock_db_with_comparison_data)
-        
-        result = tool_manager.compare_players(
-            ["LeBron James", "Kevin Durant"],
-            season=2024
-        )
-        
-        call_args = mock_db_with_comparison_data.execute_query.call_args
-        assert "2024" in str(call_args)
-        
-    def test_compare_players_empty_list(self, mock_db):
-        """Test compare_players with empty player list"""
-        mock_db.execute_query.return_value = []
-        tool_manager = StatsToolManager(mock_db)
-        
-        result = tool_manager.compare_players([])
-        
-        result_data = json.loads(result)
-        assert result_data == []
-
-
-class TestSearchPlayers:
-    """Test search_players tool functionality"""
-    
-    @pytest.fixture
-    def mock_db_with_search_data(self):
-        """Mock database with player search data"""
-        mock = Mock(spec=SQLDatabase)
-        mock.execute_query.return_value = [
-            {
-                "player_name": "LeBron James",
-                "team_name": "Los Angeles Lakers",
-                "position": "Forward",
-                "jersey_number": 23
-            },
-            {
-                "player_name": "LeBron James Jr.",
-                "team_name": "G League",
-                "position": "Guard",
-                "jersey_number": 0
-            }
-        ]
-        return mock
-    
-    def test_search_players_by_name(self, mock_db_with_search_data):
-        """Test searching players by name"""
-        tool_manager = StatsToolManager(mock_db_with_search_data)
-        
-        result = tool_manager.search_players(name_query="LeBron")
-        
-        assert isinstance(result, str)
-        result_data = json.loads(result)
-        assert len(result_data) == 2
-        assert "LeBron" in result_data[0]["player_name"]
-        
-    def test_search_players_by_team(self, mock_db_with_search_data):
-        """Test searching players by team"""
-        tool_manager = StatsToolManager(mock_db_with_search_data)
-        
-        result = tool_manager.search_players(team_name="Los Angeles Lakers")
-        
-        call_args = mock_db_with_search_data.execute_query.call_args
-        assert "Los Angeles Lakers" in str(call_args)
-        
-    def test_search_players_by_position(self, mock_db_with_search_data):
-        """Test searching players by position"""
-        tool_manager = StatsToolManager(mock_db_with_search_data)
-        
-        result = tool_manager.search_players(position="Forward")
-        
-        call_args = mock_db_with_search_data.execute_query.call_args
-        assert "Forward" in str(call_args)
-
-
-class TestGetStandings:
-    """Test get_standings tool functionality"""
-    
-    @pytest.fixture
-    def mock_db_with_standings_data(self):
-        """Mock database with standings data"""
-        mock = Mock(spec=SQLDatabase)
-        mock.execute_query.return_value = [
-            {
-                "team_name": "Boston Celtics",
-                "wins": 55,
-                "losses": 27,
-                "win_percentage": 67.1,
-                "conference": "Eastern",
-                "division": "Atlantic",
-                "conference_rank": 1,
-                "division_rank": 1
-            },
-            {
-                "team_name": "Denver Nuggets",
-                "wins": 50,
-                "losses": 32, 
-                "win_percentage": 61.0,
-                "conference": "Western",
-                "division": "Northwest",
-                "conference_rank": 1,
-                "division_rank": 1
-            }
-        ]
-        return mock
-    
-    def test_get_standings_all(self, mock_db_with_standings_data):
-        """Test getting all standings"""
-        tool_manager = StatsToolManager(mock_db_with_standings_data)
-        
-        result = tool_manager.get_standings()
-        
-        assert isinstance(result, str)
-        result_data = json.loads(result)
-        assert len(result_data) == 2
-        assert result_data[0]["conference_rank"] == 1
-        
-    def test_get_standings_by_conference(self, mock_db_with_standings_data):
-        """Test getting standings by conference"""
-        tool_manager = StatsToolManager(mock_db_with_standings_data)
-        
-        result = tool_manager.get_standings(conference="Eastern")
-        
-        call_args = mock_db_with_standings_data.execute_query.call_args
-        assert "Eastern" in str(call_args)
-        
-    def test_get_standings_by_division(self, mock_db_with_standings_data):
-        """Test getting standings by division"""
-        tool_manager = StatsToolManager(mock_db_with_standings_data)
-        
-        result = tool_manager.get_standings(division="Atlantic")
-        
-        call_args = mock_db_with_standings_data.execute_query.call_args
-        assert "Atlantic" in str(call_args)
+        with patch.object(tool_manager, '_execute_custom_query', return_value=mock_result):
+            tool_manager.execute_tool("execute_custom_query", 
+                                    query="SELECT 1", 
+                                    explanation="test")
+            
+            assert tool_manager.last_sources == ["query1", "query2"]
 
 
 class TestToolIntegration:
-    """Test tool integration scenarios"""
+    """Integration tests for tool execution"""
     
-    def test_multiple_tool_calls(self, mock_db):
-        """Test using multiple tools in sequence"""
-        mock_db.execute_query.return_value = [
-            {"player_name": "LeBron James", "points_per_game": 25.2}
-        ]
+    @pytest.fixture
+    def tool_manager_real_db(self):
+        """StatsToolManager with real database for integration testing"""
+        # Only create if database exists, otherwise skip
+        db_path = "./db/sports_stats.db"
+        if not os.path.exists(db_path):
+            pytest.skip("Test database not available")
         
-        tool_manager = StatsToolManager(mock_db)
-        
-        # Call multiple tools
-        player_result = tool_manager.get_player_stats(player_name="LeBron James")
-        team_result = tool_manager.get_team_stats(team_name="Los Angeles Lakers")
-        
-        assert isinstance(player_result, str)
-        assert isinstance(team_result, str)
-        assert mock_db.execute_query.call_count == 2
-        
-    def test_tool_error_isolation(self, mock_db):
-        """Test that errors in one tool don't affect others"""
-        # First call fails, second succeeds
-        mock_db.execute_query.side_effect = [
-            Exception("Database error"),
-            [{"team_name": "Lakers", "wins": 45}]
-        ]
-        
-        tool_manager = StatsToolManager(mock_db)
-        
-        # First tool call should handle error gracefully
-        player_result = tool_manager.get_player_stats(player_name="Test Player")
-        
-        # Second tool call should still work
-        team_result = tool_manager.get_team_stats(team_name="Lakers")
-        
-        # Both should return valid JSON strings
-        assert isinstance(player_result, str)
-        assert isinstance(team_result, str)
-        
-        # Verify error handling
-        player_data = json.loads(player_result)
-        team_data = json.loads(team_result)
-        
-        assert len(team_data) == 1  # Second call succeeded
-        
-    def test_parameter_validation(self, mock_db):
-        """Test parameter validation in tools"""
-        tool_manager = StatsToolManager(mock_db)
-        
-        # Test with invalid parameters
-        result = tool_manager.get_player_stats(
-            season="invalid_season"  # Should handle gracefully
-        )
-        
-        assert isinstance(result, str)
-        # Should either return error or empty result
-        result_data = json.loads(result)
-        assert isinstance(result_data, (list, dict))
-
-
-class TestPerformanceOptimization:
-    """Test performance-related functionality"""
+        from sql_database import SQLDatabase
+        real_db = SQLDatabase(db_path)
+        return StatsToolManager(real_db)
     
-    def test_query_optimization(self, mock_db):
-        """Test that queries are optimized"""
-        tool_manager = StatsToolManager(mock_db)
+    def test_tool_definitions_are_valid(self, tool_manager_real_db):
+        """Test that tool definitions are properly formatted for Claude"""
+        definitions = tool_manager_real_db.get_tool_definitions()
         
-        # Call tool that should use indexed columns
-        tool_manager.get_player_stats(player_name="LeBron James")
+        for definition in definitions:
+            # Verify required fields
+            assert "name" in definition
+            assert "description" in definition  
+            assert "input_schema" in definition
+            
+            # Verify schema structure
+            schema = definition["input_schema"]
+            assert "type" in schema
+            assert schema["type"] == "object"
+            assert "properties" in schema
+
+    def test_all_tool_methods_exist(self):
+        """Test that all tool methods referenced in execute_tool exist"""
+        tool_manager = StatsToolManager()
         
-        # Verify query uses efficient WHERE clauses
-        call_args = mock_db.execute_query.call_args
-        query = str(call_args)
+        # Get all tool methods from execute_tool
+        tool_methods = {
+            "execute_custom_query": tool_manager._execute_custom_query,
+            "get_player_stats": tool_manager._get_player_stats,
+            "get_team_stats": tool_manager._get_team_stats,
+            "get_game_results": tool_manager._get_game_results,
+            "get_league_leaders": tool_manager._get_league_leaders,
+            "compare_players": tool_manager._compare_players,
+            "search_players": tool_manager._search_players,
+            "get_standings": tool_manager._get_standings,
+            "get_worst_performers": tool_manager._get_worst_performers
+        }
         
-        # Should use proper indexing hints or efficient WHERE clauses
-        assert "WHERE" in query
-        
-    def test_result_limiting(self, mock_db):
-        """Test that results are properly limited"""
-        # Mock large result set
-        large_result = [{"player": f"Player {i}"} for i in range(1000)]
-        mock_db.execute_query.return_value = large_result
-        
-        tool_manager = StatsToolManager(mock_db)
-        
-        result = tool_manager.get_league_leaders("points", limit=10)
-        
-        # Should limit results appropriately
-        call_args = mock_db.execute_query.call_args
-        query = str(call_args)
-        assert "LIMIT" in query or "10" in query
+        # Verify all methods exist and are callable
+        for tool_name, method in tool_methods.items():
+            assert callable(method), f"Method {tool_name} is not callable"
