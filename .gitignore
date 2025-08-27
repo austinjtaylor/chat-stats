@@ -1,0 +1,25 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+
+# Environments
+.env
+.venv
+
+# Database files
+db/
+*.db
+*.sqlite
+*.sqlite3
+
+# Log files
+logs/
+*.log
+
+# CSV data files
+data/
+
+# Ruff cache
+.ruff_cache/
+
+# Claude editor files
+.claude/

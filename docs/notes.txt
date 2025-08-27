@@ -1,0 +1,7 @@
+Sample Queries:
+- "Show Austin Taylor's playoff stats vs regular season"
+- "Which players performed best in championship games?"
+- "Compare team performance in playoffs across years" 
+- "How many playoff games has [player] played?"
+- "Compare [player's] regular season vs playoff performance"- "Show top scorers in championship games"
+- "Which teams made the playoffs in [year]?"

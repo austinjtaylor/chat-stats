@@ -1,0 +1,166 @@
+PLAYOFF DATES VERIFICATION
+======================================================================
+
+2025 SEASON PLAYOFFS:
+----------------------------------------
+  Round 1:
+    2025-07-26 - SD vs AUS, NY vs DC, COL vs OAK, MAD vs MIN
+  Division finals: 
+    2025-08-08 - ATL vs SD
+    2025-08-09 - OAK vs SLC, MIN vs CHI, DC vs BOS
+  Semi finals: 
+    2025-08-22 - ATL vs MIN, BOS vs SLC
+  Championship: 
+    2025-08-23 - BOS vs MIN
+
+2024 SEASON PLAYOFFS:
+----------------------------------------
+  Round 1:
+    2024-07-27 - AUS vs CAR, OAK vs SEA, NY vs BOS
+    2024-07-28 - CHI vs MAD
+  Division finals: 
+    2024-08-09 - CAR vs ATL
+    2024-08-10 - SEA vs SLC, BOS vs DC, MAD vs MIN
+  Semi finals: 
+    2024-08-24 - CAR vs SEA, MIN vs DC
+  Championship: 
+    2024-08-24 - CAR vs MIN
+
+2023 SEASON PLAYOFFS:
+----------------------------------------
+  Round 1:
+    2023-07-29 - CAR vs AUS, CHI vs IND, BOS vs DC, LA vs COL
+  Division finals: 
+    2023-08-11 - LA vs SLC, AUS vs ATL
+    2023-08-12 - DC vs NY, IND vs MIN
+  Semi finals: 
+    2023-08-25 - MIN vs SLC, AUS vs NY
+  Championship: 
+    2023-08-26 - SLC vs NY
+
+2022 SEASON PLAYOFFS:
+----------------------------------------
+  Round 1:
+    2022-08-13 - SD vs SLC, PHI vs DC, IND vs MIN
+  Division finals: 
+    2022-08-20 - SLC vs COL, DC vs NY, AUS vs CAR
+    2022-08-21 - MIN vs CHI
+  Semi finals: 
+    2022-08-26 - CAR vs NY, CHI vs COL
+  Championship: 
+    2022-08-27 - CHI vs NY
+
+2021 SEASON PLAYOFFS:
+----------------------------------------
+  Division finals: 
+    2021-08-28 - SD vs DAL
+    2021-08-29 - MIN vs CHI
+    2021-09-03 - RAL vs DC
+    2021-09-04 - ATL vs NY
+  Semi finals: 
+    2021-09-10 - RAL vs CHI, SD vs NY
+  Championship: 
+    2021-09-11 - RAL vs NY
+
+2019 SEASON PLAYOFFS:
+----------------------------------------
+  Round 1:
+    2019-07-20 - DC vs TOR, CHI vs PIT
+  Division finals: 
+    2019-07-20 - SD vs LA
+    2019-07-21 - TOR vs NY
+    2019-07-27 - RAL vs DAL, PIT vs IND
+  Semi finals: 
+    2019-08-10 - DAL vs SD, IND vs NY
+  Championship: 
+    2019-08-11 - DAL vs NY
+
+2018 SEASON PLAYOFFS:
+----------------------------------------
+  Round 1: 
+    2018-07-27 - RAL vs AUS
+    2018-07-21 - MIN vs IND, DC vs NY
+  Division finals: 
+    2018-07-21 - SD vs LA
+    2018-07-28 - RAL vs DAL, IND vs MAD, NY vs TOR
+  Semi finals: 
+    2018-08-11 - LA vs MAD, NY vs DAL
+  Championship: 
+    2018-08-12 - DAL vs MAD
+
+2017 SEASON PLAYOFFS:
+----------------------------------------
+  Round 1:
+    2017-07-29 - JAX vs DAL
+    2017-08-04 - PIT vs MIN
+    2017-08-11 - MTL vs DC
+    2017-08-12 - SJ vs LA
+  Division finals: 
+    2017-08-12 - LA vs SF, DC vs TOR
+    2017-08-13 - PIT vs MAD, DAL vs RAL
+  Semi finals: 
+    2017-08-26 - TOR vs DAL, SF vs MAD
+  Championship: 
+    2017-08-27 - SF vs TOR
+
+2016 SEASON PLAYOFFS:
+----------------------------------------
+  Round 1: 
+  2016-07-16 - SEA vs LA, NY vs DC, MIN vs PIT
+  2016-07-17 - ATL vs RAL
+  Division finals: 
+    2016-07-17 - SEA vs SF
+    2016-07-23 - DC vs TOR, PIT vs MAD, ATL vs DAL
+  Semi finals: 
+    2016-08-06 - SEA vs MAD, TOR vs DAL
+  Championship: 
+    2016-08-07 - SEA vs DAL
+
+2015 SEASON PLAYOFFS:
+----------------------------------------
+  Round 1: 
+    2015-07-24 - NY vs MTL
+    2015-07-25 - PIT vs CHI, SEA vs SF
+  Division finals: 
+    2015-07-25 - MAD vs PIT, NY vs TOR, RAL vs JAX
+    2015-07-26 - SEA vs SJ
+  Semi finals: 
+    2015-08-08 - RAL vs MAD, TOR vs SJ
+  Championship: 
+    2015-08-09 - MAD vs SJ
+
+2014 SEASON PLAYOFFS:
+----------------------------------------
+  Division finals: 
+    2014-07-18 - SF vs SJ
+    2014-07-19 - IND vs MAD, CHI vs NY, DC vs TOR
+  Semi finals: 
+    2014-07-26 - MAD vs SJ, NY vs TOR
+  Championship: 
+    2014-07-27 - SJ vs TOR
+
+2013 SEASON PLAYOFFS:
+----------------------------------------
+  Division finals: 
+    2013-07-26 - PHI vs NY
+    2013-07-27 - IND vs MAD
+  Semi finals: 
+    2013-08-03 - NY vs TOR, MAD vs CHI
+  Championship: 
+    2013-08-04 - MAD vs TOR
+
+2012 SEASON PLAYOFFS:
+----------------------------------------
+  Semi finals: 
+    2012-07-28 - CIN vs IND
+    2012-08-05 - RI vs PHI
+  Championship
+    2012-08-11 - IND vs PHI
+
+======================================================================
+SUMMARY:
+- Playoff structure: Last 3 weeks of each season
+- Week N-2: Round 1 (playoffs_r1)
+- Week N-1: Division Finals (playoffs_div)
+- Week N: Championship Weekend (playoffs_championship)
+
