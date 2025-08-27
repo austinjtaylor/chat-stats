@@ -46,7 +46,7 @@ class TestStatsChatSystem:
     def mock_tool_manager(self):
         """Mock tool manager"""
         mock = Mock(spec=StatsToolManager)
-        mock.get_tool_schemas.return_value = [
+        mock.get_tool_definitions.return_value = [
             {
                 "name": "get_player_stats",
                 "description": "Get player statistics",
@@ -87,7 +87,7 @@ class TestStatsChatSystem:
             mock_processor_class.return_value = mock_processor
             
             mock_tool_manager = Mock(spec=StatsToolManager)
-            mock_tool_manager.get_tool_schemas.return_value = []
+            mock_tool_manager.get_tool_definitions.return_value = []
             mock_tool_class.return_value = mock_tool_manager
             
             mock_ai_gen = Mock(spec=AIGenerator)
@@ -154,7 +154,7 @@ class TestQueryProcessing:
         """Test querying without a session ID"""
         # Setup mocks
         chat_system_with_mocks.session_manager.get_history.return_value = []
-        chat_system_with_mocks.tool_manager.get_tool_schemas.return_value = [
+        chat_system_with_mocks.tool_manager.get_tool_definitions.return_value = [
             {
                 "name": "get_player_stats",
                 "description": "Get player stats",
@@ -195,7 +195,7 @@ class TestQueryProcessing:
         chat_system_with_mocks.session_manager.get_history.return_value = mock_history
         
         # Setup AI response
-        chat_system_with_mocks.tool_manager.get_tool_schemas.return_value = []
+        chat_system_with_mocks.tool_manager.get_tool_definitions.return_value = []
         chat_system_with_mocks.ai_generator.generate_response.return_value = (
             "Based on our previous discussion about LeBron, he averages 25.2 PPG.",
             []
@@ -229,7 +229,7 @@ class TestQueryProcessing:
                 }
             }
         ]
-        chat_system_with_mocks.tool_manager.get_tool_schemas.return_value = tool_schemas
+        chat_system_with_mocks.tool_manager.get_tool_definitions.return_value = tool_schemas
         
         # Setup AI response
         chat_system_with_mocks.ai_generator.generate_response.return_value = (
@@ -448,7 +448,7 @@ class TestToolManagerIntegration:
                 "parameters": {"type": "object"}
             }
         ]
-        chat_system._mock_tool_manager.get_tool_schemas.return_value = mock_schemas
+        chat_system._mock_tool_manager.get_tool_definitions.return_value = mock_schemas
         chat_system._mock_ai_generator.generate_response.return_value = ("Response", [])
         
         response, sources = chat_system.query("Test query")

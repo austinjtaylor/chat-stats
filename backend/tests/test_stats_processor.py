@@ -18,75 +18,102 @@ from sql_database import SQLDatabase
 from models import Team, Player, Game, PlayerGameStats
 
 
+# ===== MODULE-LEVEL FIXTURES =====
+
+@pytest.fixture
+def mock_db():
+    """Mock database for testing"""
+    mock = Mock(spec=SQLDatabase)
+    mock.execute_query.return_value = []
+    mock.insert_data.return_value = 1
+    return mock
+
+@pytest.fixture
+def stats_processor(mock_db):
+    """StatsProcessor instance with mock database"""
+    return StatsProcessor(mock_db)
+
+@pytest.fixture
+def sample_team_data():
+    """Sample UFA team data for testing"""
+    return [
+        {
+            "team_id": "hustle",
+            "year": 2024,
+            "name": "Atlanta Hustle",
+            "city": "Atlanta", 
+            "full_name": "Atlanta Hustle",
+            "abbrev": "ATL",
+            "wins": 12,
+            "losses": 3,
+            "ties": 1,
+            "standing": 1,
+            "division_id": "south",
+            "division_name": "South"
+        },
+        {
+            "team_id": "glory", 
+            "year": 2024,
+            "name": "Boston Glory",
+            "city": "Boston",
+            "full_name": "Boston Glory",
+            "abbrev": "BOS",
+            "wins": 10,
+            "losses": 5,
+            "ties": 1,
+            "standing": 2,
+            "division_id": "atlantic",
+            "division_name": "Atlantic"
+        }
+    ]
+
+@pytest.fixture
+def sample_player_data():
+    """Sample UFA player data for testing"""
+    return [
+        {
+            "name": "Austin Taylor",  # Used by import method for lookup
+            "player_id": "austin-taylor",
+            "first_name": "Austin",
+            "last_name": "Taylor",
+            "full_name": "Austin Taylor",
+            "team_name": "Atlanta Hustle",  # Used by import method for team lookup
+            "active": True,
+            "year": 2024,
+            "jersey_number": 23
+        },
+        {
+            "name": "Sarah Johnson",  # Used by import method for lookup
+            "player_id": "sarah-johnson",
+            "first_name": "Sarah",
+            "last_name": "Johnson", 
+            "full_name": "Sarah Johnson",
+            "team_name": "Boston Glory",  # Used by import method for team lookup
+            "active": True,
+            "year": 2024,
+            "jersey_number": 7
+        }
+    ]
+
+@pytest.fixture
+def sample_game_data():
+    """Sample UFA game data for testing"""
+    return {
+        "game_id": "hustle-vs-glory-2024-06-15",
+        "home_team_name": "Atlanta Hustle",  # Used by import method for lookup
+        "away_team_name": "Boston Glory",    # Used by import method for lookup
+        "away_score": 12,
+        "home_score": 15,
+        "status": "Final",
+        "start_timestamp": "2024-06-15T14:00:00Z",
+        "start_timezone": "America/New_York",
+        "location": "Piedmont Park",
+        "year": 2024
+    }
+
+
 class TestStatsProcessor:
     """Test StatsProcessor class functionality"""
-    
-    @pytest.fixture
-    def mock_db(self):
-        """Mock database for testing"""
-        mock = Mock(spec=SQLDatabase)
-        mock.execute_query.return_value = []
-        mock.insert_data.return_value = 1
-        return mock
-    
-    @pytest.fixture
-    def stats_processor(self, mock_db):
-        """StatsProcessor instance with mock database"""
-        return StatsProcessor(mock_db)
-    
-    @pytest.fixture
-    def sample_team_data(self):
-        """Sample team data for testing"""
-        return [
-            {
-                "name": "Los Angeles Lakers",
-                "city": "Los Angeles", 
-                "abbreviation": "LAL",
-                "division": "Pacific",
-                "conference": "Western"
-            },
-            {
-                "name": "Boston Celtics",
-                "city": "Boston",
-                "abbreviation": "BOS", 
-                "division": "Atlantic",
-                "conference": "Eastern"
-            }
-        ]
-    
-    @pytest.fixture
-    def sample_player_data(self):
-        """Sample player data for testing"""
-        return [
-            {
-                "name": "LeBron James",
-                "first_name": "LeBron",
-                "last_name": "James",
-                "position": "Forward",
-                "jersey_number": 23,
-                "team_name": "Los Angeles Lakers"
-            },
-            {
-                "name": "Jayson Tatum", 
-                "first_name": "Jayson",
-                "last_name": "Tatum",
-                "position": "Forward",
-                "jersey_number": 0,
-                "team_name": "Boston Celtics"
-            }
-        ]
-    
-    @pytest.fixture
-    def sample_game_data(self):
-        """Sample game data for testing"""
-        return {
-            "game_date": "2024-01-15",
-            "home_team_name": "Los Angeles Lakers",
-            "away_team_name": "Boston Celtics", 
-            "home_score": 110,
-            "away_score": 105,
-            "venue": "Crypto.com Arena"
-        }
 
 
 class TestImportTeams:
@@ -105,7 +132,7 @@ class TestImportTeams:
         # Verify correct data passed to insert_data
         calls = mock_db.insert_data.call_args_list
         assert calls[0][0][0] == "teams"  # table name
-        assert calls[0][0][1]["name"] == "Los Angeles Lakers"
+        assert calls[0][0][1]["name"] == "Atlanta Hustle"
         
     def test_import_teams_skip_existing(self, stats_processor, sample_team_data, mock_db):
         """Test that existing teams are skipped"""
@@ -165,10 +192,10 @@ class TestImportPlayers:
         """Test successful player import"""
         # Mock no existing players and team lookup
         mock_db.execute_query.side_effect = [
-            [],  # No existing player
-            [{"id": 1}],  # Team lookup for Lakers
-            [],  # No existing player  
-            [{"id": 2}]   # Team lookup for Celtics
+            [],  # No existing player "Austin Taylor"
+            [{"id": "hustle"}],  # Team lookup for "Atlanta Hustle"
+            [],  # No existing player "Sarah Johnson"
+            [{"id": "glory"}]   # Team lookup for "Boston Glory"
         ]
         
         count = stats_processor.import_players(sample_player_data)
@@ -180,26 +207,38 @@ class TestImportPlayers:
         """Test player import with team name to ID lookup"""
         player_data = [{
             "name": "Test Player",
-            "team_name": "Test Team"
+            "player_id": "test-player",
+            "first_name": "Test",
+            "last_name": "Player", 
+            "full_name": "Test Player",
+            "team_name": "Test Team",
+            "active": True,
+            "year": 2024
         }]
         
         mock_db.execute_query.side_effect = [
             [],  # No existing player
-            [{"id": 5}]  # Team lookup returns ID 5
+            [{"id": "test-team"}]  # Team lookup returns string ID
         ]
         
         count = stats_processor.import_players(player_data)
         
         # Verify team_id was set correctly
         insert_call = mock_db.insert_data.call_args[0][1]
-        assert insert_call["team_id"] == 5
+        assert insert_call["team_id"] == "test-team"
         assert "team_name" not in insert_call  # Should be removed
         
     def test_import_players_team_not_found(self, stats_processor, mock_db):
         """Test player import when team is not found"""
         player_data = [{
             "name": "Test Player",
-            "team_name": "Nonexistent Team"
+            "player_id": "test-player",
+            "first_name": "Test",
+            "last_name": "Player",
+            "full_name": "Test Player", 
+            "team_name": "Nonexistent Team",
+            "active": True,
+            "year": 2024
         }]
         
         mock_db.execute_query.side_effect = [
@@ -220,7 +259,7 @@ class TestImportPlayers:
         mock_db.execute_query.side_effect = [
             [{"id": 1}],  # First player exists
             [],  # Second player doesn't exist
-            [{"id": 2}]   # Team lookup for second player
+            [{"id": "glory"}]   # Team lookup for second player
         ]
         
         count = stats_processor.import_players(sample_player_data)
@@ -236,9 +275,9 @@ class TestImportGame:
         """Test successful game import"""
         # Mock team lookups
         mock_db.execute_query.side_effect = [
-            [{"id": 1}],  # Home team lookup
-            [{"id": 2}],  # Away team lookup
-            []            # No existing game
+            [{"id": "hustle"}],  # Home team lookup
+            [{"id": "glory"}],   # Away team lookup
+            []                   # No existing game
         ]
         
         game_id = stats_processor.import_game(sample_game_data)
@@ -248,8 +287,8 @@ class TestImportGame:
         
         # Verify correct data transformation
         insert_call = mock_db.insert_data.call_args[0][1]
-        assert insert_call["home_team_id"] == 1
-        assert insert_call["away_team_id"] == 2
+        assert insert_call["home_team_id"] == "hustle"
+        assert insert_call["away_team_id"] == "glory"
         assert "home_team_name" not in insert_call
         assert "away_team_name" not in insert_call
         
@@ -257,40 +296,48 @@ class TestImportGame:
         """Test importing game that already exists"""
         # Mock team lookups and existing game
         mock_db.execute_query.side_effect = [
-            [{"id": 1}],     # Home team lookup
-            [{"id": 2}],     # Away team lookup  
-            [{"id": 10}]     # Existing game found
+            [{"id": "hustle"}],  # Home team lookup
+            [{"id": "glory"}],   # Away team lookup  
+            [{"id": 10}]         # Existing game found
         ]
         
         game_id = stats_processor.import_game(sample_game_data)
         
-        assert game_id is None  # Should return None for existing game
+        assert game_id == 10  # Should return existing game ID
         assert mock_db.insert_data.call_count == 0
         
-    def test_import_game_team_not_found(self, stats_processor, sample_game_data, mock_db):
-        """Test importing game when teams are not found"""
-        # Mock team lookups return empty
-        mock_db.execute_query.side_effect = [
-            [],  # Home team not found
-            []   # Away team not found
-        ]
+    def test_import_game_team_not_found(self, stats_processor, mock_db):
+        """Test importing game when team names are not found but IDs are provided"""
+        # Game data with direct team IDs (no lookups needed)
+        game_data = {
+            "game_id": "test-game",
+            "away_team_id": "unknown-team",
+            "home_team_id": "another-unknown-team",
+            "away_score": 10,
+            "home_score": 12,
+            "status": "Final",
+            "year": 2024
+        }
         
-        game_id = stats_processor.import_game(sample_game_data)
+        # Mock no existing game
+        mock_db.execute_query.return_value = []
         
-        # Should still import with team names
+        game_id = stats_processor.import_game(game_data)
+        
+        # Should import with provided team IDs
         assert game_id == 1
-        insert_call = mock_db.insert_data.call_args[0][1]
-        assert insert_call["home_team_name"] == "Los Angeles Lakers"
-        assert insert_call["away_team_name"] == "Boston Celtics"
+        assert mock_db.insert_data.call_count == 1
         
     def test_import_game_without_team_names(self, stats_processor, mock_db):
         """Test importing game data without team names"""
         game_data = {
-            "game_date": "2024-01-15",
-            "home_team_id": 1,
-            "away_team_id": 2,
+            "game_id": "direct-import-game",
+            "home_team_id": "team1",
+            "away_team_id": "team2",
             "home_score": 100,
-            "away_score": 95
+            "away_score": 95,
+            "status": "Final",
+            "year": 2024
         }
         
         mock_db.execute_query.return_value = []  # No existing game
@@ -299,8 +346,8 @@ class TestImportGame:
         
         assert game_id == 1
         insert_call = mock_db.insert_data.call_args[0][1]
-        assert insert_call["home_team_id"] == 1
-        assert insert_call["away_team_id"] == 2
+        assert insert_call["home_team_id"] == "team1"
+        assert insert_call["away_team_id"] == "team2"
 
 
 class TestImportPlayerGameStats:

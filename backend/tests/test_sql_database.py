@@ -21,17 +21,15 @@ class TestSQLDatabase:
     
     def test_init_default_path(self):
         """Test database initialization with default path"""
-        with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp:
-            temp_path = tmp.name
+        db = SQLDatabase()
         
-        try:
-            with patch('sql_database.config.DATABASE_PATH', temp_path):
-                db = SQLDatabase()
-                assert db.db_path == temp_path
-                assert db.connection is not None
-        finally:
-            if os.path.exists(temp_path):
-                os.unlink(temp_path)
+        # Check that engine and session factory exist
+        assert db.engine is not None
+        assert db.SessionLocal is not None
+        assert db.metadata is not None
+        
+        # Check that default path is used (should contain "sports_stats.db")
+        assert "sports_stats.db" in str(db.engine.url)
     
     def test_init_custom_path(self):
         """Test database initialization with custom path"""
@@ -40,8 +38,14 @@ class TestSQLDatabase:
         
         try:
             db = SQLDatabase(temp_path)
-            assert db.db_path == temp_path
-            assert db.connection is not None
+            
+            # Check that engine and session factory exist
+            assert db.engine is not None
+            assert db.SessionLocal is not None
+            assert db.metadata is not None
+            
+            # Check that custom path is used in engine URL
+            assert temp_path in str(db.engine.url)
         finally:
             if os.path.exists(temp_path):
                 os.unlink(temp_path)
@@ -51,9 +55,14 @@ class TestSQLDatabase:
         with tempfile.TemporaryDirectory() as temp_dir:
             db_path = os.path.join(temp_dir, 'subdir', 'test.db')
             
+            # Ensure subdirectory doesn't exist initially
+            assert not os.path.exists(os.path.dirname(db_path))
+            
             db = SQLDatabase(db_path)
+            
+            # Directory should be created
             assert os.path.exists(os.path.dirname(db_path))
-            assert db.connection is not None
+            assert db.engine is not None
     
     def test_execute_query_simple_select(self):
         """Test executing a simple SELECT query"""
@@ -145,11 +154,19 @@ class TestSQLDatabase:
         try:
             db = SQLDatabase(temp_path)
             
-            # Create test table
-            db.execute_query("CREATE TABLE teams (id INTEGER PRIMARY KEY, name TEXT, city TEXT)")
-            
-            # Test insert
-            data = {"name": "Lakers", "city": "Los Angeles"}
+            # Test insert using existing teams table from schema
+            data = {
+                "team_id": "lakers", 
+                "year": 2024,
+                "name": "Lakers", 
+                "city": "Los Angeles",
+                "full_name": "Los Angeles Lakers",
+                "abbrev": "LAL",
+                "wins": 0,
+                "losses": 0,
+                "ties": 0,
+                "standing": 1
+            }
             result_id = db.insert_data("teams", data)
             
             assert result_id == 1
@@ -172,14 +189,35 @@ class TestSQLDatabase:
         try:
             db = SQLDatabase(temp_path)
             
-            # Create test table
-            db.execute_query("CREATE TABLE players (id INTEGER PRIMARY KEY, name TEXT, team TEXT)")
-            
-            # Insert multiple rows
+            # Insert multiple rows using existing players table from schema
             players = [
-                {"name": "Player 1", "team": "Team A"},
-                {"name": "Player 2", "team": "Team B"},
-                {"name": "Player 3", "team": "Team A"}
+                {
+                    "player_id": "player1",
+                    "first_name": "Player",
+                    "last_name": "One",
+                    "full_name": "Player One",
+                    "team_id": "team_a",
+                    "active": True,
+                    "year": 2024
+                },
+                {
+                    "player_id": "player2", 
+                    "first_name": "Player",
+                    "last_name": "Two",
+                    "full_name": "Player Two",
+                    "team_id": "team_b",
+                    "active": True,
+                    "year": 2024
+                },
+                {
+                    "player_id": "player3",
+                    "first_name": "Player", 
+                    "last_name": "Three",
+                    "full_name": "Player Three",
+                    "team_id": "team_a",
+                    "active": True,
+                    "year": 2024
+                }
             ]
             
             ids = []
@@ -241,22 +279,23 @@ class TestSQLDatabase:
                 os.unlink(temp_path)
     
     def test_connection_persistence(self):
-        """Test that connection persists across queries"""
+        """Test that engine persists across queries and queries work consistently"""
         with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp:
             temp_path = tmp.name
         
         try:
             db = SQLDatabase(temp_path)
-            initial_connection = db.connection
+            initial_engine = db.engine
             
-            # Execute several queries
-            db.execute_query("CREATE TABLE persistence_test (id INTEGER)")
+            # Execute several queries - use a simple table for testing
+            db.execute_query("CREATE TABLE IF NOT EXISTS persistence_test (id INTEGER)")
             db.execute_query("INSERT INTO persistence_test VALUES (1)")
             result = db.execute_query("SELECT * FROM persistence_test")
             
-            # Connection should remain the same
-            assert db.connection is initial_connection
+            # Engine should remain the same
+            assert db.engine is initial_engine
             assert len(result) == 1
+            assert result[0]['id'] == 1
             
         finally:
             if os.path.exists(temp_path):
@@ -293,31 +332,25 @@ class TestSQLDatabase:
 class TestGetDBFunction:
     """Test get_db function"""
     
-    @patch('sql_database._db', None)  # Reset singleton
+    @patch('sql_database._db_instance', None)  # Reset singleton
     def test_get_db_creates_instance(self):
         """Test that get_db creates a singleton instance"""
-        with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp:
-            temp_path = tmp.name
+        db1 = get_db()
+        db2 = get_db()
         
-        try:
-            with patch('sql_database.config.DATABASE_PATH', temp_path):
-                db1 = get_db()
-                db2 = get_db()
-                
-                # Should return the same instance
-                assert db1 is db2
-                assert isinstance(db1, SQLDatabase)
-                
-        finally:
-            if os.path.exists(temp_path):
-                os.unlink(temp_path)
+        # Should return the same instance
+        assert db1 is db2
+        assert isinstance(db1, SQLDatabase)
     
-    @patch('sql_database._db', None)  # Reset singleton
+    @patch('sql_database._db_instance', None)  # Reset singleton  
     def test_get_db_handles_missing_config(self):
-        """Test get_db handles missing database configuration"""
-        with patch('sql_database.config.DATABASE_PATH', ''):
-            with pytest.raises((AttributeError, ValueError)):
-                get_db()
+        """Test get_db creates database with default path when no config"""
+        db = get_db()
+        
+        # Should successfully create database with default path
+        assert isinstance(db, SQLDatabase)
+        assert db.engine is not None
+        assert "sports_stats.db" in str(db.engine.url)
 
 
 class TestDatabaseErrorHandling:

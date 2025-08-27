@@ -1,10 +1,52 @@
 import pytest
 from unittest.mock import Mock, MagicMock, patch
 from ai_generator import AIGenerator
+from stats_tools import StatsToolManager
+from sql_database import SQLDatabase
 
 
 class TestAIGenerator:
     """Test suite for AIGenerator"""
+
+    @pytest.fixture
+    def mock_anthropic_client(self):
+        """Mock Anthropic client for testing"""
+        mock_client = Mock()
+        
+        # Mock response for direct text responses
+        mock_response = Mock()
+        mock_response.content = [Mock(text="This is a test response")]
+        mock_response.stop_reason = "end_turn"
+        
+        mock_client.messages.create.return_value = mock_response
+        return mock_client
+
+    @pytest.fixture
+    def ai_generator_with_mock_client(self, mock_anthropic_client):
+        """AIGenerator instance with mocked Anthropic client"""
+        with patch('ai_generator.anthropic.Anthropic', return_value=mock_anthropic_client):
+            generator = AIGenerator("test-key", "test-model")
+            generator.client = mock_anthropic_client
+            return generator
+
+    @pytest.fixture
+    def tool_manager(self):
+        """Mock StatsToolManager for testing"""
+        mock_db = Mock(spec=SQLDatabase)
+        mock_db.execute_query.return_value = []
+        
+        tool_manager = StatsToolManager(mock_db)
+        # Mock the get_tool_definitions method
+        tool_manager.get_tool_definitions = Mock(return_value=[
+            {
+                "name": "execute_custom_query",
+                "description": "Execute custom SQL query",
+                "input_schema": {"type": "object", "properties": {"query": {"type": "string"}}}
+            }
+        ])
+        # Mock the execute_tool method
+        tool_manager.execute_tool = Mock(return_value="Tool execution result")
+        return tool_manager
 
     def test_initialization(self):
         """Test AIGenerator initialization"""
@@ -56,8 +98,8 @@ class TestAIGenerator:
         call_args = ai_generator_with_mock_client.client.messages.create.call_args[1]
         assert "tools" in call_args
         assert (
-            len(call_args["tools"]) == 2
-        )  # search_course_content and get_course_outline
+            len(call_args["tools"]) == 1
+        )  # execute_custom_query
 
     def test_generate_response_with_tool_use(
         self, ai_generator_with_mock_client, tool_manager
@@ -67,17 +109,18 @@ class TestAIGenerator:
         mock_tool_response = Mock()
         mock_tool_block = Mock()
         mock_tool_block.type = "tool_use"
-        mock_tool_block.name = "search_course_content"
+        mock_tool_block.name = "execute_custom_query"
         mock_tool_block.id = "tool_123"
-        mock_tool_block.input = {"query": "MCP protocol"}
+        mock_tool_block.input = {"query": "SELECT * FROM players", "explanation": "Get all players"}
         mock_tool_response.content = [mock_tool_block]
         mock_tool_response.stop_reason = "tool_use"
 
         # Mock final response after tool execution
         mock_final_response = Mock()
         mock_final_response.content = [
-            Mock(text="MCP stands for Model Context Protocol")
+            Mock(text="Here are all the players in the database")
         ]
+        mock_final_response.stop_reason = "end_turn"
 
         ai_generator_with_mock_client.client.messages.create.side_effect = [
             mock_tool_response,
@@ -88,16 +131,16 @@ class TestAIGenerator:
         tool_manager.execute_tool = Mock(return_value="Tool execution result")
 
         result = ai_generator_with_mock_client.generate_response(
-            "What is MCP?",
+            "Who are all the players?",
             tools=tool_manager.get_tool_definitions(),
             tool_manager=tool_manager,
         )
 
-        assert result == "MCP stands for Model Context Protocol"
+        assert result == "Here are all the players in the database"
 
         # Verify tool was executed
         tool_manager.execute_tool.assert_called_once_with(
-            "search_course_content", query="MCP protocol"
+            "execute_custom_query", query="SELECT * FROM players", explanation="Get all players"
         )
 
         # Verify two API calls were made
@@ -193,11 +236,9 @@ class TestAIGenerator:
         system_prompt = call_args["system"]
 
         # Check for key components
-        assert "search_course_content" in system_prompt
-        assert "get_course_outline" in system_prompt
-        assert "Course outline queries" in system_prompt
-        assert "Content-specific questions" in system_prompt
-        assert "Sequential tool usage" in system_prompt
+        assert "execute_custom_query" in system_prompt
+        assert "Ultimate Frisbee Association" in system_prompt
+        assert "Database Schema" in system_prompt
 
     @patch("anthropic.Anthropic")
     def test_api_error_handling(self, mock_anthropic_class):
