@@ -1,5 +1,6 @@
+from typing import Any
+
 import anthropic
-from typing import List, Optional, Dict, Any
 from config import config
 
 
@@ -47,8 +48,8 @@ Database Schema (UFA API Compatible):
 SQL Query Guidelines:
 - **IMPORTANT**: When no season/year is specified in the query, aggregate across ALL seasons for career/all-time totals
 - Only filter by a specific season when explicitly mentioned (e.g., 'this season', '2023 season', 'current season')
-- **JOIN patterns**: Use string-based UFA IDs for joins:
-  - Players to Stats: JOIN players p ON pss.player_id = p.player_id
+- **JOIN patterns**: Use string-based UFA IDs for joins (CRITICAL - must include year matching for players):
+  - Players to Stats: JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
   - Teams to Stats: JOIN teams t ON tss.team_id = t.team_id AND tss.year = t.year
   - Games to Stats: JOIN games g ON pgs.game_id = g.game_id
 - **Field names**: Use correct UFA field names (NOT old schema):
@@ -70,7 +71,9 @@ SQL Query Guidelines:
 - **CRITICAL**: Use COUNT(DISTINCT game_id) when counting games to avoid duplicates from multi-year player records
   - WRONG: COUNT(*) - this will multiply by number of player records
   - CORRECT: COUNT(DISTINCT pgs.game_id) - this counts unique games only
-- **Player table joins**: The players table has one record per player per year, so joining can create duplicates
+- **CRITICAL - Player table joins**: The players table has one record per player per year, so joining WITHOUT year matching creates duplicates that multiply stats incorrectly
+  - WRONG: JOIN players p ON pss.player_id = p.player_id (multiplies stats by number of years played)  
+  - CORRECT: JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
 - Use GROUP BY for aggregations (SUM, COUNT, AVG, MAX, MIN)
 - Use ORDER BY to sort results
 - Use LIMIT to restrict result count
@@ -93,7 +96,7 @@ Query Examples:
 - **Best plus/minus in 2024**:
   SELECT p.full_name, pss.calculated_plus_minus 
   FROM player_season_stats pss 
-  JOIN players p ON pss.player_id = p.player_id 
+  JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year 
   WHERE pss.year = 2024 
   ORDER BY pss.calculated_plus_minus DESC 
   LIMIT 10
@@ -101,7 +104,7 @@ Query Examples:
 - **All-time top goal scorers** (no season specified): 
   SELECT p.full_name, SUM(pss.total_goals) as career_goals 
   FROM player_season_stats pss 
-  JOIN players p ON pss.player_id = p.player_id 
+  JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year 
   GROUP BY p.player_id, p.full_name 
   ORDER BY career_goals DESC 
   LIMIT 10
@@ -109,7 +112,7 @@ Query Examples:
 - **Most hucks completed in 2025**:
   SELECT p.full_name, pss.total_hucks_completed, pss.total_hucks_attempted
   FROM player_season_stats pss 
-  JOIN players p ON pss.player_id = p.player_id 
+  JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year 
   WHERE pss.year = 2025 
   ORDER BY pss.total_hucks_completed DESC 
   LIMIT 10
@@ -124,7 +127,7 @@ Query Examples:
 - **Austin Taylor's hucks in 2025**:
   SELECT p.full_name, pgs.hucks_completed, pgs.hucks_attempted, g.game_id
   FROM player_game_stats pgs 
-  JOIN players p ON pgs.player_id = p.player_id 
+  JOIN players p ON pgs.player_id = p.player_id AND pgs.year = p.year 
   JOIN games g ON pgs.game_id = g.game_id
   WHERE p.full_name LIKE '%Austin Taylor%' AND pgs.year = 2025
   ORDER BY g.start_timestamp DESC
@@ -132,7 +135,7 @@ Query Examples:
 - **Player performance in specific game**:
   SELECT p.full_name, pgs.goals, pgs.assists, pgs.blocks, pgs.throwaways
   FROM player_game_stats pgs 
-  JOIN players p ON pgs.player_id = p.player_id
+  JOIN players p ON pgs.player_id = p.player_id AND pgs.year = p.year
   WHERE pgs.game_id = 'gameID_here' AND pgs.year = 2025
   ORDER BY (pgs.goals + pgs.assists + pgs.blocks) DESC
 
@@ -140,7 +143,7 @@ Query Examples:
   SELECT g.game_id, g.start_timestamp, pgs.player_id, pgs.hucks_completed, pgs.hucks_attempted
   FROM games g
   JOIN player_game_stats pgs ON g.game_id = pgs.game_id
-  JOIN players p ON pgs.player_id = p.player_id 
+  JOIN players p ON pgs.player_id = p.player_id AND pgs.year = p.year 
   WHERE g.year = 2025
   AND ((g.home_team_id = 'hustle' AND g.away_team_id = 'flyers') 
        OR (g.home_team_id = 'flyers' AND g.away_team_id = 'hustle'))
@@ -177,8 +180,8 @@ Provide only the direct answer to what was asked.
     def generate_response(
         self,
         query: str,
-        conversation_history: Optional[str] = None,
-        tools: Optional[List] = None,
+        conversation_history: str | None = None,
+        tools: list | None = None,
         tool_manager=None,
     ) -> str:
         """
@@ -226,7 +229,7 @@ Provide only the direct answer to what was asked.
         return response.content[0].text
 
     def _handle_sequential_tool_execution(
-        self, initial_response, base_params: Dict[str, Any], tool_manager
+        self, initial_response, base_params: dict[str, Any], tool_manager
     ):
         """
         Handle sequential tool execution across multiple rounds.
@@ -307,8 +310,8 @@ Provide only the direct answer to what was asked.
     def _execute_tool_round(
         self,
         response,
-        messages: List[Dict],
-        base_params: Dict[str, Any],
+        messages: list[dict],
+        base_params: dict[str, Any],
         tool_manager,
         final_synthesis: bool = False,
     ):
@@ -365,7 +368,7 @@ Provide only the direct answer to what was asked.
                 {"role": "user", "content": synthesis_instruction}
             )
 
-            print(f"DEBUG: Final synthesis messages structure:")
+            print("DEBUG: Final synthesis messages structure:")
             for i, msg in enumerate(messages_for_round):
                 print(
                     f"  {i}: {msg['role']} - {type(msg.get('content', 'no content'))}"
@@ -391,7 +394,7 @@ Provide only the direct answer to what was asked.
         return self.client.messages.create(**round_params)
 
     def _execute_tool_round_with_results(
-        self, response, messages: List[Dict], base_params: Dict[str, Any], tool_manager
+        self, response, messages: list[dict], base_params: dict[str, Any], tool_manager
     ):
         """
         Execute tools for a single round and return both response and tool results.
@@ -479,8 +482,8 @@ Provide only the direct answer to what was asked.
         return len(tool_blocks) > 0
 
     def _build_round_context(
-        self, base_messages: List[Dict], latest_response
-    ) -> List[Dict]:
+        self, base_messages: list[dict], latest_response
+    ) -> list[dict]:
         """
         Build message context for the next round, preserving conversation flow.
 
