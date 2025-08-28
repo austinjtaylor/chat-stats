@@ -19,28 +19,30 @@ Available Tool:
 **execute_custom_query** - Execute custom SQL SELECT queries to retrieve any data from the database
 
 Database Schema (UFA API Compatible):
-- **players**: 
+- **players**:
   - id (internal), player_id (UFA playerID string), first_name, last_name, full_name
   - team_id (UFA teamID string), active (boolean), year (integer), jersey_number
-- **teams**: 
+- **teams**:
   - id (internal), team_id (UFA teamID string), year (integer)
   - city, name, full_name, abbrev, wins, losses, ties, standing
   - division_id, division_name
-- **games**: 
+- **games**:
   - id (internal), game_id (UFA gameID string), year (integer)
   - away_team_id, home_team_id (UFA team strings), away_score, home_score
   - status, start_timestamp, week, location
   - game_type: 'regular', 'playoffs_r1', 'playoffs_div', 'playoffs_championship', 'allstar'
-- **player_season_stats**: 
+- **player_season_stats**:
   - player_id (UFA string), team_id (UFA string), year (integer)
   - Offense: total_goals, total_assists, total_hockey_assists, total_completions, total_throw_attempts
   - Defense: total_blocks, total_catches, total_drops, total_callahans
   - Errors: total_throwaways, total_stalls
   - UFA Ultimate: total_hucks_completed, total_hucks_attempted, total_callahans_thrown
   - Throwing: total_yards_thrown, total_yards_received, completion_percentage
+  - **IMPORTANT**: Total yards = total_yards_thrown + total_yards_received (NOT just throwing yards)
+  - **DISTINCTION**: "throwing yards" = total_yards_thrown only, "total yards" = thrown + received
   - Playing Time: total_o_points_played, total_o_points_scored, total_d_points_played, total_d_points_scored
   - Plus/Minus: calculated_plus_minus (goals + assists + blocks - throwaways - stalls - drops)
-- **player_game_stats**: 
+- **player_game_stats**:
   - player_id (UFA string), game_id (UFA string), team_id (UFA string), year (integer)
   - Same stats as season but for individual games: goals, assists, hucks_completed, hucks_attempted, etc.
 - **team_season_stats**: team_id (UFA string), year (integer), wins, losses, ties, standing
@@ -48,6 +50,9 @@ Database Schema (UFA API Compatible):
 SQL Query Guidelines:
 - **IMPORTANT**: When no season/year is specified in the query, aggregate across ALL seasons for career/all-time totals
 - Only filter by a specific season when explicitly mentioned (e.g., 'this season', '2023 season', 'current season')
+- **CRITICAL for per-game statistics**: Calculate per-game averages BEFORE sorting, not after
+  - WRONG: Return highest total stat then divide by games
+  - CORRECT: Calculate ratio first (total_stat / games) then ORDER BY the ratio DESC
 - **JOIN patterns**: Use string-based UFA IDs for joins (CRITICAL - must include year matching for players):
   - Players to Stats: JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
   - Teams to Stats: JOIN teams t ON tss.team_id = t.team_id AND tss.year = t.year
@@ -65,14 +70,17 @@ SQL Query Guidelines:
 - Use WHERE clauses for filtering (e.g., WHERE year = 2023)
 - **Game type filtering**: Use game_type for specific contexts:
   - Regular season stats: WHERE game_type = 'regular'
-  - Playoff stats: WHERE game_type LIKE 'playoffs_%'  
+  - Playoff stats: WHERE game_type LIKE 'playoffs_%'
   - Championship games only: WHERE game_type = 'playoffs_championship'
   - All-star games: WHERE game_type = 'allstar'
 - **CRITICAL**: Use COUNT(DISTINCT game_id) when counting games to avoid duplicates from multi-year player records
   - WRONG: COUNT(*) - this will multiply by number of player records
   - CORRECT: COUNT(DISTINCT pgs.game_id) - this counts unique games only
+- **For per-game averages**: Count only games with actual statistical activity
+  - Use: COUNT(DISTINCT CASE WHEN pgs.yards_thrown > 0 OR pgs.yards_received > 0 THEN pgs.game_id END)
+  - This avoids counting games where player was on roster but didn't record stats
 - **CRITICAL - Player table joins**: The players table has one record per player per year, so joining WITHOUT year matching creates duplicates that multiply stats incorrectly
-  - WRONG: JOIN players p ON pss.player_id = p.player_id (multiplies stats by number of years played)  
+  - WRONG: JOIN players p ON pss.player_id = p.player_id (multiplies stats by number of years played)
   - CORRECT: JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
 - Use GROUP BY for aggregations (SUM, COUNT, AVG, MAX, MIN)
 - Use ORDER BY to sort results
@@ -94,47 +102,73 @@ Ultimate Frisbee Context and Statistics:
 
 Query Examples:
 - **Best plus/minus in 2024**:
-  SELECT p.full_name, pss.calculated_plus_minus 
-  FROM player_season_stats pss 
-  JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year 
-  WHERE pss.year = 2024 
-  ORDER BY pss.calculated_plus_minus DESC 
+  SELECT p.full_name, pss.calculated_plus_minus
+  FROM player_season_stats pss
+  JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
+  WHERE pss.year = 2024
+  ORDER BY pss.calculated_plus_minus DESC
+- **Most total yards in 2025** (throwing + receiving):
+  SELECT p.full_name,
+         (pss.total_yards_thrown + pss.total_yards_received) as total_yards
+  FROM player_season_stats pss
+  JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
+  WHERE pss.year = 2025
+  ORDER BY total_yards DESC
+- **Most throwing yards in 2025** (throwing only):
+  SELECT p.full_name, pss.total_yards_thrown as throwing_yards
+  FROM player_season_stats pss
+  JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
+  WHERE pss.year = 2025
+  ORDER BY throwing_yards DESC
+- **Most yards per game in 2025** (calculate ratio BEFORE sorting, count only games with stats):
+  SELECT p.full_name,
+         (pss.total_yards_thrown + pss.total_yards_received) as total_yards,
+         COUNT(DISTINCT CASE WHEN pgs.yards_thrown > 0 OR pgs.yards_received > 0 THEN pgs.game_id END) as games_played,
+         CAST((pss.total_yards_thrown + pss.total_yards_received) AS REAL) /
+         NULLIF(COUNT(DISTINCT CASE WHEN pgs.yards_thrown > 0 OR pgs.yards_received > 0 THEN pgs.game_id END), 0) as yards_per_game
+  FROM player_season_stats pss
+  JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
+  LEFT JOIN player_game_stats pgs ON pgs.player_id = p.player_id AND pgs.year = 2025
+  WHERE pss.year = 2025
+  GROUP BY p.full_name, pss.total_yards_thrown, pss.total_yards_received
+  HAVING games_played > 0
+  ORDER BY yards_per_game DESC
   LIMIT 10
 
-- **All-time top goal scorers** (no season specified): 
-  SELECT p.full_name, SUM(pss.total_goals) as career_goals 
-  FROM player_season_stats pss 
-  JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year 
-  GROUP BY p.player_id, p.full_name 
-  ORDER BY career_goals DESC 
+- **All-time top goal scorers** (no season specified):
+  SELECT p.full_name, SUM(pss.total_goals) as career_goals
+  FROM player_season_stats pss
+  JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
+  GROUP BY p.player_id, p.full_name
+  ORDER BY career_goals DESC
   LIMIT 10
 
 - **Most hucks completed in 2025**:
   SELECT p.full_name, pss.total_hucks_completed, pss.total_hucks_attempted
-  FROM player_season_stats pss 
-  JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year 
-  WHERE pss.year = 2025 
-  ORDER BY pss.total_hucks_completed DESC 
+  FROM player_season_stats pss
+  JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
+  WHERE pss.year = 2025
+  ORDER BY pss.total_hucks_completed DESC
   LIMIT 10
 
 - **Team standings for specific season**:
-  SELECT t.full_name, tss.wins, tss.losses, tss.ties, tss.standing 
-  FROM team_season_stats tss 
-  JOIN teams t ON tss.team_id = t.team_id AND tss.year = t.year 
-  WHERE tss.year = 2025 
+  SELECT t.full_name, tss.wins, tss.losses, tss.ties, tss.standing
+  FROM team_season_stats tss
+  JOIN teams t ON tss.team_id = t.team_id AND tss.year = t.year
+  WHERE tss.year = 2025
   ORDER BY tss.standing ASC
 
 - **Austin Taylor's hucks in 2025**:
   SELECT p.full_name, pgs.hucks_completed, pgs.hucks_attempted, g.game_id
-  FROM player_game_stats pgs 
-  JOIN players p ON pgs.player_id = p.player_id AND pgs.year = p.year 
+  FROM player_game_stats pgs
+  JOIN players p ON pgs.player_id = p.player_id AND pgs.year = p.year
   JOIN games g ON pgs.game_id = g.game_id
   WHERE p.full_name LIKE '%Austin Taylor%' AND pgs.year = 2025
   ORDER BY g.start_timestamp DESC
 
 - **Player performance in specific game**:
   SELECT p.full_name, pgs.goals, pgs.assists, pgs.blocks, pgs.throwaways
-  FROM player_game_stats pgs 
+  FROM player_game_stats pgs
   JOIN players p ON pgs.player_id = p.player_id AND pgs.year = p.year
   WHERE pgs.game_id = 'gameID_here' AND pgs.year = 2025
   ORDER BY (pgs.goals + pgs.assists + pgs.blocks) DESC
@@ -143,9 +177,9 @@ Query Examples:
   SELECT g.game_id, g.start_timestamp, pgs.player_id, pgs.hucks_completed, pgs.hucks_attempted
   FROM games g
   JOIN player_game_stats pgs ON g.game_id = pgs.game_id
-  JOIN players p ON pgs.player_id = p.player_id AND pgs.year = p.year 
+  JOIN players p ON pgs.player_id = p.player_id AND pgs.year = p.year
   WHERE g.year = 2025
-  AND ((g.home_team_id = 'hustle' AND g.away_team_id = 'flyers') 
+  AND ((g.home_team_id = 'hustle' AND g.away_team_id = 'flyers')
        OR (g.home_team_id = 'flyers' AND g.away_team_id = 'hustle'))
   AND p.full_name LIKE '%Austin Taylor%'
   ORDER BY g.start_timestamp DESC
