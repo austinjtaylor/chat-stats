@@ -322,9 +322,9 @@ class StatsChatSystem:
         query = """
         SELECT p.*, t.name as team_name
         FROM players p
-        LEFT JOIN teams t ON p.team_id = t.id
-        WHERE LOWER(p.name) LIKE LOWER(:name)
-        ORDER BY p.name
+        LEFT JOIN teams t ON p.team_id = t.team_id AND p.year = t.year
+        WHERE LOWER(p.full_name) LIKE LOWER(:name)
+        ORDER BY p.full_name
         LIMIT 10
         """
         return self.db.execute_query(query, {"name": f"%{player_name}%"})
@@ -342,7 +342,7 @@ class StatsChatSystem:
         query = """
         SELECT * FROM teams
         WHERE LOWER(name) LIKE LOWER(:name)
-           OR LOWER(abbreviation) = LOWER(:name)
+           OR LOWER(abbrev) = LOWER(:name)
         ORDER BY name
         """
         return self.db.execute_query(query, {"name": f"%{team_name}%"})
@@ -362,9 +362,9 @@ class StatsChatSystem:
                ht.name as home_team_name,
                at.name as away_team_name
         FROM games g
-        JOIN teams ht ON g.home_team_id = ht.id
-        JOIN teams at ON g.away_team_id = at.id
-        ORDER BY g.game_date DESC
+        JOIN teams ht ON g.home_team_id = ht.team_id AND g.year = ht.year
+        JOIN teams at ON g.away_team_id = at.team_id AND g.year = at.year
+        ORDER BY g.start_timestamp DESC
         LIMIT :limit
         """
         return self.db.execute_query(query, {"limit": limit})
