@@ -55,210 +55,6 @@ class StatsToolManager:
         ]
 
         # Specialized tools (temporarily disabled for testing generic SQL)
-        return_disabled = [
-            {
-                "name": "get_player_stats",
-                "description": "Retrieve player statistics for a specific player, including season averages, game logs, or career totals",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "player_name": {
-                            "type": "string",
-                            "description": "The name of the player (partial match supported)",
-                        },
-                        "season": {
-                            "type": "string",
-                            "description": "Optional season (e.g., '2023-24'). If not specified, returns current season",
-                        },
-                        "stat_type": {
-                            "type": "string",
-                            "enum": ["season", "game", "career"],
-                            "description": "Type of statistics to retrieve (default: season)",
-                        },
-                        "game_date": {
-                            "type": "string",
-                            "description": "Optional specific game date in YYYY-MM-DD format",
-                        },
-                    },
-                    "required": ["player_name"],
-                },
-            },
-            {
-                "name": "get_team_stats",
-                "description": "Retrieve team statistics, standings, and performance metrics",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "team_name": {
-                            "type": "string",
-                            "description": "The name or abbreviation of the team",
-                        },
-                        "season": {
-                            "type": "string",
-                            "description": "Optional season (e.g., '2023-24'). If not specified, returns current season",
-                        },
-                        "include_roster": {
-                            "type": "boolean",
-                            "description": "Include team roster in the response (default: false)",
-                        },
-                    },
-                    "required": ["team_name"],
-                },
-            },
-            {
-                "name": "get_game_results",
-                "description": "Get game scores, box scores, and detailed game information",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "date": {
-                            "type": "string",
-                            "description": "Game date in YYYY-MM-DD format",
-                        },
-                        "team_name": {
-                            "type": "string",
-                            "description": "Optional team name to filter games",
-                        },
-                        "include_stats": {
-                            "type": "boolean",
-                            "description": "Include player statistics for the games (default: false)",
-                        },
-                    },
-                    "required": [],
-                },
-            },
-            {
-                "name": "get_league_leaders",
-                "description": "Get league leaders in various statistical categories",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "category": {
-                            "type": "string",
-                            "enum": [
-                                "points",
-                                "assists",
-                                "rebounds",
-                                "goals",
-                                "blocks",
-                                "steals",
-                                "field_goal_percentage",
-                                "three_point_percentage",
-                                "plus_minus",
-                                "total_assists",
-                                "total_goals",
-                                "total_points",
-                            ],
-                            "description": "Statistical category to rank by (use 'total_' prefix for season totals instead of per-game averages)",
-                        },
-                        "season": {
-                            "type": "string",
-                            "description": "Optional season (e.g., '2023-24'). If not specified, returns current season",
-                        },
-                        "limit": {
-                            "type": "integer",
-                            "description": "Number of top players to return (default: 10)",
-                        },
-                    },
-                    "required": ["category"],
-                },
-            },
-            {
-                "name": "compare_players",
-                "description": "Compare statistics between two or more players",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "player_names": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "List of player names to compare (2-5 players)",
-                        },
-                        "season": {
-                            "type": "string",
-                            "description": "Optional season for comparison. If not specified, uses current season",
-                        },
-                        "categories": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "Optional specific stat categories to compare. If not specified, shows main stats",
-                        },
-                    },
-                    "required": ["player_names"],
-                },
-            },
-            {
-                "name": "search_players",
-                "description": "Search for players by name, team, or position",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "search_term": {
-                            "type": "string",
-                            "description": "Search term for player name (partial match)",
-                        },
-                        "team_name": {
-                            "type": "string",
-                            "description": "Optional team name to filter by",
-                        },
-                        "position": {
-                            "type": "string",
-                            "description": "Optional position to filter by",
-                        },
-                    },
-                    "required": [],
-                },
-            },
-            {
-                "name": "get_standings",
-                "description": "Get current league standings and playoff picture",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "season": {
-                            "type": "string",
-                            "description": "Optional season (e.g., '2023-24'). If not specified, returns current season",
-                        },
-                        "conference": {
-                            "type": "string",
-                            "description": "Optional conference filter (e.g., 'Eastern', 'Western')",
-                        },
-                        "division": {
-                            "type": "string",
-                            "description": "Optional division filter",
-                        },
-                    },
-                    "required": [],
-                },
-            },
-            {
-                "name": "get_worst_performers",
-                "description": "Get players with the worst performance in various statistical categories (e.g., worst plus/minus, most turnovers)",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "category": {
-                            "type": "string",
-                            "enum": [
-                                "plus_minus",
-                                "turnovers",
-                                "field_goal_percentage",
-                            ],
-                            "description": "Statistical category to find worst performers",
-                        },
-                        "season": {
-                            "type": "string",
-                            "description": "Optional season (e.g., '2023'). If not specified, returns current season",
-                        },
-                        "limit": {
-                            "type": "integer",
-                            "description": "Number of worst performers to return (default: 10)",
-                        },
-                    },
-                    "required": ["category"],
-                },
-            },
-        ]
 
     def execute_tool(self, tool_name: str, **kwargs) -> str:
         """
@@ -385,7 +181,7 @@ class StatsToolManager:
         """Get player statistics."""
         # Find player
         player_query = """
-        SELECT p.*, t.name as team_name 
+        SELECT p.*, t.name as team_name
         FROM players p
         LEFT JOIN teams t ON p.team_id = t.team_id
         WHERE LOWER(p.full_name) LIKE LOWER(:name)
@@ -457,7 +253,7 @@ class StatsToolManager:
         elif stat_type == "career":
             # Get career totals
             career_query = """
-            SELECT 
+            SELECT
                 COUNT(DISTINCT year) as seasons_played,
                 SUM(total_goals) as career_goals,
                 SUM(total_assists) as career_assists,
@@ -468,7 +264,9 @@ class StatsToolManager:
             FROM player_season_stats
             WHERE player_id = :player_id
             """
-            career = self.db.execute_query(career_query, {"player_id": player["player_id"]})
+            career = self.db.execute_query(
+                career_query, {"player_id": player["player_id"]}
+            )
 
             return {"player": player, "career_stats": career[0] if career else {}}
 
@@ -481,7 +279,7 @@ class StatsToolManager:
         # Find team
         team_query = """
         SELECT * FROM teams
-        WHERE LOWER(name) LIKE LOWER(:name) 
+        WHERE LOWER(name) LIKE LOWER(:name)
            OR LOWER(abbrev) = LOWER(:name)
         LIMIT 1
         """
@@ -507,10 +305,58 @@ class StatsToolManager:
             stats_query, {"team_id": team["team_id"], "season": season}
         )
 
+        # Get playoff history for accurate reporting
+        playoff_query = """
+        SELECT DISTINCT year, COUNT(*) as playoff_games,
+               SUM(CASE
+                   WHEN (home_team_id = :team_id AND home_score > away_score) OR
+                        (away_team_id = :team_id AND away_score > home_score) THEN 1
+                   ELSE 0
+               END) as playoff_wins,
+               SUM(CASE
+                   WHEN (home_team_id = :team_id AND home_score < away_score) OR
+                        (away_team_id = :team_id AND away_score < home_score) THEN 1
+                   ELSE 0
+               END) as playoff_losses
+        FROM games
+        WHERE game_type LIKE '%playoff%' AND (home_team_id = :team_id OR away_team_id = :team_id)
+        GROUP BY year
+        ORDER BY year DESC
+        """
+        playoff_history = self.db.execute_query(
+            playoff_query, {"team_id": team["team_id"]}
+        )
+
+        # Get specific season playoff record if requested
+        season_playoff_record = None
+        if season:
+            season_playoff_query = """
+            SELECT COUNT(*) as playoff_games,
+                   SUM(CASE
+                       WHEN (home_team_id = :team_id AND home_score > away_score) OR
+                            (away_team_id = :team_id AND away_score > home_score) THEN 1
+                       ELSE 0
+                   END) as playoff_wins,
+                   SUM(CASE
+                       WHEN (home_team_id = :team_id AND home_score < away_score) OR
+                            (away_team_id = :team_id AND away_score < home_score) THEN 1
+                       ELSE 0
+                   END) as playoff_losses
+            FROM games
+            WHERE game_type LIKE '%playoff%' AND (home_team_id = :team_id OR away_team_id = :team_id) AND year = :season
+            """
+            season_playoff_result = self.db.execute_query(
+                season_playoff_query, {"team_id": team["team_id"], "season": season}
+            )
+            if season_playoff_result and season_playoff_result[0]["playoff_games"] > 0:
+                season_playoff_record = season_playoff_result[0]
+
         result = {
             "team": team,
             "season_stats": stats[0] if stats else {},
             "season": season,
+            "playoff_history": playoff_history,
+            "season_playoff_record": season_playoff_record
         }
 
         if include_roster:
@@ -533,7 +379,7 @@ class StatsToolManager:
     ) -> dict[str, Any]:
         """Get game results."""
         query = """
-        SELECT g.*, 
+        SELECT g.*,
                ht.name as home_team_name, ht.abbrev as home_team_abbr,
                at.name as away_team_name, at.abbrev as away_team_abbr
         FROM games g
@@ -548,7 +394,7 @@ class StatsToolManager:
             params["date"] = date
 
         if team_name:
-            query += """ AND (LOWER(ht.name) LIKE LOWER(:team_name) 
+            query += """ AND (LOWER(ht.name) LIKE LOWER(:team_name)
                          OR LOWER(at.name) LIKE LOWER(:team_name)
                          OR LOWER(ht.abbrev) = LOWER(:team_name)
                          OR LOWER(at.abbrev) = LOWER(:team_name))"""
@@ -589,9 +435,7 @@ class StatsToolManager:
         """Get league leaders in a statistical category."""
         # Get season if not provided
         if not season:
-            season_query = (
-                "SELECT MAX(year) as current_year FROM player_season_stats"
-            )
+            season_query = "SELECT MAX(year) as current_year FROM player_season_stats"
             season_result = self.db.execute_query(season_query)
             season = season_result[0]["current_year"] if season_result else 2025
 
@@ -599,7 +443,7 @@ class StatsToolManager:
         if category == "plus_minus":
             # Use calculated_plus_minus from player_season_stats
             query = """
-            SELECT p.full_name as name, t.name as team_name, 
+            SELECT p.full_name as name, t.name as team_name,
                    pss.calculated_plus_minus as value
             FROM player_season_stats pss
             JOIN players p ON pss.player_id = p.player_id
@@ -614,7 +458,7 @@ class StatsToolManager:
             # If no results with season filter, try without season filter (for sample data)
             if not leaders:
                 query = """
-                SELECT p.full_name as name, t.name as team_name, 
+                SELECT p.full_name as name, t.name as team_name,
                        pss.calculated_plus_minus as value
                 FROM player_season_stats pss
                 JOIN players p ON pss.player_id = p.player_id
@@ -678,9 +522,7 @@ class StatsToolManager:
 
         # Get season if not provided
         if not season:
-            season_query = (
-                "SELECT MAX(year) as current_year FROM player_season_stats"
-            )
+            season_query = "SELECT MAX(year) as current_year FROM player_season_stats"
             season_result = self.db.execute_query(season_query)
             season = season_result[0]["current_year"] if season_result else 2025
 
@@ -722,7 +564,10 @@ class StatsToolManager:
                 )
 
                 if stats:
-                    player_data = {"name": player["full_name"], "team": player["team_name"]}
+                    player_data = {
+                        "name": player["full_name"],
+                        "team": player["team_name"],
+                    }
                     for cat in categories:
                         if cat in stats[0]:
                             player_data[cat] = stats[0][cat]
@@ -747,7 +592,7 @@ class StatsToolManager:
             params["search_term"] = f"%{search_term}%"
 
         if team_name:
-            query += """ AND (LOWER(t.name) LIKE LOWER(:team_name) 
+            query += """ AND (LOWER(t.name) LIKE LOWER(:team_name)
                          OR LOWER(t.abbrev) = LOWER(:team_name))"""
             params["team_name"] = f"%{team_name}%"
 
@@ -800,9 +645,7 @@ class StatsToolManager:
         """Get players with worst performance in a category."""
         # Get season if not provided
         if not season:
-            season_query = (
-                "SELECT MAX(year) as current_year FROM player_season_stats"
-            )
+            season_query = "SELECT MAX(year) as current_year FROM player_season_stats"
             season_result = self.db.execute_query(season_query)
             season = (
                 season_result[0]["current_year"]
@@ -813,7 +656,7 @@ class StatsToolManager:
         if category == "plus_minus":
             # Get worst plus/minus (most negative calculated value)
             query = """
-            SELECT p.full_name as name, t.name as team_name, 
+            SELECT p.full_name as name, t.name as team_name,
                    pss.calculated_plus_minus as value
             FROM player_season_stats pss
             JOIN players p ON pss.player_id = p.player_id
@@ -828,7 +671,7 @@ class StatsToolManager:
             # If no results with season filter, try without season filter (for sample data)
             if not worst:
                 query = """
-                SELECT p.full_name as name, t.name as team_name, 
+                SELECT p.full_name as name, t.name as team_name,
                        pss.calculated_plus_minus as value
                 FROM player_season_stats pss
                 JOIN players p ON pss.player_id = p.player_id
@@ -875,7 +718,7 @@ class StatsToolManager:
             FROM player_season_stats pss
             JOIN players p ON pss.player_id = p.player_id
             JOIN teams t ON pss.team_id = t.team_id AND pss.year = t.year
-            WHERE pss.year = :season 
+            WHERE pss.year = :season
                 AND pss.completion_percentage IS NOT NULL
             ORDER BY pss.completion_percentage ASC
             LIMIT :limit

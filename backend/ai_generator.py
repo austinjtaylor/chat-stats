@@ -82,6 +82,11 @@ SQL Query Guidelines:
 - **CRITICAL - Player table joins**: The players table has one record per player per year, so joining WITHOUT year matching creates duplicates that multiply stats incorrectly
   - WRONG: JOIN players p ON pss.player_id = p.player_id (multiplies stats by number of years played)
   - CORRECT: JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
+- **CRITICAL - Playoff History Accuracy**: When discussing playoff appearances or success:
+  - ONLY use actual playoff games from the database (game_type LIKE 'playoffs_%')
+  - DO NOT infer playoffs from regular season standings or records
+  - A team only "made the playoffs" if they have playoff games in that year
+  - Verify playoff appearance claims with: SELECT DISTINCT year FROM games WHERE game_type LIKE 'playoffs_%' AND (home_team_id = 'team_id' OR away_team_id = 'team_id')
 - Use GROUP BY for aggregations (SUM, COUNT, AVG, MAX, MIN)
 - Use ORDER BY to sort results
 - Use LIMIT to restrict result count
@@ -184,6 +189,16 @@ Query Examples:
   AND p.full_name LIKE '%Austin Taylor%'
   ORDER BY g.start_timestamp DESC
   LIMIT 1
+
+- **Team playoff history** (CRITICAL - only years with actual playoff games):
+  SELECT DISTINCT year, COUNT(*) as playoff_games,
+         SUM(CASE WHEN (home_team_id = 'hustle' AND home_score > away_score) OR
+                       (away_team_id = 'hustle' AND away_score > home_score) THEN 1 ELSE 0 END) as wins,
+         SUM(CASE WHEN (home_team_id = 'hustle' AND home_score < away_score) OR
+                       (away_team_id = 'hustle' AND away_score < home_score) THEN 1 ELSE 0 END) as losses
+  FROM games
+  WHERE game_type LIKE 'playoffs_%' AND (home_team_id = 'hustle' OR away_team_id = 'hustle')
+  GROUP BY year ORDER BY year DESC
 
 - Always write clear, efficient SQL queries using the execute_custom_query tool
 
