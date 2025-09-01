@@ -1,52 +1,146 @@
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import Mock, MagicMock, patch
 from ai_generator import AIGenerator
-from stats_tools import StatsToolManager
 from sql_database import SQLDatabase
+from stats_tools import StatsToolManager
+
+# ===== MODULE-LEVEL FIXTURES =====
+
+
+@pytest.fixture
+def mock_anthropic_client():
+    """Mock Anthropic client for testing"""
+    mock_client = Mock()
+
+    # Mock response for direct text responses
+    mock_response = Mock()
+    mock_response.content = [Mock(text="This is a test response")]
+    mock_response.stop_reason = "end_turn"
+
+    mock_client.messages.create.return_value = mock_response
+    return mock_client
+
+
+@pytest.fixture
+def mock_sequential_anthropic_client():
+    """Mock Anthropic client for sequential tool calling tests"""
+    mock_client = Mock()
+
+    # Mock initial response with tool use
+    mock_tool_block1 = Mock()
+    mock_tool_block1.type = "tool_use"
+    mock_tool_block1.name = "get_course_outline"
+    mock_tool_block1.id = "tool_123"
+    mock_tool_block1.input = {"course_title": "MCP Course"}
+
+    mock_initial_response = Mock()
+    mock_initial_response.content = [mock_tool_block1]
+    mock_initial_response.stop_reason = "tool_use"
+
+    # Mock second response with another tool use
+    mock_tool_block2 = Mock()
+    mock_tool_block2.type = "tool_use"
+    mock_tool_block2.name = "search_course_content"
+    mock_tool_block2.id = "tool_456"
+    mock_tool_block2.input = {"query": "lesson 1 content", "lesson_number": 1}
+
+    mock_second_response = Mock()
+    mock_second_response.content = [mock_tool_block2]
+    mock_second_response.stop_reason = "tool_use"
+
+    # Mock final response
+    mock_final_response = Mock()
+    mock_final_response.content = [
+        Mock(text="Final synthesized response from both tool results")
+    ]
+    mock_final_response.stop_reason = "end_turn"
+
+    # Set up side effect for sequential calls
+    mock_client.messages.create.side_effect = [
+        mock_initial_response,
+        mock_second_response,
+        mock_final_response,
+    ]
+
+    return mock_client
+
+
+@pytest.fixture
+def ai_generator_with_mock_client(mock_anthropic_client):
+    """AIGenerator instance with mocked Anthropic client"""
+    with patch("ai_generator.anthropic.Anthropic", return_value=mock_anthropic_client):
+        generator = AIGenerator("test-key", "test-model")
+        generator.client = mock_anthropic_client
+        return generator
+
+
+@pytest.fixture
+def mock_max_rounds_anthropic_client():
+    """Mock Anthropic client for testing max rounds termination"""
+    mock_client = Mock()
+
+    # Mock tool use responses that continue indefinitely
+    mock_tool_block = Mock()
+    mock_tool_block.type = "tool_use"
+    mock_tool_block.name = "search_database"
+    mock_tool_block.id = "tool_1"
+    mock_tool_block.input = {"query": "search"}
+
+    # Mock final text response after hitting max rounds
+    mock_text_block = Mock()
+    mock_text_block.type = "text"
+    mock_text_block.text = "Final response after max rounds"
+
+    # Mock responses - first two with tools, final one without
+    mock_response1 = Mock()
+    mock_response1.content = [mock_tool_block]
+    mock_response1.stop_reason = "tool_use"
+
+    mock_response2 = Mock()
+    mock_response2.content = [mock_tool_block]
+    mock_response2.stop_reason = "tool_use"
+
+    mock_response3 = Mock()
+    mock_response3.content = [mock_text_block]
+    mock_response3.stop_reason = "end_turn"
+
+    mock_client.messages.create.side_effect = [
+        mock_response1,
+        mock_response2,
+        mock_response3,
+    ]
+
+    return mock_client
+
+
+@pytest.fixture
+def tool_manager():
+    """Mock StatsToolManager for testing"""
+    mock_db = Mock(spec=SQLDatabase)
+    mock_db.execute_query.return_value = []
+
+    tool_manager = StatsToolManager(mock_db)
+    # Mock the get_tool_definitions method
+    tool_manager.get_tool_definitions = Mock(
+        return_value=[
+            {
+                "name": "execute_custom_query",
+                "description": "Execute custom SQL query",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {"query": {"type": "string"}},
+                },
+            }
+        ]
+    )
+    # Mock the execute_tool method
+    tool_manager.execute_tool = Mock(return_value="Tool execution result")
+    return tool_manager
 
 
 class TestAIGenerator:
     """Test suite for AIGenerator"""
-
-    @pytest.fixture
-    def mock_anthropic_client(self):
-        """Mock Anthropic client for testing"""
-        mock_client = Mock()
-        
-        # Mock response for direct text responses
-        mock_response = Mock()
-        mock_response.content = [Mock(text="This is a test response")]
-        mock_response.stop_reason = "end_turn"
-        
-        mock_client.messages.create.return_value = mock_response
-        return mock_client
-
-    @pytest.fixture
-    def ai_generator_with_mock_client(self, mock_anthropic_client):
-        """AIGenerator instance with mocked Anthropic client"""
-        with patch('ai_generator.anthropic.Anthropic', return_value=mock_anthropic_client):
-            generator = AIGenerator("test-key", "test-model")
-            generator.client = mock_anthropic_client
-            return generator
-
-    @pytest.fixture
-    def tool_manager(self):
-        """Mock StatsToolManager for testing"""
-        mock_db = Mock(spec=SQLDatabase)
-        mock_db.execute_query.return_value = []
-        
-        tool_manager = StatsToolManager(mock_db)
-        # Mock the get_tool_definitions method
-        tool_manager.get_tool_definitions = Mock(return_value=[
-            {
-                "name": "execute_custom_query",
-                "description": "Execute custom SQL query",
-                "input_schema": {"type": "object", "properties": {"query": {"type": "string"}}}
-            }
-        ])
-        # Mock the execute_tool method
-        tool_manager.execute_tool = Mock(return_value="Tool execution result")
-        return tool_manager
 
     def test_initialization(self):
         """Test AIGenerator initialization"""
@@ -97,9 +191,7 @@ class TestAIGenerator:
         # Verify tools were included in API call
         call_args = ai_generator_with_mock_client.client.messages.create.call_args[1]
         assert "tools" in call_args
-        assert (
-            len(call_args["tools"]) == 1
-        )  # execute_custom_query
+        assert len(call_args["tools"]) == 1  # execute_custom_query
 
     def test_generate_response_with_tool_use(
         self, ai_generator_with_mock_client, tool_manager
@@ -111,7 +203,10 @@ class TestAIGenerator:
         mock_tool_block.type = "tool_use"
         mock_tool_block.name = "execute_custom_query"
         mock_tool_block.id = "tool_123"
-        mock_tool_block.input = {"query": "SELECT * FROM players", "explanation": "Get all players"}
+        mock_tool_block.input = {
+            "query": "SELECT * FROM players",
+            "explanation": "Get all players",
+        }
         mock_tool_response.content = [mock_tool_block]
         mock_tool_response.stop_reason = "tool_use"
 
@@ -140,7 +235,9 @@ class TestAIGenerator:
 
         # Verify tool was executed
         tool_manager.execute_tool.assert_called_once_with(
-            "execute_custom_query", query="SELECT * FROM players", explanation="Get all players"
+            "execute_custom_query",
+            query="SELECT * FROM players",
+            explanation="Get all players",
         )
 
         # Verify two API calls were made
@@ -467,8 +564,8 @@ class TestSequentialToolCalling:
         call_args_list = tool_manager.execute_tool.call_args_list
         assert len(call_args_list) == 2
 
-    def test_system_prompt_sequential_guidance(self, ai_generator_with_mock_client):
-        """Test that system prompt includes sequential tool usage guidance"""
+    def test_system_prompt_ufa_content(self, ai_generator_with_mock_client):
+        """Test that system prompt includes UFA-specific content"""
         mock_response = Mock()
         mock_response.content = [Mock(text="test")]
         mock_response.stop_reason = "end_turn"
@@ -481,11 +578,10 @@ class TestSequentialToolCalling:
         call_args = ai_generator_with_mock_client.client.messages.create.call_args[1]
         system_prompt = call_args["system"]
 
-        # Check for sequential tool usage guidance
-        assert "Sequential tool usage" in system_prompt
-        assert "up to 2 tool calls" in system_prompt
-        assert "multiple rounds for comparisons" in system_prompt
-        assert "Complex queries" in system_prompt
-
-        # Ensure old restriction was removed
-        assert "One tool use per query maximum" not in system_prompt
+        # Check for UFA-specific content
+        assert "Ultimate Frisbee Association (UFA)" in system_prompt
+        assert "execute_custom_query" in system_prompt
+        assert "Database Schema" in system_prompt
+        assert "player_season_stats" in system_prompt
+        assert "goals" in system_prompt
+        assert "assists" in system_prompt

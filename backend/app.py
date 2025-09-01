@@ -2,16 +2,16 @@ import warnings
 
 warnings.filterwarnings("ignore", message="resource_tracker: There appear to be.*")
 
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
 import os
+from typing import Any
 
 from config import config
-from stats_chat_system import StatsChatSystem, get_stats_system
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+from stats_chat_system import get_stats_system
 
 # Initialize FastAPI app
 app = FastAPI(title="Sports Statistics Chat System", root_path="")
@@ -38,7 +38,7 @@ class QueryRequest(BaseModel):
     """Request model for sports statistics queries"""
 
     query: str
-    session_id: Optional[str] = None
+    session_id: str | None = None
 
 
 class DataPoint(BaseModel):
@@ -46,14 +46,14 @@ class DataPoint(BaseModel):
 
     label: str
     value: Any
-    context: Optional[str] = None
+    context: str | None = None
 
 
 class QueryResponse(BaseModel):
     """Response model for sports statistics queries"""
 
     answer: str
-    data: List[Dict[str, Any]]
+    data: list[dict[str, Any]]
     session_id: str
 
 
@@ -63,25 +63,26 @@ class StatsResponse(BaseModel):
     total_players: int
     total_teams: int
     total_games: int
-    seasons: List[str]
-    team_standings: List[Dict[str, Any]]
+    seasons: list[str]
+    team_standings: list[dict[str, Any]]
 
 
 class PlayerSearchResponse(BaseModel):
     """Response model for player search"""
-    
-    players: List[Dict[str, Any]]
+
+    players: list[dict[str, Any]]
     count: int
 
 
 class TeamSearchResponse(BaseModel):
     """Response model for team search"""
-    
-    teams: List[Dict[str, Any]]
+
+    teams: list[dict[str, Any]]
     count: int
 
 
 # API Endpoints
+
 
 @app.get("/api")
 async def api_root():
@@ -116,7 +117,7 @@ async def get_stats_summary():
             total_teams=summary["total_teams"],
             total_games=summary["total_games"],
             seasons=summary["seasons"],
-            team_standings=summary["team_standings"]
+            team_standings=summary["team_standings"],
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -168,7 +169,7 @@ async def import_data(file_path: str, data_type: str = "json"):
     try:
         if not os.path.exists(file_path):
             raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
-        
+
         result = stats_system.import_data(file_path, data_type)
         return {"status": "success", "imported": result}
     except Exception as e:
@@ -179,7 +180,7 @@ async def import_data(file_path: str, data_type: str = "json"):
 async def startup_event():
     """Initialize database and load sample data on startup"""
     print("Starting Sports Statistics Chat System...")
-    
+
     # Check if sample data exists
     sample_data_path = "../data/sample_stats.json"
     if os.path.exists(sample_data_path):
@@ -189,14 +190,16 @@ async def startup_event():
             print(f"Loaded sample data: {result}")
         except Exception as e:
             print(f"Could not load sample data: {e}")
-    
+
     # Get database info
     info = stats_system.get_database_info()
     print(f"Database initialized with tables: {list(info.keys())}")
-    
+
     # Get stats summary
     summary = stats_system.get_stats_summary()
-    print(f"Database contains: {summary['total_players']} players, {summary['total_teams']} teams, {summary['total_games']} games")
+    print(
+        f"Database contains: {summary['total_players']} players, {summary['total_teams']} teams, {summary['total_games']} games"
+    )
 
 
 @app.on_event("shutdown")
@@ -207,10 +210,8 @@ async def shutdown_event():
 
 
 # Custom static file handler with no-cache headers for development
-from fastapi.staticfiles import StaticFiles
+
 from fastapi.responses import FileResponse
-import os
-from pathlib import Path
 
 
 class DevStaticFiles(StaticFiles):

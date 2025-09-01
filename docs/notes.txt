@@ -1,7 +1,111 @@
 Sample Queries:
-- "Show Austin Taylor's playoff stats vs regular season"
-- "Which players performed best in championship games?"
-- "Compare team performance in playoffs across years" 
-- "How many playoff games has [player] played?"
-- "Compare [player's] regular season vs playoff performance"- "Show top scorers in championship games"
-- "Which teams made the playoffs in [year]?"
+- Show Austin Taylor's playoff stats vs regular season
+- Which players performed best in championship games?
+- Compare team performance in playoffs across years
+- How many playoff games has [player] played?
+- Compare [player's] regular season vs playoff performance"- "Show top scorers in championship games
+- Which teams made the playoffs in [year]?
+- What percentage of the Hustle's total yardage did Austin Taylor contribute?
+- Who had the most out of bounds pulls in 2025?
+
+  Player Performance Questions
+
+  - "What is [player name]'s plus/minus rating?"
+  - "Who has the worst plus/minus in the league?"
+  - "Show me players with the most throwaways (turnovers)"
+  - "Which players have the best completion percentage?"
+  - "Who has caught the most Callahans this season?"
+  - "Show me players with the most hockey assists"
+  - "Which handlers have the most yards thrown?"
+  - "Who are the most efficient scorers (goals per point played)?"
+  - "Which players have the most drops this season?"
+  - "Show me players who play the most seconds per game"
+
+  Team Analytics Questions
+
+  - "What is [team name]'s offensive efficiency rate?"
+  - "Which team has the best defensive conversion rate?"
+  - "Show me teams ranked by point differential"
+  - "Which team has the best home record?"
+  - "What's the average score in [division name] games?"
+  - "Which team commits the most turnovers per game?"
+  - "Show me the playoff standings"
+  - "Which teams have clinched playoff spots?"
+
+  Head-to-Head Comparisons
+
+  - "Compare [player 1] vs [player 2] stats"
+  - "Who has more career goals between [player 1] and [player 2]?"
+  - "Show me the head-to-head record between [team 1] and [team 2]"
+  - "Compare the top 3 goal scorers' efficiency stats"
+  - "Which player has better defensive stats: [player 1] or [player 2]?"
+
+  Game-Specific Questions
+
+  - "Who scored the most goals in yesterday's games?"
+  - "Show me the box score for [team] vs [team] on [date]"
+  - "Which games had the highest total score this week?"
+  - "What were the closest games this season?"
+  - "Show me all overtime/universe point games"
+  - "Which player had the best single-game performance this season?"
+
+  Defensive Statistics
+
+  - "Who leads in blocks per game?"
+  - "Which defenders have the best D-point conversion rate?"
+  - "Show me players with the most forced turnovers"
+  - "Who has the best defensive plus/minus?"
+  - "Which team allows the fewest goals per game?"
+
+  Offensive Statistics
+
+  - "Who has the highest assist-to-turnover ratio?"
+  - "Show me the most accurate huck throwers"
+  - "Which players have the most O-point scores?"
+  - "Who averages the most yards received per game?"
+  - "Show me handlers with the best completion percentage under pressure"
+
+  Advanced Analytics
+
+  - "Which players have the highest usage rate?"
+  - "Show me players with the best true shooting percentage"
+  - "Who has the highest win shares this season?"
+  - "Calculate the offensive rating for [team name]"
+  - "Which lineup combinations score the most efficiently?"
+
+  Pull Statistics
+
+  - "Who has the most out-of-bounds pulls?"
+  - "Which player has the best pull hangtime average?"
+  - "Show me the pull statistics for [player name]"
+  - "Which team has the best starting field position after pulls?"
+
+  Situational Questions
+
+  - "Which players perform best in the 4th quarter?"
+  - "Show me clutch performers (high scoring in close games)"
+  - "Who has the most game-winning goals?"
+  - "Which players have the best red zone efficiency?"
+  - "Show me performance in windy conditions"
+
+  Historical/Trend Questions
+
+  - "How has [player name]'s scoring changed over the season?"
+  - "Show me [team name]'s last 10 game results"
+  - "What's the trend in scoring across the league?"
+  - "Compare this season's stats to last season for [player]"
+  - "Which records are close to being broken?"
+
+  Rookie/Breakout Questions
+
+  - "Who are the top performing rookies?"
+  - "Which players have improved the most from last season?"
+  - "Show me breakout candidates based on recent performance"
+  - "Who are the most underrated players by plus/minus?"
+
+  Fantasy/Predictive Questions
+
+  - "Which players should I pick for fantasy ultimate?"
+  - "Who's likely to lead in assists next week based on matchups?"
+  - "Which undervalued players have the best upcoming schedule?"
+  - "Predict the MVP based on current stats"

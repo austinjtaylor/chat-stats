@@ -2,6 +2,39 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project Overview
+
+This application is a full-stack web application that enables users to ask natural language questions about sports statistics and receive intelligent, data-driven responses. It uses direct SQL queries against a structured sports database, with Claude AI determining which queries to execute based on user questions.
+
+## Plan & Review
+
+### Before starting work
+- Always in plan mode to make a plan
+- After get the plan, make sure you Write the plan to .claude/tasks|/TASK_NAME. md.
+- The plan should be a detailed implementation plan and the reasoning behind them, as well as tasks broken down.
+- If the task require external knowledge or certain package, also research to get latest knowledge (Use Task tool for research)
+- Don't over plan it, always think MVP.
+- Once you write the plan, firstly ask me to review it. Do not continue until I approve the plan.
+
+### While implementing
+- You should update the plan as you work.
+- After you complete tasks in the plan, you should update and append detailed descriptions of the changes you made, so following tasks can be easily hand over to other engineers.
+
+## Git Commit Protocol
+
+When the user says "commit" or "add and commit", automatically:
+
+1. **Stage relevant files**: Use `git add` to stage the key modified files (avoid staging cache files, temp files)
+2. **Show staged changes**: Display what files will be committed with `git diff --cached --name-only`  
+3. **Create clean commit message**: Write descriptive commit message WITHOUT Claude authoring information
+4. **Execute commit**: Run the git commit command
+
+### Commit Message Format
+- Use clear, descriptive titles
+- Include bullet points for major changes
+- Add test results if applicable  
+- **NEVER include**: "🤖 Generated with Claude Code" or "Co-Authored-By: Claude"
+
 ## Development Commands
 
 ### Running the Application

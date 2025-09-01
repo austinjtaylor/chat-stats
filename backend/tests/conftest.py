@@ -3,30 +3,29 @@ Test fixtures and configuration for the sports statistics system.
 Provides common test data, mocks, and utilities for all test modules.
 """
 
-import pytest
-import tempfile
-import shutil
 import os
-from unittest.mock import Mock, MagicMock, patch
-from typing import List, Dict, Any
-from fastapi.testclient import TestClient
-from datetime import datetime
+import shutil
 
 # Add backend to path so we can import modules
 import sys
+import tempfile
+from typing import Any
+from unittest.mock import Mock
+
+import pytest
+from fastapi.testclient import TestClient
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+from ai_generator import AIGenerator
+from config import Config
+from session_manager import Message, SessionManager
 from sql_database import SQLDatabase
 from stats_processor import StatsProcessor
 from stats_tools import StatsToolManager
-from ai_generator import AIGenerator
-from stats_chat_system import StatsChatSystem
-from session_manager import SessionManager, Message
-from config import Config
-from models import Team, Player, Game, PlayerGameStats, PlayerSeasonStats, TeamSeasonStats
-
 
 # ===== CONFIGURATION FIXTURES =====
+
 
 @pytest.fixture
 def mock_config():
@@ -44,7 +43,7 @@ def mock_config():
 @pytest.fixture
 def temp_db_path():
     """Create a temporary database file for testing"""
-    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp:
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
         temp_path = tmp.name
     yield temp_path
     if os.path.exists(temp_path):
@@ -52,6 +51,7 @@ def temp_db_path():
 
 
 # ===== MOCK FIXTURES =====
+
 
 @pytest.fixture
 def mock_db():
@@ -83,25 +83,23 @@ def mock_stats_tool_manager():
             "description": "Get player statistics",
             "parameters": {
                 "type": "object",
-                "properties": {
-                    "player_name": {"type": "string"}
-                }
-            }
+                "properties": {"player_name": {"type": "string"}},
+            },
         }
     ]
-    mock.get_player_stats.return_value = '[]'
-    mock.get_team_stats.return_value = '[]'
-    mock.get_game_results.return_value = '[]'
+    mock.get_player_stats.return_value = "[]"
+    mock.get_team_stats.return_value = "[]"
+    mock.get_game_results.return_value = "[]"
     return mock
 
 
-@pytest.fixture  
+@pytest.fixture
 def mock_ai_generator():
     """Mock AIGenerator for testing"""
     mock = Mock(spec=AIGenerator)
     mock.generate_response.return_value = (
         "This is a test response from the AI generator.",
-        []
+        [],
     )
     return mock
 
@@ -119,34 +117,29 @@ def mock_session_manager():
 def mock_anthropic_client():
     """Mock Anthropic client for testing"""
     mock_client = Mock()
-    
+
     # Mock response for direct text responses
     mock_response = Mock()
     mock_response.content = [Mock(text="This is a test response")]
     mock_response.stop_reason = "end_turn"
-    
+
     mock_client.messages.create.return_value = mock_response
     return mock_client
 
 
 # ===== MESSAGE AND SESSION FIXTURES =====
 
+
 @pytest.fixture
 def sample_messages():
     """Sample messages for session testing"""
     return [
+        {"role": "user", "content": "What are LeBron James' stats this season?"},
         {
-            "role": "user",
-            "content": "What are LeBron James' stats this season?"
+            "role": "assistant",
+            "content": "LeBron James is averaging 25.1 points, 7.8 rebounds, and 6.9 assists per game this season.",
         },
-        {
-            "role": "assistant", 
-            "content": "LeBron James is averaging 25.1 points, 7.8 rebounds, and 6.9 assists per game this season."
-        },
-        {
-            "role": "user",
-            "content": "How does he compare to Jayson Tatum?"
-        }
+        {"role": "user", "content": "How does he compare to Jayson Tatum?"},
     ]
 
 
@@ -156,53 +149,54 @@ def sample_message_objects():
     return [
         Message(role="user", content="Hello"),
         Message(role="assistant", content="Hi there!"),
-        Message(role="user", content="How are you?")
+        Message(role="user", content="How are you?"),
     ]
 
 
 # ===== API FIXTURES =====
 
+
 @pytest.fixture
 def test_app():
     """Create a FastAPI test app for sports stats API"""
+
     from fastapi import FastAPI, HTTPException
     from fastapi.middleware.cors import CORSMiddleware
     from pydantic import BaseModel
-    from typing import List, Optional
-    
+
     # Define API models
     class QueryRequest(BaseModel):
         query: str
-        session_id: Optional[str] = None
+        session_id: str | None = None
 
     class DataPoint(BaseModel):
         label: str
         value: float
-        category: Optional[str] = None
+        category: str | None = None
 
     class QueryResponse(BaseModel):
         answer: str
-        sources: List[Dict[str, Any]]
+        sources: list[dict[str, Any]]
         session_id: str
 
     class StatsResponse(BaseModel):
         total_players: int
         total_teams: int
         total_games: int
-        top_scorers: List[DataPoint]
-        recent_games: List[Dict[str, Any]]
+        top_scorers: list[DataPoint]
+        recent_games: list[dict[str, Any]]
 
     class PlayerSearchResponse(BaseModel):
-        players: List[Dict[str, Any]]
+        players: list[dict[str, Any]]
         count: int
 
     class TeamSearchResponse(BaseModel):
-        teams: List[Dict[str, Any]]
+        teams: list[dict[str, Any]]
         count: int
-    
+
     # Create test app
     app = FastAPI(title="Sports Statistics API Test")
-    
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -210,20 +204,16 @@ def test_app():
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    
+
     # Mock chat system that will be injected during tests
     mock_chat_system = Mock()
-    
+
     @app.post("/api/query", response_model=QueryResponse)
     async def query_stats(request: QueryRequest):
         try:
             session_id = request.session_id or "test-session-123"
             answer, sources = mock_chat_system.query(request.query, session_id)
-            return QueryResponse(
-                answer=answer,
-                sources=sources,
-                session_id=session_id
-            )
+            return QueryResponse(answer=answer, sources=sources, session_id=session_id)
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
@@ -240,18 +230,18 @@ def test_app():
         # Mock player search
         return PlayerSearchResponse(players=[], count=0)
 
-    @app.get("/api/teams/search", response_model=TeamSearchResponse) 
+    @app.get("/api/teams/search", response_model=TeamSearchResponse)
     async def search_teams(q: str):
         # Mock team search
         return TeamSearchResponse(teams=[], count=0)
-    
+
     @app.get("/")
     async def read_root():
         return {"message": "Sports Statistics API"}
-    
+
     # Store the mock for easy access in tests
     app.state.mock_chat_system = mock_chat_system
-    
+
     return app
 
 
@@ -263,6 +253,7 @@ def test_client(test_app):
 
 # ===== RESPONSE FIXTURES =====
 
+
 @pytest.fixture
 def mock_api_responses():
     """Mock API responses for testing"""
@@ -272,9 +263,9 @@ def mock_api_responses():
             [
                 {
                     "source": "player_stats",
-                    "data": {"player": "LeBron James", "ppg": 25.1}
+                    "data": {"player": "LeBron James", "ppg": 25.1},
                 }
-            ]
+            ],
         ),
         "database_stats": {
             "total_players": 500,
@@ -282,7 +273,7 @@ def mock_api_responses():
             "total_games": 1230,
             "top_scorers": [
                 {"label": "LeBron James", "value": 25.1, "category": "points"},
-                {"label": "Jayson Tatum", "value": 26.9, "category": "points"}
+                {"label": "Jayson Tatum", "value": 26.9, "category": "points"},
             ],
             "recent_games": [
                 {
@@ -290,14 +281,15 @@ def mock_api_responses():
                     "home_team": "Lakers",
                     "away_team": "Celtics",
                     "home_score": 110,
-                    "away_score": 105
+                    "away_score": 105,
                 }
-            ]
-        }
+            ],
+        },
     }
 
 
 # ===== UTILITY FIXTURES =====
+
 
 @pytest.fixture
 def temp_directory():
