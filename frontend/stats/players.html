@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player Stats - UFA Statistics</title>
+    <link rel="stylesheet" href="../style.css?v=10">
+    <link rel="stylesheet" href="stats.css?v=1">
+</head>
+<body>
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <svg id="sunIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <svg id="moonIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+    </button>
+
+    <div class="stats-container">
+        <!-- Navigation Header -->
+        <header class="stats-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>UFA Statistics</h1>
+                    <nav class="stats-nav">
+                        <a href="players.html" class="nav-link active">PLAYER STATS</a>
+                        <a href="teams.html" class="nav-link">TEAM STATS</a>
+                        <a href="games.html" class="nav-link">GAME SEARCH</a>
+                    </nav>
+                </div>
+                <div class="header-right">
+                    <a href="../index.html" class="chat-link">← Back to Chat</a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="stats-main">
+            <h1 class="page-title">PLAYER STATS</h1>
+
+            <!-- Filters -->
+            <div class="filters-section">
+                <div class="filters-row">
+                    <div class="filter-group">
+                        <label for="seasonFilter">Season</label>
+                        <select id="seasonFilter" class="filter-select">
+                            <option value="career">Career</option>
+                            <option value="2025" selected>2025</option>
+                            <option value="2024">2024</option>
+                            <option value="2023">2023</option>
+                            <option value="2022">2022</option>
+                            <option value="2021">2021</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="perFilter">Per</label>
+                        <select id="perFilter" class="filter-select">
+                            <option value="total" selected>Total</option>
+                            <option value="game">Per Game</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="teamFilter">Team</label>
+                        <select id="teamFilter" class="filter-select">
+                            <option value="all" selected>All</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Table -->
+            <div class="table-section">
+                <div class="table-header">
+                    <h2 class="table-title">Player Statistics</h2>
+                    <div class="table-info">
+                        <span id="playerCount">Loading...</span> players
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="stats-table" id="playersTable">
+                        <thead>
+                            <tr id="tableHeaders">
+                                <!-- Headers will be populated by JavaScript -->
+                            </tr>
+                        </thead>
+                        <tbody id="playersTableBody">
+                            <tr>
+                                <td colspan="25" class="loading">Loading player statistics...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="paginationContainer">
+                    <!-- Pagination will be populated by JavaScript -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="shared.js?v=1"></script>
+    <script src="players.js?v=1"></script>
+</body>
+</html>

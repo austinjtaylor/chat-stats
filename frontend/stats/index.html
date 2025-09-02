@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UFA Statistics</title>
+    <link rel="stylesheet" href="../style.css?v=10">
+    <link rel="stylesheet" href="stats.css?v=1">
+</head>
+<body>
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <svg id="sunIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <svg id="moonIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+    </button>
+
+    <div class="stats-container">
+        <!-- Navigation Header -->
+        <header class="stats-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>UFA Statistics</h1>
+                    <nav class="stats-nav">
+                        <a href="players.html" class="nav-link active">PLAYER STATS</a>
+                        <a href="teams.html" class="nav-link">TEAM STATS</a>
+                        <a href="games.html" class="nav-link">GAME SEARCH</a>
+                    </nav>
+                </div>
+                <div class="header-right">
+                    <a href="../index.html" class="chat-link">← Back to Chat</a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="stats-main">
+            <div class="welcome-section">
+                <h2>Ultimate Frisbee Association Statistics</h2>
+                <p>Access comprehensive player statistics, team performance data, and game results from the UFA database.</p>
+                
+                <div class="stats-options">
+                    <a href="players.html" class="stats-option-card">
+                        <div class="option-icon">👤</div>
+                        <h3>Player Stats</h3>
+                        <p>Individual player performance, career statistics, and season comparisons</p>
+                    </a>
+                    
+                    <a href="teams.html" class="stats-option-card">
+                        <div class="option-icon">🏆</div>
+                        <h3>Team Stats</h3>
+                        <p>Team performance metrics, standings, and season statistics</p>
+                    </a>
+                    
+                    <a href="games.html" class="stats-option-card">
+                        <div class="option-icon">🎯</div>
+                        <h3>Game Search</h3>
+                        <p>Game results, schedules, and detailed game statistics</p>
+                    </a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="shared.js?v=1"></script>
+</body>
+</html>
