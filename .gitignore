@@ -18,6 +18,9 @@ logs/
 # CSV data files
 data/
 
+# Documentation files
+docs/
+
 # Ruff cache
 .ruff_cache/
 

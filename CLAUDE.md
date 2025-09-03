@@ -48,11 +48,32 @@ cd backend && uv run uvicorn app:app --reload --port 8000
 
 ### Database Setup
 ```bash
-# Initialize database with sample data
-uv run python scripts/setup_database.py
+# Initialize database with schema and synthetic UFA data (for development/testing)
+uv run python scripts/database_setup.py init
+uv run python scripts/database_setup.py generate
+
+# Full database reset (development/testing)
+uv run python scripts/database_setup.py reset
 
 # The database will be created at ./db/sports_stats.db
 ```
+
+### UFA API Data Import (Production Data)
+```bash
+# Import complete historical UFA data (recommended for production)
+uv run python scripts/ufa_data_manager.py import-api-parallel
+
+# Import specific years only (sequential)
+uv run python scripts/ufa_data_manager.py import-api 2024 2025
+
+# Import with parallel processing and custom worker count
+uv run python scripts/ufa_data_manager.py import-api-parallel --workers 4 2022 2023
+
+# Complete missing imports (games and season stats)
+uv run python scripts/ufa_data_manager.py complete-missing
+```
+
+**Note**: See `docs/ufa_api_documentation.txt` for complete UFA API reference.
 
 ### Testing
 ```bash
@@ -207,6 +228,6 @@ HTML/CSS/JavaScript chat interface that:
 
 - Always use `uv` to manage dependencies and run Python code (not pip directly)
 - Test files use pytest framework
-- Run `scripts/setup_database.py` to initialize database with sample data
+- Use `scripts/database_setup.py` for development/testing data and `scripts/ufa_data_manager.py` for production UFA data
 - The system uses direct SQL queries instead of vector embeddings for accuracy
 - Claude function calling provides precise statistics without hallucination

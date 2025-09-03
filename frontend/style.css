@@ -522,6 +522,30 @@ header h1 {
     color: var(--primary-color);
 }
 
+.dashboard-link {
+    display: block;
+    width: 100%;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-decoration: none;
+    cursor: pointer;
+    padding: 0.5rem 0;
+    border: none;
+    background: none;
+    outline: none;
+    transition: color 0.2s ease;
+    text-align: center;
+}
+
+.dashboard-link:hover {
+    color: var(--primary-color);
+}
+
+.dashboard-link:focus {
+    color: var(--primary-color);
+}
+
 
 /* Sidebar Headers */
 .stats-header,

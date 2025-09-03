@@ -4,7 +4,7 @@ class PlayerStats {
         this.pageSize = 20;
         this.currentSort = { key: 'calculated_plus_minus', direction: 'desc' };
         this.filters = {
-            season: '2025',
+            season: 'career',
             per: 'total',
             team: 'all'
         };

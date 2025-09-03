@@ -130,7 +130,7 @@ CREATE TABLE IF NOT EXISTS player_season_stats (
     total_d_opportunity_stops INTEGER DEFAULT 0,
     -- Calculated fields
     calculated_plus_minus INTEGER GENERATED ALWAYS AS 
-        (total_goals + total_assists + total_blocks - total_throwaways - total_stalls - total_drops) STORED,
+        (total_goals + total_assists + total_blocks - total_throwaways - total_drops) STORED,
     completion_percentage DECIMAL(5,2),
     UNIQUE(player_id, team_id, year)
 );
