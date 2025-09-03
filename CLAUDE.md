@@ -124,6 +124,38 @@ uv run mypy .                  # Type checking
 ./scripts/quality.sh --type    # Only type check
 ```
 
+### Database Backup & Restore
+
+```bash
+# Create database backup with timestamp
+uv run python scripts/backup_database.py backup
+
+# Create compressed backup (saves space)
+uv run python scripts/backup_database.py backup --compress
+
+# Create backup and keep only 3 most recent backups
+uv run python scripts/backup_database.py backup --cleanup 3
+
+# Export database as SQL dump (version-control friendly)
+uv run python scripts/backup_database.py dump
+
+# List all available backups
+uv run python scripts/backup_database.py list
+
+# Restore from a specific backup
+uv run python scripts/backup_database.py restore sports_stats_20240903_142530.db
+
+# Clean up old backups (keep 5 most recent)
+uv run python scripts/backup_database.py cleanup --keep 5
+```
+
+**Backup Strategy:**
+- Regular backups are stored in `backups/` directory (excluded from Git)
+- Compressed backups save ~70% disk space
+- SQL dumps are text files suitable for version control
+- Automatic cleanup prevents backup directory bloat
+- Restore creates a safety backup of current database before restoring
+
 ### Environment Setup
 Create `.env` file in root with:
 ```
