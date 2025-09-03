@@ -1,4 +1,4 @@
-# Talk to Stats - Sports Statistics Chat System
+# Chat with Stats - Sports Statistics Chat System
 
 A natural language sports statistics query system that uses SQL database queries with Claude AI function calling to answer questions about player stats, team performance, and game results.
 
