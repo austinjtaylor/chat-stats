@@ -206,6 +206,7 @@ class PlayerStats {
             const response = await window.ufaStats.fetchData('/players/stats', {
                 season: this.filters.season,
                 team: this.filters.team,
+                per: this.filters.per,
                 page: this.currentPage,
                 per_page: this.pageSize,
                 sort: this.currentSort.key,
@@ -295,9 +296,13 @@ class PlayerStats {
                         return `<td class="player-name">${player.full_name || `${player.first_name || ''} ${player.last_name || ''}`.trim()}</td>`;
                     case 'total_points_played':
                         value = (player.total_o_points_played || 0) + (player.total_d_points_played || 0);
+                        // Round to 1 decimal place to avoid floating point precision issues
+                        value = Math.round(value * 10) / 10;
                         return `<td class="numeric">${this.formatValue(value)}</td>`;
                     case 'score_total':
                         value = (player.total_goals || 0) + (player.total_assists || 0);
+                        // Round to 1 decimal place to avoid floating point precision issues  
+                        value = Math.round(value * 10) / 10;
                         return `<td class="numeric">${this.formatValue(value)}</td>`;
                     case 'calculated_plus_minus':
                         return `<td class="numeric">${this.formatValue(player[col.key] || 0, true)}</td>`;

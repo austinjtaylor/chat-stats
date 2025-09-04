@@ -176,7 +176,7 @@ async def import_data(file_path: str, data_type: str = "json"):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def get_sort_column(sort_key, is_career=False):
+def get_sort_column(sort_key, is_career=False, per_game=False):
     """Map sort keys to actual database columns with proper table prefixes"""
     
     if is_career:
@@ -211,7 +211,13 @@ def get_sort_column(sort_key, is_career=False):
             'huck_percentage': 'huck_percentage',
             'offensive_efficiency': 'offensive_efficiency'
         }
-        return career_columns.get(sort_key, sort_key)
+        base_column = career_columns.get(sort_key, sort_key)
+        
+        # If per_game mode and sorting by a counting stat, divide by games_played
+        if per_game and sort_key not in ['full_name', 'completion_percentage', 'huck_percentage', 'offensive_efficiency', 'games_played']:
+            return f"CASE WHEN games_played > 0 THEN CAST({base_column} AS REAL) / games_played ELSE 0 END"
+        
+        return base_column
     
     # For single season stats, use table prefixes
     column_mapping = {
@@ -244,7 +250,16 @@ def get_sort_column(sort_key, is_career=False):
         'huck_percentage': 'CASE WHEN pss.total_hucks_attempted > 0 THEN ROUND(pss.total_hucks_completed * 100.0 / pss.total_hucks_attempted, 1) ELSE 0 END',
         'offensive_efficiency': 'CASE WHEN pss.total_o_opportunities >= 20 THEN ROUND(pss.total_o_opportunity_scores * 100.0 / pss.total_o_opportunities, 1) ELSE NULL END'
     }
-    return column_mapping.get(sort_key, f'pss.{sort_key}')
+    
+    # Get the base column
+    base_column = column_mapping.get(sort_key, f'pss.{sort_key}')
+    
+    # If per_game mode and sorting by a counting stat, divide by games_played
+    if per_game and sort_key not in ['full_name', 'completion_percentage', 'huck_percentage', 'offensive_efficiency', 'games_played']:
+        games_played_col = column_mapping['games_played']
+        return f"CASE WHEN {games_played_col} > 0 THEN CAST({base_column} AS REAL) / {games_played_col} ELSE 0 END"
+    
+    return base_column
 
 
 @app.get("/api/players/stats")
@@ -254,7 +269,8 @@ async def get_player_stats(
     page: int = 1,
     per_page: int = 20,
     sort: str = "calculated_plus_minus",
-    order: str = "desc"
+    order: str = "desc",
+    per: str = "total"
 ):
     """Get paginated player statistics with filtering and sorting"""
     try:
@@ -338,7 +354,7 @@ async def get_player_stats(
             WHERE 1=1{team_filter}
             AND pss.team_id NOT IN ('allstars1', 'allstars2')
             GROUP BY pss.player_id
-            ORDER BY {get_sort_column(sort, is_career=True)} {order.upper()}
+            ORDER BY {get_sort_column(sort, is_career=True, per_game=(per == "game"))} {order.upper()}
             LIMIT {per_page} OFFSET {(page-1) * per_page}
             """
         else:
@@ -399,7 +415,7 @@ async def get_player_stats(
             AND pss.team_id NOT IN ('allstars1', 'allstars2')
             AND (g.home_team_id NOT IN ('allstars1', 'allstars2') AND g.away_team_id NOT IN ('allstars1', 'allstars2'))
             GROUP BY pss.player_id, pss.team_id, pss.year
-            ORDER BY {get_sort_column(sort)} {order.upper()}
+            ORDER BY {get_sort_column(sort, per_game=(per == "game"))} {order.upper()}
             LIMIT {per_page} OFFSET {(page-1) * per_page}
             """
         
@@ -415,13 +431,22 @@ async def get_player_stats(
             """
         else:
             count_query = f"""
-            SELECT COUNT(*) as total
+            SELECT COUNT(DISTINCT pss.player_id || '-' || pss.team_id || '-' || pss.year) as total
             FROM player_season_stats pss
             JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
-            LEFT JOIN player_game_stats pgs ON pss.player_id = pgs.player_id AND pss.year = pgs.year AND pss.team_id = pgs.team_id
-            LEFT JOIN games g ON pgs.game_id = g.game_id
+            LEFT JOIN teams t ON pss.team_id = t.team_id AND pss.year = t.year
             WHERE 1=1{season_filter}{team_filter}
-            AND (g.home_team_id NOT IN ('allstars1', 'allstars2') AND g.away_team_id NOT IN ('allstars1', 'allstars2'))
+            AND pss.team_id NOT IN ('allstars1', 'allstars2')
+            AND EXISTS (
+                SELECT 1 FROM player_game_stats pgs
+                LEFT JOIN games g ON pgs.game_id = g.game_id  
+                WHERE pgs.player_id = pss.player_id 
+                AND pgs.year = pss.year 
+                AND pgs.team_id = pss.team_id
+                AND g.home_team_id NOT IN ('allstars1', 'allstars2') 
+                AND g.away_team_id NOT IN ('allstars1', 'allstars2')
+                AND (pgs.o_points_played > 0 OR pgs.d_points_played > 0 OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0)
+            )
             """
         
         # Execute queries using the stats system database connection
@@ -477,6 +502,37 @@ async def get_player_stats(
                     'offensive_efficiency': row[36] if row[36] is not None else None
                 }
                 players.append(player)
+        
+        # Convert to per-game stats if requested
+        if per == "game":
+            for player in players:
+                games = player['games_played']
+                if games > 0:
+                    # Convert counting stats to per-game averages
+                    per_game_stats = [
+                        'total_points_played', 'possessions', 'score_total',
+                        'total_assists', 'total_goals', 'total_blocks',
+                        'total_completions', 'total_yards', 'total_yards_thrown',
+                        'total_yards_received', 'total_hockey_assists',
+                        'total_throwaways', 'total_stalls', 'total_drops',
+                        'total_callahans', 'total_hucks_completed',
+                        'total_hucks_attempted', 'total_pulls',
+                        'total_o_points_played', 'total_d_points_played',
+                        'minutes_played', 'total_o_opportunities',
+                        'total_d_opportunities', 'total_o_opportunity_scores'
+                    ]
+                    
+                    for stat in per_game_stats:
+                        if stat in player and player[stat] is not None:
+                            # Use proper rounding to avoid floating point precision issues
+                            value = player[stat] / games
+                            # Round to 1 decimal place, ensuring proper precision
+                            player[stat] = float(format(value, '.1f'))
+                    
+                    # Plus/minus also needs to be averaged
+                    if player['calculated_plus_minus'] is not None:
+                        value = player['calculated_plus_minus'] / games
+                        player['calculated_plus_minus'] = float(format(value, '.1f'))
         
         total_pages = (total + per_page - 1) // per_page
         
