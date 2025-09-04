@@ -131,21 +131,72 @@ class StatsChatSystem:
         # Get team standings (UFA schema)
         if summary["seasons"]:
             current_year = int(summary["seasons"][0])
-            standings_query = """
-            SELECT t.name, t.full_name, tss.wins, tss.losses, tss.ties, tss.standing
-            FROM team_season_stats tss
-            JOIN teams t ON tss.team_id = t.team_id AND tss.year = t.year
-            WHERE tss.year = :year
-            ORDER BY tss.standing ASC
-            LIMIT 10
+            
+            # Get all teams with their standings
+            all_teams_query = """
+            WITH current_teams AS (
+                SELECT DISTINCT team_id 
+                FROM teams 
+                WHERE year = :current_year 
+                  AND team_id NOT IN ('allstars1', 'allstars2')
+            ),
+            team_list AS (
+                SELECT DISTINCT 
+                    t.team_id,
+                    t.name,
+                    MAX(t.full_name) as full_name,
+                    MAX(t.year) as last_year,
+                    CASE WHEN ct.team_id IS NOT NULL THEN 1 ELSE 0 END as is_current,
+                    COALESCE(tss.wins, t.wins, 0) as wins,
+                    COALESCE(tss.losses, t.losses, 0) as losses,
+                    COALESCE(tss.ties, t.ties, 0) as ties,
+                    COALESCE(tss.standing, t.standing, 999) as standing
+                FROM teams t
+                LEFT JOIN current_teams ct ON t.team_id = ct.team_id
+                LEFT JOIN team_season_stats tss ON t.team_id = tss.team_id AND t.year = tss.year
+                WHERE t.team_id NOT IN ('allstars1', 'allstars2')
+                GROUP BY t.team_id, t.name, ct.team_id
+            )
+            SELECT 
+                team_id,
+                name,
+                full_name,
+                last_year,
+                is_current,
+                wins,
+                losses,
+                ties,
+                standing
+            FROM team_list
+            ORDER BY 
+                is_current DESC,  -- Current teams first
+                CASE WHEN is_current = 1 THEN name ELSE NULL END ASC,  -- Current teams alphabetically
+                CASE WHEN is_current = 0 THEN last_year ELSE NULL END DESC,  -- Historical teams by most recent year
+                name ASC  -- Then alphabetically within same year
             """
+            
             try:
-                standings = self.db.execute_query(
-                    standings_query, {"year": current_year}
+                teams = self.db.execute_query(
+                    all_teams_query, {"current_year": current_year}
                 )
-                summary["team_standings"] = standings
+                
+                # Format teams for API response
+                summary["team_standings"] = [
+                    {
+                        "team_id": team["team_id"],
+                        "name": team["name"],
+                        "full_name": team["full_name"] or team["name"],
+                        "is_current": bool(team["is_current"]),
+                        "last_year": team["last_year"],
+                        "wins": team["wins"] if team["is_current"] else None,
+                        "losses": team["losses"] if team["is_current"] else None,
+                        "ties": team["ties"] if team["is_current"] else None,
+                        "standing": team["standing"] if team["is_current"] and team["standing"] != 999 else None
+                    }
+                    for team in teams
+                ]
             except Exception as e:
-                print(f"Could not get standings: {e}")
+                print(f"Could not get teams: {e}")
                 summary["team_standings"] = []
 
         return summary

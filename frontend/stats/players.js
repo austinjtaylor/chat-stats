@@ -29,7 +29,9 @@ class PlayerStats {
             if (data.team_standings) {
                 this.teams = data.team_standings.map(team => ({
                     id: team.team_id || team.name,
-                    name: team.full_name || team.name
+                    name: team.full_name || team.name,
+                    is_current: team.is_current,
+                    last_year: team.last_year
                 }));
                 this.populateTeamFilter();
             }
@@ -45,11 +47,31 @@ class PlayerStats {
         // Clear existing options except "All"
         teamFilter.innerHTML = '<option value="all">All</option>';
         
-        // Add team options
-        this.teams.forEach(team => {
+        // Separate teams into current and historical
+        const currentTeams = this.teams.filter(team => team.is_current !== false);
+        const historicalTeams = this.teams.filter(team => team.is_current === false);
+        
+        // Add current teams
+        currentTeams.forEach(team => {
             const option = document.createElement('option');
             option.value = team.id;
             option.textContent = team.name;
+            teamFilter.appendChild(option);
+        });
+        
+        // Add separator if there are historical teams
+        if (historicalTeams.length > 0 && currentTeams.length > 0) {
+            const separator = document.createElement('option');
+            separator.disabled = true;
+            separator.textContent = '──────── Historical Teams ────────';
+            teamFilter.appendChild(separator);
+        }
+        
+        // Add historical teams
+        historicalTeams.forEach(team => {
+            const option = document.createElement('option');
+            option.value = team.id;
+            option.textContent = `${team.name} (${team.last_year || 'historical'})`;
             teamFilter.appendChild(option);
         });
         
