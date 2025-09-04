@@ -64,6 +64,7 @@ class PlayerStats {
         document.getElementById('seasonFilter').addEventListener('change', (e) => {
             this.filters.season = e.target.value;
             this.currentPage = 1;
+            this.renderTableHeaders(); // Re-render headers for the new season
             this.loadPlayerStats();
         });
 
@@ -94,11 +95,9 @@ class PlayerStats {
         });
     }
 
-    renderTableHeaders() {
-        const headerRow = document.getElementById('tableHeaders');
-        
-        // Define all columns from UFA website
-        const columns = [
+    getColumnsForSeason(season) {
+        // Base columns available for all years
+        const baseColumns = [
             { key: 'full_name', label: 'Player', sortable: true },
             { key: 'games_played', label: 'G', sortable: true },
             { key: 'total_points_played', label: 'PP', sortable: true },
@@ -109,23 +108,76 @@ class PlayerStats {
             { key: 'total_blocks', label: 'BLK', sortable: true },
             { key: 'calculated_plus_minus', label: '+/-', sortable: true },
             { key: 'total_completions', label: 'Cmp', sortable: true },
-            { key: 'completion_percentage', label: 'Cmp%', sortable: true },
+            { key: 'completion_percentage', label: 'Cmp%', sortable: true }
+        ];
+
+        // Advanced stats added in 2021
+        const advancedStats2021 = [
             { key: 'total_yards', label: 'Y', sortable: true },
             { key: 'total_yards_thrown', label: 'TY', sortable: true },
-            { key: 'total_yards_received', label: 'RY', sortable: true },
-            { key: 'offensive_efficiency', label: 'OEFF', sortable: true },
-            { key: 'total_hockey_assists', label: 'HA', sortable: true },
+            { key: 'total_yards_received', label: 'RY', sortable: true }
+        ];
+
+        // OEFF available for all years
+        const oeffColumn = [{ key: 'offensive_efficiency', label: 'OEFF', sortable: true }];
+
+        // Hockey assists available from 2014
+        const hockeyAssistColumn = [{ key: 'total_hockey_assists', label: 'HA', sortable: true }];
+
+        // Other base columns
+        const otherBaseColumns = [
             { key: 'total_throwaways', label: 'T', sortable: true },
             { key: 'total_stalls', label: 'S', sortable: true },
             { key: 'total_drops', label: 'D', sortable: true },
-            { key: 'total_callahans', label: 'C', sortable: true },
+            { key: 'total_callahans', label: 'C', sortable: true }
+        ];
+
+        // Huck stats available from 2021
+        const huckStats2021 = [
             { key: 'total_hucks_completed', label: 'Hck', sortable: true },
-            { key: 'huck_percentage', label: 'Hck%', sortable: true },
+            { key: 'huck_percentage', label: 'Hck%', sortable: true }
+        ];
+
+        // Final columns
+        const finalColumns = [
             { key: 'total_pulls', label: 'Pul', sortable: true },
             { key: 'total_o_points_played', label: 'OPP', sortable: true },
             { key: 'total_d_points_played', label: 'DPP', sortable: true },
             { key: 'minutes_played', label: 'MP', sortable: true }
         ];
+
+        // Build column list based on season
+        let columns = [...baseColumns];
+        
+        // For career stats or 2021+, show all columns
+        if (season === 'career' || (season && parseInt(season) >= 2021)) {
+            columns.push(...advancedStats2021);
+        }
+        
+        columns.push(...oeffColumn);
+        
+        // Hockey assists available from 2014
+        if (season === 'career' || (season && parseInt(season) >= 2014)) {
+            columns.push(...hockeyAssistColumn);
+        }
+        
+        columns.push(...otherBaseColumns);
+        
+        // Huck stats from 2021
+        if (season === 'career' || (season && parseInt(season) >= 2021)) {
+            columns.push(...huckStats2021);
+        }
+        
+        columns.push(...finalColumns);
+        
+        return columns;
+    }
+
+    renderTableHeaders() {
+        const headerRow = document.getElementById('tableHeaders');
+        
+        // Get columns based on current season filter
+        const columns = this.getColumnsForSeason(this.filters.season);
 
         headerRow.innerHTML = '';
         columns.forEach(col => {
@@ -231,37 +283,34 @@ class PlayerStats {
             return;
         }
 
+        // Get columns for current season to match headers
+        const columns = this.getColumnsForSeason(this.filters.season);
+        
         tbody.innerHTML = this.players.map(player => {
-            return `
-                <tr>
-                    <td class="player-name">${player.full_name || `${player.first_name || ''} ${player.last_name || ''}`.trim()}</td>
-                    <td class="numeric">${this.formatValue(player.games_played || 0)}</td>
-                    <td class="numeric">${this.formatValue(player.total_o_points_played + player.total_d_points_played || 0)}</td>
-                    <td class="numeric">${this.formatValue(player.possessions || 0)}</td>
-                    <td class="numeric">${this.formatValue((player.total_goals || 0) + (player.total_assists || 0))}</td>
-                    <td class="numeric">${this.formatValue(player.total_assists || 0)}</td>
-                    <td class="numeric">${this.formatValue(player.total_goals || 0)}</td>
-                    <td class="numeric">${this.formatValue(player.total_blocks || 0)}</td>
-                    <td class="numeric">${this.formatValue(player.calculated_plus_minus || 0, true)}</td>
-                    <td class="numeric">${this.formatValue(player.total_completions || 0)}</td>
-                    <td class="numeric">${this.formatPercentage(player.completion_percentage)}</td>
-                    <td class="numeric">${this.formatValue(player.total_yards || 0)}</td>
-                    <td class="numeric">${this.formatValue(player.total_yards_thrown || 0)}</td>
-                    <td class="numeric">${this.formatValue(player.total_yards_received || 0)}</td>
-                    <td class="numeric">${this.formatValue(player.offensive_efficiency || 0)}</td>
-                    <td class="numeric">${this.formatValue(player.total_hockey_assists || 0)}</td>
-                    <td class="numeric">${this.formatValue(player.total_throwaways || 0)}</td>
-                    <td class="numeric">${this.formatValue(player.total_stalls || 0)}</td>
-                    <td class="numeric">${this.formatValue(player.total_drops || 0)}</td>
-                    <td class="numeric">${this.formatValue(player.total_callahans || 0)}</td>
-                    <td class="numeric">${this.formatValue(player.total_hucks_completed || 0)}</td>
-                    <td class="numeric">${this.formatPercentage(this.calculateHuckPercentage(player))}</td>
-                    <td class="numeric">${this.formatValue(player.total_pulls || 0)}</td>
-                    <td class="numeric">${this.formatValue(player.total_o_points_played || 0)}</td>
-                    <td class="numeric">${this.formatValue(player.total_d_points_played || 0)}</td>
-                    <td class="numeric">${this.formatValue(player.minutes_played || 0)}</td>
-                </tr>
-            `;
+            const cells = columns.map(col => {
+                let value;
+                
+                switch(col.key) {
+                    case 'full_name':
+                        return `<td class="player-name">${player.full_name || `${player.first_name || ''} ${player.last_name || ''}`.trim()}</td>`;
+                    case 'total_points_played':
+                        value = (player.total_o_points_played || 0) + (player.total_d_points_played || 0);
+                        return `<td class="numeric">${this.formatValue(value)}</td>`;
+                    case 'score_total':
+                        value = (player.total_goals || 0) + (player.total_assists || 0);
+                        return `<td class="numeric">${this.formatValue(value)}</td>`;
+                    case 'calculated_plus_minus':
+                        return `<td class="numeric">${this.formatValue(player[col.key] || 0, true)}</td>`;
+                    case 'completion_percentage':
+                        return `<td class="numeric">${this.formatPercentage(player[col.key])}</td>`;
+                    case 'huck_percentage':
+                        return `<td class="numeric">${this.formatPercentage(this.calculateHuckPercentage(player))}</td>`;
+                    default:
+                        return `<td class="numeric">${this.formatValue(player[col.key] || 0)}</td>`;
+                }
+            });
+            
+            return `<tr>${cells.join('')}</tr>`;
         }).join('');
     }
 

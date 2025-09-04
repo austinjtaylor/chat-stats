@@ -263,3 +263,13 @@ HTML/CSS/JavaScript chat interface that:
 - Use `scripts/database_setup.py` for development/testing data and `scripts/ufa_data_manager.py` for production UFA data
 - The system uses direct SQL queries instead of vector embeddings for accuracy
 - Claude function calling provides precise statistics without hallucination
+
+### Data Availability Notes
+
+**Advanced statistics** are only available from certain years:
+- **Y** (Total Yards), **TY** (Throwing Yards), **RY** (Receiving Yards) - Available from 2021 onwards
+- **HCK** (Hucks Completed), **HCK%** (Huck Percentage) - Available from 2021 onwards  
+- **HA** (Hockey Assists) - Available from 2014 onwards
+- Basic stats (goals, assists, blocks, +/-, completions, turnovers, etc.) - Available for all years (2012-present)
+
+Note: The player stats page automatically hides columns for statistics that are not available in the selected season.
