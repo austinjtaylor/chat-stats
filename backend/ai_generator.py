@@ -55,8 +55,9 @@ SQL Query Guidelines:
 - **CRITICAL for per-game statistics**: Calculate per-game averages BEFORE sorting, not after
   - WRONG: Return highest total stat then divide by games
   - CORRECT: Calculate ratio first (total_stat / games) then ORDER BY the ratio DESC
-- **JOIN patterns**: Use string-based UFA IDs for joins (CRITICAL - must include year matching for players):
-  - Players to Stats: JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
+- **JOIN patterns**: Use string-based UFA IDs for joins:
+  - **For SINGLE SEASON queries**: JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
+  - **For CAREER/ALL-TIME queries**: JOIN (SELECT DISTINCT player_id, full_name FROM players) p ON pss.player_id = p.player_id
   - Teams to Stats: JOIN teams t ON tss.team_id = t.team_id AND tss.year = t.year
   - Games to Stats: JOIN games g ON pgs.game_id = g.game_id
 - **Field names**: Use correct UFA field names (NOT old schema):
@@ -81,9 +82,10 @@ SQL Query Guidelines:
 - **For per-game averages**: Count only games with actual statistical activity
   - Use: COUNT(DISTINCT CASE WHEN pgs.yards_thrown > 0 OR pgs.yards_received > 0 THEN pgs.game_id END)
   - This avoids counting games where player was on roster but didn't record stats
-- **CRITICAL - Player table joins**: The players table has one record per player per year, so joining WITHOUT year matching creates duplicates that multiply stats incorrectly
-  - WRONG: JOIN players p ON pss.player_id = p.player_id (multiplies stats by number of years played)
-  - CORRECT: JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
+- **CRITICAL - Player table structure**: The players table has one record per player per year, so proper joining is essential:
+  - For season queries: JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
+  - For career queries: JOIN (SELECT DISTINCT player_id, full_name FROM players) p ON pss.player_id = p.player_id
+  - NEVER use JOIN players p ON pss.player_id = p.player_id alone for aggregations (creates duplicates)
 - **CRITICAL - Scoring Efficiency (Goals per Point)**: Always use TOTAL points played, not just offensive points
   - WRONG: total_goals / total_o_points_played (creates impossible values > 1.0)
   - CORRECT: total_goals / NULLIF(total_o_points_played + total_d_points_played, 0)
@@ -146,20 +148,30 @@ Query Examples:
   ORDER BY yards_per_game DESC
   LIMIT 10
 
-- **All-time top goal scorers** (no season specified):
+- **All-time top goal scorers** (no season specified - career totals):
   SELECT p.full_name, SUM(pss.total_goals) as career_goals
   FROM player_season_stats pss
-  JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
+  JOIN (SELECT DISTINCT player_id, full_name FROM players) p 
+    ON pss.player_id = p.player_id
   GROUP BY p.player_id, p.full_name
   ORDER BY career_goals DESC
   LIMIT 10
 
-- **Most hucks completed in 2025**:
+- **Most hucks completed in 2025** (single season - requires year matching):
   SELECT p.full_name, pss.total_hucks_completed, pss.total_hucks_attempted
   FROM player_season_stats pss
   JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
   WHERE pss.year = 2025
   ORDER BY pss.total_hucks_completed DESC
+  LIMIT 10
+
+- **All-time assist leaders** (career totals - no year matching):
+  SELECT p.full_name, SUM(pss.total_assists) as career_assists
+  FROM player_season_stats pss
+  JOIN (SELECT DISTINCT player_id, full_name FROM players) p
+    ON pss.player_id = p.player_id
+  GROUP BY p.player_id, p.full_name
+  ORDER BY career_assists DESC
   LIMIT 10
 
 - **Team standings for specific season**:
