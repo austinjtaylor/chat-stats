@@ -259,7 +259,7 @@ class PlayerStats {
                     <td class="numeric">${this.formatValue(player.total_pulls || 0)}</td>
                     <td class="numeric">${this.formatValue(player.total_o_points_played || 0)}</td>
                     <td class="numeric">${this.formatValue(player.total_d_points_played || 0)}</td>
-                    <td class="numeric">${this.formatValue(this.calculateMinutesPlayed(player))}</td>
+                    <td class="numeric">${this.formatValue(player.minutes_played || 0)}</td>
                 </tr>
             `;
         }).join('');

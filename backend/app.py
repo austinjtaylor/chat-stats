@@ -305,6 +305,7 @@ async def get_player_stats(
                  JOIN games g_sub ON pgs_sub.game_id = g_sub.game_id
                  WHERE pgs_sub.player_id = pss.player_id 
                  AND (pgs_sub.o_points_played > 0 OR pgs_sub.d_points_played > 0 OR pgs_sub.seconds_played > 0 OR pgs_sub.goals > 0 OR pgs_sub.assists > 0)
+                 AND pgs_sub.team_id NOT IN ('allstars1', 'allstars2')
                  AND (g_sub.home_team_id NOT IN ('allstars1', 'allstars2') AND g_sub.away_team_id NOT IN ('allstars1', 'allstars2'))
                 ) as games_played,
                 SUM(pss.total_o_opportunities) as possessions,
