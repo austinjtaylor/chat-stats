@@ -22,6 +22,7 @@ class AIGenerator:
 - Add: AND team_id NOT IN ('allstars1', 'allstars2') to all team queries
 - Add: AND home_team_id NOT IN ('allstars1', 'allstars2') AND away_team_id NOT IN ('allstars1', 'allstars2') to game queries
 - When asked "What teams are in the UFA?" - ALWAYS filter by the current year (2025) to show only active teams
+- **IMPORTANT**: Do NOT mention excluding All-Star teams in your responses - just exclude them silently
 
 **CRITICAL FOR GAME QUERIES**:
 - When showing game results, ALWAYS JOIN teams table to get team names
@@ -146,13 +147,13 @@ Ultimate Frisbee Context and Statistics:
 - Plus/Minus in UFA: goals + assists + blocks - throwaways - stalls - drops (NOT point differential)
 
 Query Examples:
-- **What teams are in the UFA?** (MUST filter by current year and exclude all-stars):
+- **What teams are in the UFA?** (MUST filter by current year):
   SELECT DISTINCT t.full_name, t.city, t.division_name
   FROM teams t
   WHERE t.year = 2025  -- ALWAYS use current year for "What teams are in UFA"
-    AND t.team_id NOT IN ('allstars1', 'allstars2')  -- ALWAYS exclude all-star teams
+    AND t.team_id NOT IN ('allstars1', 'allstars2')
   ORDER BY t.division_name, t.full_name
-- **Best plus/minus in the 2024 season** (season-specific, exclude all-stars):
+- **Best plus/minus in the 2024 season** (season-specific):
   SELECT p.full_name, ROUND(pss.calculated_plus_minus, 1) as plus_minus
   FROM player_season_stats pss
   JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
@@ -160,7 +161,7 @@ Query Examples:
     AND pss.team_id NOT IN ('allstars1', 'allstars2')
   ORDER BY pss.calculated_plus_minus DESC
   LIMIT 3
-- **Most total yards ALL-TIME** (career totals - no year filter, exclude all-stars):
+- **Most total yards ALL-TIME** (career totals - no year filter):
   SELECT p.full_name,
          ROUND(SUM(pss.total_yards_thrown + pss.total_yards_received), 1) as career_total_yards
   FROM player_season_stats pss
@@ -266,7 +267,7 @@ Query Examples:
   ORDER BY goals_per_game DESC
   LIMIT 3
 
-- **Team standings for the 2025 season** (season-specific, exclude all-stars):
+- **Team standings for the 2025 season** (season-specific):
   SELECT t.full_name, tss.wins, tss.losses, tss.ties, tss.standing
   FROM team_season_stats tss
   JOIN teams t ON tss.team_id = t.team_id AND tss.year = t.year
@@ -290,7 +291,7 @@ Query Examples:
   WHERE pgs.game_id = 'gameID_here' AND pgs.year = 2025
   ORDER BY (pgs.goals + pgs.assists + pgs.blocks) DESC
 
-- **Last game between two teams** (exclude all-star games):
+- **Last game between two teams**:
   SELECT g.game_id, g.start_timestamp, pgs.player_id, pgs.hucks_completed, pgs.hucks_attempted
   FROM games g
   JOIN player_game_stats pgs ON g.game_id = pgs.game_id
@@ -361,8 +362,9 @@ All responses must be:
 2. **Data-focused** - Show actual player/team names with their statistics from query results
 3. **Clear** - Present statistics as formatted lists or tables, not explanatory text
 4. **Direct** - Never explain query steps or calculations, just present the retrieved data
+5. **Natural** - DO NOT mention technical filtering details like excluding All-Star teams, just present the results naturally
 
-REMEMBER: When you execute a query, you MUST present the actual results (names and numbers) from that query, not explain how to get them.
+REMEMBER: When you execute a query, you MUST present the actual results (names and numbers) from that query, not explain how to get them. Present results naturally without mentioning any exclusions or filtering criteria.
 """
 
     def __init__(self, api_key: str, model: str):
