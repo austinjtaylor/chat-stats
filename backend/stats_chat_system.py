@@ -131,7 +131,7 @@ class StatsChatSystem:
         # Get team standings (UFA schema)
         if summary["seasons"]:
             current_year = int(summary["seasons"][0])
-            
+
             # Get all teams with their standings
             all_teams_query = """
             WITH current_teams AS (
@@ -174,12 +174,12 @@ class StatsChatSystem:
                 CASE WHEN is_current = 0 THEN last_year ELSE NULL END DESC,  -- Historical teams by most recent year
                 name ASC  -- Then alphabetically within same year
             """
-            
+
             try:
                 teams = self.db.execute_query(
                     all_teams_query, {"current_year": current_year}
                 )
-                
+
                 # Format teams for API response
                 summary["team_standings"] = [
                     {
@@ -191,7 +191,11 @@ class StatsChatSystem:
                         "wins": team["wins"] if team["is_current"] else None,
                         "losses": team["losses"] if team["is_current"] else None,
                         "ties": team["ties"] if team["is_current"] else None,
-                        "standing": team["standing"] if team["is_current"] and team["standing"] != 999 else None
+                        "standing": (
+                            team["standing"]
+                            if team["is_current"] and team["standing"] != 999
+                            else None
+                        ),
                     }
                     for team in teams
                 ]
@@ -218,13 +222,14 @@ class StatsChatSystem:
             teams_result = self.db.execute_query(total_teams_query)
             games_result = self.db.execute_query(total_games_query)
 
-            # Get top scorers
+            # Get top scorers (goals + assists for total offensive contribution)
             top_scorers_query = """
-            SELECT p.full_name as player_name, SUM(pss.total_goals) as ppg
+            SELECT p.full_name as player_name, 
+                   SUM(pss.total_goals + pss.total_assists) as total_scores
             FROM player_season_stats pss
             JOIN players p ON pss.player_id = p.player_id
             GROUP BY p.player_id, p.full_name
-            ORDER BY ppg DESC
+            ORDER BY total_scores DESC
             LIMIT 5
             """
             top_scorers_result = self.db.execute_query(top_scorers_query)

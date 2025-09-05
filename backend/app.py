@@ -178,106 +178,118 @@ async def import_data(file_path: str, data_type: str = "json"):
 
 def get_sort_column(sort_key, is_career=False, per_game=False):
     """Map sort keys to actual database columns with proper table prefixes"""
-    
+
     if is_career:
         # For career stats, use column aliases directly since they're aggregated
         career_columns = {
-            'full_name': 'full_name',
-            'total_goals': 'total_goals',
-            'total_assists': 'total_assists',
-            'total_blocks': 'total_blocks',
-            'calculated_plus_minus': 'calculated_plus_minus',
-            'completion_percentage': 'completion_percentage',
-            'total_completions': 'total_completions',
-            'total_yards_thrown': 'total_yards_thrown',
-            'total_yards_received': 'total_yards_received',
-            'total_hockey_assists': 'total_hockey_assists',
-            'total_throwaways': 'total_throwaways',
-            'total_stalls': 'total_stalls',
-            'total_drops': 'total_drops',
-            'total_callahans': 'total_callahans',
-            'total_hucks_completed': 'total_hucks_completed',
-            'total_hucks_attempted': 'total_hucks_attempted',
-            'total_pulls': 'total_pulls',
-            'total_o_points_played': 'total_o_points_played',
-            'total_d_points_played': 'total_d_points_played',
-            'total_seconds_played': 'total_seconds_played',
-            'games_played': 'games_played',
-            'possessions': 'possessions',
-            'score_total': 'score_total',
-            'total_points_played': 'total_points_played',
-            'total_yards': 'total_yards',
-            'minutes_played': 'minutes_played',
-            'huck_percentage': 'huck_percentage',
-            'offensive_efficiency': 'offensive_efficiency'
+            "full_name": "full_name",
+            "total_goals": "total_goals",
+            "total_assists": "total_assists",
+            "total_blocks": "total_blocks",
+            "calculated_plus_minus": "calculated_plus_minus",
+            "completion_percentage": "completion_percentage",
+            "total_completions": "total_completions",
+            "total_yards_thrown": "total_yards_thrown",
+            "total_yards_received": "total_yards_received",
+            "total_hockey_assists": "total_hockey_assists",
+            "total_throwaways": "total_throwaways",
+            "total_stalls": "total_stalls",
+            "total_drops": "total_drops",
+            "total_callahans": "total_callahans",
+            "total_hucks_completed": "total_hucks_completed",
+            "total_hucks_attempted": "total_hucks_attempted",
+            "total_pulls": "total_pulls",
+            "total_o_points_played": "total_o_points_played",
+            "total_d_points_played": "total_d_points_played",
+            "total_seconds_played": "total_seconds_played",
+            "games_played": "games_played",
+            "possessions": "possessions",
+            "score_total": "score_total",
+            "total_points_played": "total_points_played",
+            "total_yards": "total_yards",
+            "minutes_played": "minutes_played",
+            "huck_percentage": "huck_percentage",
+            "offensive_efficiency": "offensive_efficiency",
         }
         base_column = career_columns.get(sort_key, sort_key)
-        
+
         # If per_game mode and sorting by a counting stat, divide by games_played
-        if per_game and sort_key not in ['full_name', 'completion_percentage', 'huck_percentage', 'offensive_efficiency', 'games_played']:
+        if per_game and sort_key not in [
+            "full_name",
+            "completion_percentage",
+            "huck_percentage",
+            "offensive_efficiency",
+            "games_played",
+        ]:
             return f"CASE WHEN games_played > 0 THEN CAST({base_column} AS REAL) / games_played ELSE 0 END"
-        
+
         return base_column
-    
+
     # For single season stats, use table prefixes
     column_mapping = {
-        'full_name': 'p.full_name',
-        'total_goals': 'pss.total_goals',
-        'total_assists': 'pss.total_assists',
-        'total_blocks': 'pss.total_blocks',
-        'calculated_plus_minus': 'pss.calculated_plus_minus',
-        'completion_percentage': 'pss.completion_percentage',
-        'total_completions': 'pss.total_completions',
-        'total_yards_thrown': 'pss.total_yards_thrown',
-        'total_yards_received': 'pss.total_yards_received',
-        'total_hockey_assists': 'pss.total_hockey_assists',
-        'total_throwaways': 'pss.total_throwaways',
-        'total_stalls': 'pss.total_stalls',
-        'total_drops': 'pss.total_drops',
-        'total_callahans': 'pss.total_callahans',
-        'total_hucks_completed': 'pss.total_hucks_completed',
-        'total_hucks_attempted': 'pss.total_hucks_attempted',
-        'total_pulls': 'pss.total_pulls',
-        'total_o_points_played': 'pss.total_o_points_played',
-        'total_d_points_played': 'pss.total_d_points_played',
-        'total_seconds_played': 'pss.total_seconds_played',
-        'games_played': 'COUNT(DISTINCT CASE WHEN (pgs.o_points_played > 0 OR pgs.d_points_played > 0 OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0) THEN pgs.game_id ELSE NULL END)',
-        'possessions': 'pss.total_o_opportunities',
-        'score_total': '(pss.total_goals + pss.total_assists)',
-        'total_points_played': '(pss.total_o_points_played + pss.total_d_points_played)',
-        'total_yards': '(pss.total_yards_thrown + pss.total_yards_received)',
-        'minutes_played': 'ROUND(pss.total_seconds_played / 60.0, 0)',
-        'huck_percentage': 'CASE WHEN pss.total_hucks_attempted > 0 THEN ROUND(pss.total_hucks_completed * 100.0 / pss.total_hucks_attempted, 1) ELSE 0 END',
-        'offensive_efficiency': 'CASE WHEN pss.total_o_opportunities >= 20 THEN ROUND(pss.total_o_opportunity_scores * 100.0 / pss.total_o_opportunities, 1) ELSE NULL END'
+        "full_name": "p.full_name",
+        "total_goals": "pss.total_goals",
+        "total_assists": "pss.total_assists",
+        "total_blocks": "pss.total_blocks",
+        "calculated_plus_minus": "pss.calculated_plus_minus",
+        "completion_percentage": "pss.completion_percentage",
+        "total_completions": "pss.total_completions",
+        "total_yards_thrown": "pss.total_yards_thrown",
+        "total_yards_received": "pss.total_yards_received",
+        "total_hockey_assists": "pss.total_hockey_assists",
+        "total_throwaways": "pss.total_throwaways",
+        "total_stalls": "pss.total_stalls",
+        "total_drops": "pss.total_drops",
+        "total_callahans": "pss.total_callahans",
+        "total_hucks_completed": "pss.total_hucks_completed",
+        "total_hucks_attempted": "pss.total_hucks_attempted",
+        "total_pulls": "pss.total_pulls",
+        "total_o_points_played": "pss.total_o_points_played",
+        "total_d_points_played": "pss.total_d_points_played",
+        "total_seconds_played": "pss.total_seconds_played",
+        "games_played": "COUNT(DISTINCT CASE WHEN (pgs.o_points_played > 0 OR pgs.d_points_played > 0 OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0) THEN pgs.game_id ELSE NULL END)",
+        "possessions": "pss.total_o_opportunities",
+        "score_total": "(pss.total_goals + pss.total_assists)",
+        "total_points_played": "(pss.total_o_points_played + pss.total_d_points_played)",
+        "total_yards": "(pss.total_yards_thrown + pss.total_yards_received)",
+        "minutes_played": "ROUND(pss.total_seconds_played / 60.0, 0)",
+        "huck_percentage": "CASE WHEN pss.total_hucks_attempted > 0 THEN ROUND(pss.total_hucks_completed * 100.0 / pss.total_hucks_attempted, 1) ELSE 0 END",
+        "offensive_efficiency": "CASE WHEN pss.total_o_opportunities >= 20 THEN ROUND(pss.total_o_opportunity_scores * 100.0 / pss.total_o_opportunities, 1) ELSE NULL END",
     }
-    
+
     # Get the base column
-    base_column = column_mapping.get(sort_key, f'pss.{sort_key}')
-    
+    base_column = column_mapping.get(sort_key, f"pss.{sort_key}")
+
     # If per_game mode and sorting by a counting stat, divide by games_played
-    if per_game and sort_key not in ['full_name', 'completion_percentage', 'huck_percentage', 'offensive_efficiency', 'games_played']:
-        games_played_col = column_mapping['games_played']
+    if per_game and sort_key not in [
+        "full_name",
+        "completion_percentage",
+        "huck_percentage",
+        "offensive_efficiency",
+        "games_played",
+    ]:
+        games_played_col = column_mapping["games_played"]
         return f"CASE WHEN {games_played_col} > 0 THEN CAST({base_column} AS REAL) / {games_played_col} ELSE 0 END"
-    
+
     return base_column
 
 
 @app.get("/api/players/stats")
 async def get_player_stats(
     season: str = "2025",
-    team: str = "all", 
+    team: str = "all",
     page: int = 1,
     per_page: int = 20,
     sort: str = "calculated_plus_minus",
     order: str = "desc",
-    per: str = "total"
+    per: str = "total",
 ):
     """Get paginated player statistics with filtering and sorting"""
     try:
         # Query for player season stats directly from database
         team_filter = f" AND pss.team_id = '{team}'" if team != "all" else ""
         season_filter = f" AND pss.year = {season}" if season != "career" else ""
-        
+
         if season == "career":
             # Career stats - aggregate across all years
             query = f"""
@@ -418,7 +430,7 @@ async def get_player_stats(
             ORDER BY {get_sort_column(sort, per_game=(per == "game"))} {order.upper()}
             LIMIT {per_page} OFFSET {(page-1) * per_page}
             """
-        
+
         # Get total count for pagination
         if season == "career":
             count_query = f"""
@@ -448,121 +460,130 @@ async def get_player_stats(
                 AND (pgs.o_points_played > 0 OR pgs.d_points_played > 0 OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0)
             )
             """
-        
+
         # Execute queries using the stats system database connection
         from sqlalchemy import text
-        
+
         with stats_system.db.engine.connect() as conn:
             # Get total count
             count_result = conn.execute(text(count_query)).fetchone()
             total = count_result[0] if count_result else 0
-            
+
             # Get players
             result = conn.execute(text(query))
             players = []
-            
+
             for row in result:
                 player = {
-                    'full_name': row[0],
-                    'first_name': row[1], 
-                    'last_name': row[2],
-                    'team_id': row[3],
-                    'year': row[4],
-                    'total_goals': row[5] or 0,
-                    'total_assists': row[6] or 0,
-                    'total_hockey_assists': row[7] or 0,
-                    'total_blocks': row[8] or 0,
-                    'calculated_plus_minus': row[9] or 0,
-                    'total_completions': row[10] or 0,
-                    'completion_percentage': row[11] or 0,
-                    'total_yards_thrown': row[12] or 0,
-                    'total_yards_received': row[13] or 0,
-                    'total_throwaways': row[14] or 0,
-                    'total_stalls': row[15] or 0,
-                    'total_drops': row[16] or 0,
-                    'total_callahans': row[17] or 0,
-                    'total_hucks_completed': row[18] or 0,
-                    'total_hucks_attempted': row[19] or 0,
-                    'total_pulls': row[20] or 0,
-                    'total_o_points_played': row[21] or 0,
-                    'total_d_points_played': row[22] or 0,
-                    'total_seconds_played': row[23] or 0,
-                    'total_o_opportunities': row[24] or 0,
-                    'total_d_opportunities': row[25] or 0,
-                    'total_o_opportunity_scores': row[26] or 0,
-                    'team_name': row[27],
-                    'team_full_name': row[28],
-                    'games_played': row[29] or 0,
-                    'possessions': row[30] or 0,
-                    'score_total': row[31] or 0,
-                    'total_points_played': row[32] or 0,
-                    'total_yards': row[33] or 0,
-                    'minutes_played': row[34] or 0,
-                    'huck_percentage': row[35] or 0,
-                    'offensive_efficiency': row[36] if row[36] is not None else None
+                    "full_name": row[0],
+                    "first_name": row[1],
+                    "last_name": row[2],
+                    "team_id": row[3],
+                    "year": row[4],
+                    "total_goals": row[5] or 0,
+                    "total_assists": row[6] or 0,
+                    "total_hockey_assists": row[7] or 0,
+                    "total_blocks": row[8] or 0,
+                    "calculated_plus_minus": row[9] or 0,
+                    "total_completions": row[10] or 0,
+                    "completion_percentage": row[11] or 0,
+                    "total_yards_thrown": row[12] or 0,
+                    "total_yards_received": row[13] or 0,
+                    "total_throwaways": row[14] or 0,
+                    "total_stalls": row[15] or 0,
+                    "total_drops": row[16] or 0,
+                    "total_callahans": row[17] or 0,
+                    "total_hucks_completed": row[18] or 0,
+                    "total_hucks_attempted": row[19] or 0,
+                    "total_pulls": row[20] or 0,
+                    "total_o_points_played": row[21] or 0,
+                    "total_d_points_played": row[22] or 0,
+                    "total_seconds_played": row[23] or 0,
+                    "total_o_opportunities": row[24] or 0,
+                    "total_d_opportunities": row[25] or 0,
+                    "total_o_opportunity_scores": row[26] or 0,
+                    "team_name": row[27],
+                    "team_full_name": row[28],
+                    "games_played": row[29] or 0,
+                    "possessions": row[30] or 0,
+                    "score_total": row[31] or 0,
+                    "total_points_played": row[32] or 0,
+                    "total_yards": row[33] or 0,
+                    "minutes_played": row[34] or 0,
+                    "huck_percentage": row[35] or 0,
+                    "offensive_efficiency": row[36] if row[36] is not None else None,
                 }
                 players.append(player)
-        
+
         # Convert to per-game stats if requested
         if per == "game":
             for player in players:
-                games = player['games_played']
+                games = player["games_played"]
                 if games > 0:
                     # Convert counting stats to per-game averages
                     per_game_stats = [
-                        'total_points_played', 'possessions', 'score_total',
-                        'total_assists', 'total_goals', 'total_blocks',
-                        'total_completions', 'total_yards', 'total_yards_thrown',
-                        'total_yards_received', 'total_hockey_assists',
-                        'total_throwaways', 'total_stalls', 'total_drops',
-                        'total_callahans', 'total_hucks_completed',
-                        'total_hucks_attempted', 'total_pulls',
-                        'total_o_points_played', 'total_d_points_played',
-                        'minutes_played', 'total_o_opportunities',
-                        'total_d_opportunities', 'total_o_opportunity_scores'
+                        "total_points_played",
+                        "possessions",
+                        "score_total",
+                        "total_assists",
+                        "total_goals",
+                        "total_blocks",
+                        "total_completions",
+                        "total_yards",
+                        "total_yards_thrown",
+                        "total_yards_received",
+                        "total_hockey_assists",
+                        "total_throwaways",
+                        "total_stalls",
+                        "total_drops",
+                        "total_callahans",
+                        "total_hucks_completed",
+                        "total_hucks_attempted",
+                        "total_pulls",
+                        "total_o_points_played",
+                        "total_d_points_played",
+                        "minutes_played",
+                        "total_o_opportunities",
+                        "total_d_opportunities",
+                        "total_o_opportunity_scores",
                     ]
-                    
+
                     for stat in per_game_stats:
                         if stat in player and player[stat] is not None:
                             # Use proper rounding to avoid floating point precision issues
                             value = player[stat] / games
                             # Round to 1 decimal place, ensuring proper precision
-                            player[stat] = float(format(value, '.1f'))
-                    
+                            player[stat] = float(format(value, ".1f"))
+
                     # Plus/minus also needs to be averaged
-                    if player['calculated_plus_minus'] is not None:
-                        value = player['calculated_plus_minus'] / games
-                        player['calculated_plus_minus'] = float(format(value, '.1f'))
-        
+                    if player["calculated_plus_minus"] is not None:
+                        value = player["calculated_plus_minus"] / games
+                        player["calculated_plus_minus"] = float(format(value, ".1f"))
+
         total_pages = (total + per_page - 1) // per_page
-        
+
         return {
             "players": players,
             "total": total,
             "page": page,
             "per_page": per_page,
-            "total_pages": total_pages
+            "total_pages": total_pages,
         }
-        
+
     except Exception as e:
         print(f"Error in get_player_stats: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/teams/stats") 
+@app.get("/api/teams/stats")
 async def get_team_stats(season: str = "2025", view: str = "total"):
     """Get team statistics"""
     try:
         summary = stats_system.get_stats_summary()
         teams = summary.get("team_standings", [])
-        
-        return {
-            "teams": teams,
-            "total": len(teams),
-            "season": season,
-            "view": view
-        }
-        
+
+        return {"teams": teams, "total": len(teams), "season": season, "view": view}
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -572,49 +593,47 @@ async def get_games_by_date(year: str = "all", team: str = "all"):
     """Get games grouped by date"""
     try:
         games = stats_system.get_recent_games(100)  # Get more games
-        
+
         # Filter by year if specified
         if year != "all":
             games = [g for g in games if g.get("year") == int(year)]
-            
-        # Filter by team if specified  
+
+        # Filter by team if specified
         if team != "all":
-            games = [g for g in games if 
-                    g.get("home_team_id") == team or 
-                    g.get("away_team_id") == team]
-        
+            games = [
+                g
+                for g in games
+                if g.get("home_team_id") == team or g.get("away_team_id") == team
+            ]
+
         # Group by date
         from collections import defaultdict
         from datetime import datetime
-        
+
         grouped_games = defaultdict(list)
-        
+
         for game in games:
             try:
                 # Parse the date from start_timestamp
                 if game.get("start_timestamp"):
-                    date_obj = datetime.fromisoformat(game["start_timestamp"].replace("Z", "+00:00"))
+                    date_obj = datetime.fromisoformat(
+                        game["start_timestamp"].replace("Z", "+00:00")
+                    )
                     date_key = date_obj.strftime("%A, %B %d, %Y")
                 else:
                     date_key = "Unknown Date"
-                
+
                 grouped_games[date_key].append(game)
             except:
                 grouped_games["Unknown Date"].append(game)
-        
+
         # Convert to list format expected by frontend
         games_by_date = []
         for date_str, date_games in sorted(grouped_games.items(), reverse=True):
-            games_by_date.append({
-                "date": date_str,
-                "games": date_games
-            })
-        
-        return {
-            "games_by_date": games_by_date,
-            "total_games": len(games)
-        }
-        
+            games_by_date.append({"date": date_str, "games": date_games})
+
+        return {"games_by_date": games_by_date, "total_games": len(games)}
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -627,9 +646,9 @@ async def get_game_details(game_id: str):
         # For now, return a placeholder response
         return {
             "game_id": game_id,
-            "message": "Game details endpoint - to be implemented with player game stats"
+            "message": "Game details endpoint - to be implemented with player game stats",
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

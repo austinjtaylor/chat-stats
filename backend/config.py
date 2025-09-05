@@ -20,6 +20,8 @@ class Config:
 
     # Query settings
     MAX_RESULTS: int = 10  # Maximum results to return per query
+    DEFAULT_TOP_RESULTS_LIMIT: int = 3  # Default limit for "best/top" queries
+    DEFAULT_DECIMAL_PLACES: int = 1  # Default decimal places for formatting
     MAX_HISTORY: int = 5  # Number of conversation messages to remember
     MAX_TOOL_ROUNDS: int = 3  # Maximum sequential tool calling rounds per query
 

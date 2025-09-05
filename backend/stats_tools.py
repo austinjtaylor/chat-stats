@@ -142,16 +142,44 @@ class StatsToolManager:
                 # Direct query execution
                 results = self.db.execute_query(query)
 
+            # Format numeric values - only show decimal when needed
+            formatted_results = []
+            for row in results:
+                formatted_row = {}
+                for key, value in row.items():
+                    if isinstance(value, float):
+                        # For percentages and efficiency metrics, use more precision
+                        if (
+                            "percentage" in key.lower()
+                            or "per_" in key.lower()
+                            or "efficiency" in key.lower()
+                        ):
+                            rounded = round(value, 3) if value < 1 else round(value, 1)
+                            # Only show decimal if needed
+                            formatted_row[key] = (
+                                int(rounded) if rounded == int(rounded) else rounded
+                            )
+                        else:
+                            # Round to 1 decimal place
+                            rounded = round(value, 1)
+                            # Only show decimal if the value actually has a fractional part
+                            formatted_row[key] = (
+                                int(rounded) if rounded == int(rounded) else rounded
+                            )
+                    else:
+                        formatted_row[key] = value
+                formatted_results.append(formatted_row)
+
             # Limit results if too many rows
             max_rows = 100
-            if len(results) > max_rows:
-                results = results[:max_rows]
+            if len(formatted_results) > max_rows:
+                formatted_results = formatted_results[:max_rows]
                 return {
                     "explanation": explanation or "Custom query results",
                     "query": query,
                     "parameters": parameters,
-                    "results": results,
-                    "row_count": len(results),
+                    "results": formatted_results,
+                    "row_count": len(formatted_results),
                     "note": f"Results limited to first {max_rows} rows",
                 }
 
@@ -159,8 +187,8 @@ class StatsToolManager:
                 "explanation": explanation or "Custom query results",
                 "query": query,
                 "parameters": parameters,
-                "results": results,
-                "row_count": len(results),
+                "results": formatted_results,
+                "row_count": len(formatted_results),
             }
 
         except Exception as e:
@@ -356,7 +384,7 @@ class StatsToolManager:
             "season_stats": stats[0] if stats else {},
             "season": season,
             "playoff_history": playoff_history,
-            "season_playoff_record": season_playoff_record
+            "season_playoff_record": season_playoff_record,
         }
 
         if include_roster:
@@ -430,7 +458,7 @@ class StatsToolManager:
         return result
 
     def _get_league_leaders(
-        self, category: str, season: str = None, limit: int = 10
+        self, category: str, season: str = None, limit: int = 3
     ) -> dict[str, Any]:
         """Get league leaders in a statistical category."""
         # Get season if not provided

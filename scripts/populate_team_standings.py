@@ -9,27 +9,30 @@ import logging
 from pathlib import Path
 
 # Setup logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
+
 
 def populate_team_season_stats(db_path: str = "./db/sports_stats.db") -> int:
     """
     Populate team_season_stats table from teams table data.
-    
+
     Args:
         db_path: Path to the SQLite database
-        
+
     Returns:
         Number of records inserted
     """
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-    
+
     try:
         # Clear existing team_season_stats
         cursor.execute("DELETE FROM team_season_stats")
         logger.info("Cleared existing team_season_stats records")
-        
+
         # Insert data from teams table (excluding all-star teams)
         insert_query = """
         INSERT INTO team_season_stats 
@@ -49,10 +52,10 @@ def populate_team_season_stats(db_path: str = "./db/sports_stats.db") -> int:
         WHERE team_id NOT IN ('allstars1', 'allstars2')
         ORDER BY year DESC, standing ASC
         """
-        
+
         cursor.execute(insert_query)
         records_inserted = cursor.rowcount
-        
+
         # Calculate points for/against from games table if available
         update_points_query = """
         WITH team_points AS (
@@ -105,34 +108,38 @@ def populate_team_season_stats(db_path: str = "./db/sports_stats.db") -> int:
             AND tp.year = team_season_stats.year
         )
         """
-        
+
         cursor.execute(update_points_query)
         records_updated = cursor.rowcount
         logger.info(f"Updated {records_updated} records with points for/against")
-        
+
         conn.commit()
-        logger.info(f"Successfully inserted {records_inserted} team season stats records")
-        
+        logger.info(
+            f"Successfully inserted {records_inserted} team season stats records"
+        )
+
         # Verify the data
         cursor.execute("SELECT COUNT(*) FROM team_season_stats")
         total_count = cursor.fetchone()[0]
-        
-        cursor.execute("""
+
+        cursor.execute(
+            """
             SELECT year, COUNT(*) as team_count 
             FROM team_season_stats 
             GROUP BY year 
             ORDER BY year DESC 
             LIMIT 5
-        """)
+        """
+        )
         year_summary = cursor.fetchall()
-        
+
         logger.info(f"Total records in team_season_stats: {total_count}")
         logger.info("Team counts by year:")
         for year, count in year_summary:
             logger.info(f"  {year}: {count} teams")
-        
+
         return records_inserted
-        
+
     except Exception as e:
         logger.error(f"Error populating team_season_stats: {e}")
         conn.rollback()
@@ -144,13 +151,13 @@ def populate_team_season_stats(db_path: str = "./db/sports_stats.db") -> int:
 def main():
     """Main entry point."""
     import sys
-    
+
     # Check if database exists
     db_path = "./db/sports_stats.db"
     if not Path(db_path).exists():
         logger.error(f"Database not found at {db_path}")
         sys.exit(1)
-    
+
     try:
         records = populate_team_season_stats(db_path)
         logger.info(f"Population complete. {records} team season records created.")

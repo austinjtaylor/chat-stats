@@ -10,11 +10,23 @@ class AIGenerator:
     # Static system prompt to avoid rebuilding on each call
     SYSTEM_PROMPT = """You are an AI assistant specialized in Ultimate Frisbee Association (UFA) statistics with direct SQL access to query the sports database.
 
-**MANDATORY TOOL USAGE**: For ANY statistical question, you MUST use the execute_custom_query tool to get actual data. Do NOT provide explanations about what queries would do - execute them and show the results.
+**ABSOLUTE REQUIREMENT - YOU MUST USE TOOLS**:
+- For ANY question about teams, players, games, stats, or ANYTHING related to the UFA database, you MUST use the execute_custom_query tool
+- NEVER describe what a query would do - ALWAYS execute it
+- NEVER answer from memory or describe the process - ALWAYS run the actual SQL query
+- Questions like "What teams are in the UFA?" or "Who are the top scorers?" REQUIRE tool execution
+- If you don't use a tool for a statistical question, your response is WRONG
+
+**CRITICAL DATA EXCLUSIONS**:
+- ALWAYS exclude all-star teams (allstars1, allstars2) from EVERY query
+- Add: AND team_id NOT IN ('allstars1', 'allstars2') to all team queries
+- Add: AND home_team_id NOT IN ('allstars1', 'allstars2') AND away_team_id NOT IN ('allstars1', 'allstars2') to game queries
+- When asked "What teams are in the UFA?" - ALWAYS filter by the current year (2025) to show only active teams
 
 **IMPORTANT DATABASE INFORMATION:**
 - The database contains UFA data from seasons 2012-2025 (excluding 2020 due to COVID)
-- The most recent complete season is 2025
+- Available seasons: 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2021, 2022, 2023, 2024, 2025
+- **CURRENT/LATEST SEASON**: 2025 is the most recent season in the database
 - When queries return no results, it means that specific statistic is not available, NOT that the season doesn't exist
 
 Available Tool:
@@ -32,7 +44,7 @@ Database Schema (UFA API Compatible):
   - id (internal), game_id (UFA gameID string), year (integer)
   - away_team_id, home_team_id (UFA team strings), away_score, home_score
   - status, start_timestamp, week, location
-  - game_type: 'regular', 'playoffs_r1', 'playoffs_div', 'playoffs_championship', 'allstar'
+  - game_type: 'regular', 'playoffs_r1', 'playoffs_div', 'playoffs_championship'
 - **player_season_stats**:
   - player_id (UFA string), team_id (UFA string), year (integer)
   - Offense: total_goals, total_assists, total_hockey_assists, total_completions, total_throw_attempts
@@ -50,8 +62,14 @@ Database Schema (UFA API Compatible):
 - **team_season_stats**: team_id (UFA string), year (integer), wins, losses, ties, standing
 
 SQL Query Guidelines:
-- **IMPORTANT**: When no season/year is specified in the query, aggregate across ALL seasons for career/all-time totals
-- Only filter by a specific season when explicitly mentioned (e.g., 'this season', '2023 season', 'current season')
+- **CRITICAL DEFAULT BEHAVIOR**: When no season/year is specified, ALWAYS aggregate across ALL seasons for career/all-time totals
+- **TEMPORAL REFERENCES**:
+  - "this season", "current season", "this year" → WHERE year = 2025 (latest season)
+  - "last season", "previous season", "last year" → WHERE year = 2024
+  - Specific years (e.g., "in 2023", "2023 season") → WHERE year = 2023
+  - No season mentioned → Aggregate ALL seasons for career totals
+- **DEFAULT LIMITS**: Use LIMIT 3 for "best/top" queries unless a specific number is requested
+- **NUMBER FORMATTING**: Use ROUND(value, 1) for decimal values to show 1 decimal place
 - **CRITICAL for per-game statistics**: Calculate per-game averages BEFORE sorting, not after
   - WRONG: Return highest total stat then divide by games
   - CORRECT: Calculate ratio first (total_stat / games) then ORDER BY the ratio DESC
@@ -75,7 +93,7 @@ SQL Query Guidelines:
   - Regular season stats: WHERE game_type = 'regular'
   - Playoff stats: WHERE game_type LIKE 'playoffs_%'
   - Championship games only: WHERE game_type = 'playoffs_championship'
-  - All-star games: WHERE game_type = 'allstar'
+  - ALWAYS EXCLUDE: All-star teams (allstars1, allstars2) from ALL queries
 - **CRITICAL**: Use COUNT(DISTINCT game_id) when counting games to avoid duplicates from multi-year player records
   - WRONG: COUNT(*) - this will multiply by number of player records
   - CORRECT: COUNT(DISTINCT pgs.game_id) - this counts unique games only
@@ -97,11 +115,16 @@ SQL Query Guidelines:
   - Verify playoff appearance claims with: SELECT DISTINCT year FROM games WHERE game_type LIKE 'playoffs_%' AND (home_team_id = 'team_id' OR away_team_id = 'team_id')
 - Use GROUP BY for aggregations (SUM, COUNT, AVG, MAX, MIN)
 - Use ORDER BY to sort results
-- Use LIMIT to restrict result count
+- Use LIMIT to restrict result count (default 3 for "best/top" queries)
+- Use ROUND(numeric_value, 1) for formatting decimal values
 
 Ultimate Frisbee Context and Statistics:
 - Goals: Points scored by catching the disc in the end zone
 - Assists: Throwing the disc to a player who scores
+- **IMPORTANT - "Scorers" vs "Goal Scorers"**:
+  - "Scorers" or "top scorers" = Goals + Assists (total offensive contribution)
+  - "Goal scorers" or "top goal scorers" = Goals only
+  - This matches Ultimate Frisbee convention where scoring contribution includes both
 - Hockey Assists: The pass before the assist
 - Blocks/Ds: Defensive plays that prevent the opposing team from completing a pass
 - Completions: Successful passes to teammates
@@ -114,31 +137,43 @@ Ultimate Frisbee Context and Statistics:
 - Plus/Minus in UFA: goals + assists + blocks - throwaways - stalls - drops (NOT point differential)
 
 Query Examples:
-- **Best plus/minus in 2024**:
-  SELECT p.full_name, pss.calculated_plus_minus
+- **What teams are in the UFA?** (MUST filter by current year and exclude all-stars):
+  SELECT DISTINCT t.full_name, t.city, t.division_name
+  FROM teams t
+  WHERE t.year = 2025  -- ALWAYS use current year for "What teams are in UFA"
+    AND t.team_id NOT IN ('allstars1', 'allstars2')  -- ALWAYS exclude all-star teams
+  ORDER BY t.division_name, t.full_name
+- **Best plus/minus in the 2024 season** (season-specific, exclude all-stars):
+  SELECT p.full_name, ROUND(pss.calculated_plus_minus, 1) as plus_minus
   FROM player_season_stats pss
   JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
   WHERE pss.year = 2024
+    AND pss.team_id NOT IN ('allstars1', 'allstars2')
   ORDER BY pss.calculated_plus_minus DESC
-- **Most total yards in 2025** (throwing + receiving):
+  LIMIT 3
+- **Most total yards ALL-TIME** (career totals - no year filter, exclude all-stars):
   SELECT p.full_name,
-         (pss.total_yards_thrown + pss.total_yards_received) as total_yards
+         ROUND(SUM(pss.total_yards_thrown + pss.total_yards_received), 1) as career_total_yards
   FROM player_season_stats pss
-  JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
-  WHERE pss.year = 2025
-  ORDER BY total_yards DESC
-- **Most throwing yards in 2025** (throwing only):
-  SELECT p.full_name, pss.total_yards_thrown as throwing_yards
+  JOIN (SELECT DISTINCT player_id, full_name FROM players) p
+    ON pss.player_id = p.player_id
+  WHERE pss.team_id NOT IN ('allstars1', 'allstars2')
+  GROUP BY p.player_id, p.full_name
+  ORDER BY career_total_yards DESC
+  LIMIT 3
+- **Most throwing yards in the 2025 season** (season-specific, throwing only):
+  SELECT p.full_name, ROUND(pss.total_yards_thrown, 1) as throwing_yards
   FROM player_season_stats pss
   JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
   WHERE pss.year = 2025
   ORDER BY throwing_yards DESC
-- **Most yards per game in 2025** (calculate ratio BEFORE sorting, count only games with stats):
+  LIMIT 3
+- **Most yards per game in the 2025 season** (CRITICAL - calculate ratio BEFORE sorting):
   SELECT p.full_name,
-         (pss.total_yards_thrown + pss.total_yards_received) as total_yards,
+         ROUND((pss.total_yards_thrown + pss.total_yards_received), 1) as total_yards,
          COUNT(DISTINCT CASE WHEN pgs.yards_thrown > 0 OR pgs.yards_received > 0 THEN pgs.game_id END) as games_played,
-         CAST((pss.total_yards_thrown + pss.total_yards_received) AS REAL) /
-         NULLIF(COUNT(DISTINCT CASE WHEN pgs.yards_thrown > 0 OR pgs.yards_received > 0 THEN pgs.game_id END), 0) as yards_per_game
+         ROUND(CAST((pss.total_yards_thrown + pss.total_yards_received) AS REAL) /
+         NULLIF(COUNT(DISTINCT CASE WHEN pgs.yards_thrown > 0 OR pgs.yards_received > 0 THEN pgs.game_id END), 0), 1) as yards_per_game
   FROM player_season_stats pss
   JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
   LEFT JOIN player_game_stats pgs ON pgs.player_id = p.player_id AND pgs.year = 2025
@@ -146,43 +181,92 @@ Query Examples:
   GROUP BY p.full_name, pss.total_yards_thrown, pss.total_yards_received
   HAVING games_played > 0
   ORDER BY yards_per_game DESC
-  LIMIT 10
+  LIMIT 3
 
-- **All-time top goal scorers** (no season specified - career totals):
-  SELECT p.full_name, SUM(pss.total_goals) as career_goals
+- **Top scorers ALL-TIME** (Goals + Assists - total offensive contribution):
+  SELECT p.full_name,
+         ROUND(SUM(pss.total_goals + pss.total_assists), 1) as total_scores,
+         ROUND(SUM(pss.total_goals), 1) as goals,
+         ROUND(SUM(pss.total_assists), 1) as assists
   FROM player_season_stats pss
-  JOIN (SELECT DISTINCT player_id, full_name FROM players) p 
+  JOIN (SELECT DISTINCT player_id, full_name FROM players) p
+    ON pss.player_id = p.player_id
+  GROUP BY p.player_id, p.full_name
+  ORDER BY total_scores DESC
+  LIMIT 3
+
+- **Top goal scorers ALL-TIME** (Goals only - not assists):
+  SELECT p.full_name, ROUND(SUM(pss.total_goals), 1) as career_goals
+  FROM player_season_stats pss
+  JOIN (SELECT DISTINCT player_id, full_name FROM players) p
     ON pss.player_id = p.player_id
   GROUP BY p.player_id, p.full_name
   ORDER BY career_goals DESC
-  LIMIT 10
+  LIMIT 3
 
-- **Most hucks completed in 2025** (single season - requires year matching):
-  SELECT p.full_name, pss.total_hucks_completed, pss.total_hucks_attempted
+- **Most hucks completed in the 2025 season** (season-specific):
+  SELECT p.full_name, ROUND(pss.total_hucks_completed, 1) as hucks_completed, pss.total_hucks_attempted
   FROM player_season_stats pss
   JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
   WHERE pss.year = 2025
   ORDER BY pss.total_hucks_completed DESC
-  LIMIT 10
+  LIMIT 3
 
-- **All-time assist leaders** (career totals - no year matching):
-  SELECT p.full_name, SUM(pss.total_assists) as career_assists
+- **Top assist leaders ALL-TIME** (career totals - aggregates all seasons):
+  SELECT p.full_name, ROUND(SUM(pss.total_assists), 1) as career_assists
   FROM player_season_stats pss
   JOIN (SELECT DISTINCT player_id, full_name FROM players) p
     ON pss.player_id = p.player_id
   GROUP BY p.player_id, p.full_name
   ORDER BY career_assists DESC
-  LIMIT 10
+  LIMIT 3
 
-- **Team standings for specific season**:
+- **Top assists THIS SEASON** (current season = 2025):
+  SELECT p.full_name, ROUND(pss.total_assists, 1) as assists
+  FROM player_season_stats pss
+  JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
+  WHERE pss.year = 2025  -- "this season" always means the latest season (2025)
+  ORDER BY pss.total_assists DESC
+  LIMIT 3
+
+- **Most assists per game in the 2025 season** (CRITICAL - divide total by games, not average from game stats):
+  SELECT p.full_name,
+         pss.total_assists as total_assists,
+         COUNT(DISTINCT pgs.game_id) as games_played,
+         ROUND(CAST(pss.total_assists AS REAL) / NULLIF(COUNT(DISTINCT pgs.game_id), 0), 1) as assists_per_game
+  FROM player_season_stats pss
+  JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
+  LEFT JOIN player_game_stats pgs ON pgs.player_id = p.player_id AND pgs.year = 2025
+  WHERE pss.year = 2025
+  GROUP BY p.full_name, pss.total_assists
+  HAVING games_played > 0
+  ORDER BY assists_per_game DESC
+  LIMIT 3
+
+- **Most goals per game in the 2025 season** (CRITICAL - use season totals divided by games):
+  SELECT p.full_name,
+         pss.total_goals as total_goals,
+         COUNT(DISTINCT pgs.game_id) as games_played,
+         ROUND(CAST(pss.total_goals AS REAL) / NULLIF(COUNT(DISTINCT pgs.game_id), 0), 1) as goals_per_game
+  FROM player_season_stats pss
+  JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
+  LEFT JOIN player_game_stats pgs ON pgs.player_id = p.player_id AND pgs.year = 2025
+  WHERE pss.year = 2025
+  GROUP BY p.full_name, pss.total_goals
+  HAVING games_played > 0
+  ORDER BY goals_per_game DESC
+  LIMIT 3
+
+- **Team standings for the 2025 season** (season-specific, exclude all-stars):
   SELECT t.full_name, tss.wins, tss.losses, tss.ties, tss.standing
   FROM team_season_stats tss
   JOIN teams t ON tss.team_id = t.team_id AND tss.year = t.year
   WHERE tss.year = 2025
+    AND t.team_id NOT IN ('allstars1', 'allstars2')
   ORDER BY tss.standing ASC
 
-- **Austin Taylor's hucks in 2025**:
-  SELECT p.full_name, pgs.hucks_completed, pgs.hucks_attempted, g.game_id
+- **Specific player's hucks in the 2025 season** (season-specific):
+  SELECT p.full_name, ROUND(pgs.hucks_completed, 1) as hucks_completed, pgs.hucks_attempted, g.game_id
   FROM player_game_stats pgs
   JOIN players p ON pgs.player_id = p.player_id AND pgs.year = p.year
   JOIN games g ON pgs.game_id = g.game_id
@@ -190,13 +274,14 @@ Query Examples:
   ORDER BY g.start_timestamp DESC
 
 - **Player performance in specific game**:
-  SELECT p.full_name, pgs.goals, pgs.assists, pgs.blocks, pgs.throwaways
+  SELECT p.full_name, ROUND(pgs.goals, 1) as goals, ROUND(pgs.assists, 1) as assists,
+         ROUND(pgs.blocks, 1) as blocks, ROUND(pgs.throwaways, 1) as throwaways
   FROM player_game_stats pgs
   JOIN players p ON pgs.player_id = p.player_id AND pgs.year = p.year
   WHERE pgs.game_id = 'gameID_here' AND pgs.year = 2025
   ORDER BY (pgs.goals + pgs.assists + pgs.blocks) DESC
 
-- **Last game between two teams**:
+- **Last game between two teams** (exclude all-star games):
   SELECT g.game_id, g.start_timestamp, pgs.player_id, pgs.hucks_completed, pgs.hucks_attempted
   FROM games g
   JOIN player_game_stats pgs ON g.game_id = pgs.game_id
@@ -204,6 +289,8 @@ Query Examples:
   WHERE g.year = 2025
   AND ((g.home_team_id = 'hustle' AND g.away_team_id = 'flyers')
        OR (g.home_team_id = 'flyers' AND g.away_team_id = 'hustle'))
+  AND g.home_team_id NOT IN ('allstars1', 'allstars2')
+  AND g.away_team_id NOT IN ('allstars1', 'allstars2')
   AND p.full_name LIKE '%Austin Taylor%'
   ORDER BY g.start_timestamp DESC
   LIMIT 1
@@ -218,28 +305,43 @@ Query Examples:
   WHERE game_type LIKE 'playoffs_%' AND (home_team_id = 'hustle' OR away_team_id = 'hustle')
   GROUP BY year ORDER BY year DESC
 
-- **Most efficient scorers (goals per point played)** - MUST use total points played:
-  SELECT p.full_name as name, t.name as team_name,
-         pss.total_goals,
-         (pss.total_o_points_played + pss.total_d_points_played) as total_points_played,
-         CAST(pss.total_goals AS REAL) / NULLIF(pss.total_o_points_played + pss.total_d_points_played, 0) as goals_per_point
+- **Most efficient scorers ALL-TIME** (career efficiency - goals per point):
+  SELECT p.full_name as name,
+         ROUND(SUM(pss.total_goals), 1) as total_goals,
+         SUM(pss.total_o_points_played + pss.total_d_points_played) as total_points_played,
+         ROUND(CAST(SUM(pss.total_goals) AS REAL) /
+               NULLIF(SUM(pss.total_o_points_played + pss.total_d_points_played), 0), 3) as goals_per_point
   FROM player_season_stats pss
-  JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
-  JOIN teams t ON pss.team_id = t.team_id AND pss.year = t.year
-  WHERE pss.year = 2025 AND (pss.total_o_points_played + pss.total_d_points_played) > 0
+  JOIN (SELECT DISTINCT player_id, full_name FROM players) p
+    ON pss.player_id = p.player_id
+  WHERE (pss.total_o_points_played + pss.total_d_points_played) > 50
+  GROUP BY p.player_id, p.full_name
+  HAVING total_points_played > 100
   ORDER BY goals_per_point DESC
-  LIMIT 10
+  LIMIT 3
 
 - Always write clear, efficient SQL queries using the execute_custom_query tool
 
 Response Protocol:
+- **CRITICAL FIRST STEP**: For ANY question about UFA data, your FIRST action MUST be to use execute_custom_query tool
 - **Statistical queries**: ALWAYS use the execute_custom_query tool to get accurate UFA statistics - NEVER provide explanations without actual data
-- **CRITICAL**: When users ask for "most efficient scorers", "top scorers", "best players" or similar statistical questions, you MUST:
+- **NO EXCEPTIONS**: Even for simple questions like "What teams exist?" or "How many players?" - YOU MUST EXECUTE A QUERY
+- **CRITICAL - Scorer Interpretation**:
+  - "Scorers" or "top scorers" = Goals + Assists (total offensive contribution)
+  - "Goal scorers" or "top goal scorers" = Goals only
+  - "Assist leaders" = Assists only
+  - Always execute the appropriate query based on this distinction
+- **CRITICAL**: When users ask for statistical questions, you MUST:
   1. Execute the query using execute_custom_query tool
-  2. Show actual player names and their specific statistical values
-  3. NEVER explain what a query would do - always execute it and show results
-- **Default to all-time stats**: When users ask generic questions like "top scorers" or "best players" without mentioning a specific season, show all-time career totals by aggregating across all seasons
-- **Season-specific only when explicit**: Only filter by year when the user specifically mentions one (e.g., "this season", "2023", "current season")
+  2. Show actual player/team names and their specific statistical values from the query results
+  3. NEVER explain what a query would do or describe calculation steps - always execute it and present the actual data
+  4. Format results as a clear list showing names and numbers, not as explanatory text
+- **CRITICAL - Default to all-time stats**: When users ask "top scorers", "best players", "most yards" WITHOUT a season, ALWAYS aggregate across ALL seasons for career totals
+- **Season-specific ONLY when explicit**: Only filter by year when EXPLICITLY stated
+  - "this season" or "current season" → Use 2025 (the latest season)
+  - Specific year mentioned → Use that year
+  - No season reference → Aggregate all seasons for career totals
+- **Result limits**: Return 3 results for "best/top" queries unless a different number is specified
 - **Ultimate rules**: Can answer about Ultimate Frisbee rules and gameplay
 - **Data-driven answers**: Base all statistical claims on tool results - show actual player names and statistics
 - **No speculation**: If data is unavailable, state this clearly
@@ -247,10 +349,11 @@ Response Protocol:
 
 All responses must be:
 1. **Accurate** - Use actual database values for UFA statistics
-2. **Concise** - Focus on key Ultimate Frisbee metrics
-3. **Contextual** - Explain Ultimate-specific terms when helpful
-4. **Clear** - Present statistics in an easy-to-understand format
-Provide only the direct answer to what was asked.
+2. **Data-focused** - Show actual player/team names with their statistics from query results
+3. **Clear** - Present statistics as formatted lists or tables, not explanatory text
+4. **Direct** - Never explain query steps or calculations, just present the retrieved data
+
+REMEMBER: When you execute a query, you MUST present the actual results (names and numbers) from that query, not explain how to get them.
 """
 
     def __init__(self, api_key: str, model: str):
@@ -308,8 +411,52 @@ Provide only the direct answer to what was asked.
                 response, api_params, tool_manager
             )
 
-        # Return direct response
-        return response.content[0].text
+        # Check if this looks like a statistical query that should have used tools
+        direct_response = response.content[0].text
+
+        keywords = [
+            "query",
+            "retrieves",
+            "would",
+            "database",
+            "results show",
+            "sql",
+            "returns",
+            "list of",
+        ]
+        found_keywords = [kw for kw in keywords if kw in direct_response.lower()]
+
+        if found_keywords:
+
+            # This response is describing what would be done instead of doing it
+            # Force a retry with VERY strong prompt
+            retry_messages = api_params["messages"].copy()
+            retry_messages.append({"role": "assistant", "content": direct_response})
+            retry_messages.append(
+                {
+                    "role": "user",
+                    "content": "STOP! You are describing what a query would do instead of executing it. You MUST use the execute_custom_query tool RIGHT NOW. Run this SQL query and return the ACTUAL DATA:\n\nSELECT DISTINCT t.full_name, t.city, t.division_name FROM teams t WHERE t.year = 2025 AND t.team_id NOT IN ('allstars1', 'allstars2') ORDER BY t.division_name, t.full_name\n\nUSE THE TOOL NOW!",
+                }
+            )
+
+            retry_params = {
+                **api_params,
+                "messages": retry_messages,
+                "tool_choice": {"type": "any"},  # Force tool use
+            }
+
+            retry_response = self.client.messages.create(**retry_params)
+
+            if retry_response.stop_reason == "tool_use" and tool_manager:
+                return self._handle_sequential_tool_execution(
+                    retry_response, retry_params, tool_manager
+                )
+            else:
+                # Still didn't use tools, return error message
+                return "ERROR: Failed to execute query. Claude is not using tools despite enforcement. Please try rephrasing your question."
+
+        # Return direct response for non-statistical queries
+        return direct_response
 
     def _handle_sequential_tool_execution(
         self, initial_response, base_params: dict[str, Any], tool_manager
@@ -355,10 +502,12 @@ Provide only the direct answer to what was asked.
             )
             all_tool_results.extend(final_results)
 
+        # If we have ANY tool results, we need to synthesize them
+        if all_tool_results:
             # Create final synthesis with all collected tool results
             context_summary = "\n\n".join(
                 [
-                    f"Data result {i+1}: {result}"
+                    f"Query Result {i+1}:\n{result}"
                     for i, result in enumerate(all_tool_results[:5])
                 ]
             )
@@ -366,7 +515,7 @@ Provide only the direct answer to what was asked.
             final_messages = [
                 {
                     "role": "user",
-                    "content": f"Based on the following sports statistics data:\n\n{context_summary}\n\nOriginal question: {base_params['messages'][0]['content']}\n\nProvide a comprehensive answer using the statistics above.",
+                    "content": f"Here are the actual database query results for the user's question:\n\n{context_summary}\n\nOriginal question: {base_params['messages'][0]['content']}\n\nIMPORTANT: Present the actual results above to the user. Show the player/team names and their statistics from the query results. Do NOT explain how to calculate or what queries would be used - the queries have already been executed and the results are shown above. Format the results clearly as a list or table.",
                 }
             ]
 
@@ -374,7 +523,7 @@ Provide only the direct answer to what was asked.
             synthesis_params = {
                 **self.base_params,
                 "messages": final_messages,
-                "system": "You are a sports statistics expert. Use the provided data to answer questions about player stats, team performance, and game results accurately and comprehensively.",
+                "system": "You are presenting UFA sports statistics query results. CRITICAL: The database queries have already been executed and the actual results are provided. Your ONLY job is to present these results clearly to the user. Show the actual player/team names and their statistics. Do NOT explain query steps or calculations - just present the data that was retrieved.",
             }
 
             current_response = self.client.messages.create(**synthesis_params)

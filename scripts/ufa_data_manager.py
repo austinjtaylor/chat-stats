@@ -27,37 +27,37 @@ def _import_game_stats_chunk(game_chunk_data: tuple[list[dict], int]) -> dict[st
     """
     Helper function to import player game stats for a chunk of games.
     This function runs in a separate process for parallel processing.
-    
+
     Args:
         game_chunk_data: Tuple of (games_list, chunk_number)
-        
+
     Returns:
         Dictionary with import counts
     """
     games_chunk, chunk_num = game_chunk_data
-    
+
     # Create new database connection for this process
     db = get_db()
     api_client = UFAAPIClient()
-    
+
     logger = logging.getLogger(__name__)
     logger.info(f"[Chunk {chunk_num}] Processing {len(games_chunk)} games")
-    
+
     count = 0
     for i, game in enumerate(games_chunk, 1):
         game_id = game.get("gameID", "")
         if not game_id:
             continue
-            
+
         try:
             # Get player game stats for this game
             player_stats_data = api_client.get_player_game_stats(game_id)
-            
+
             for player_stat in player_stats_data:
                 try:
                     # Extract year from game_id or use current year
-                    year = int(game_id.split('-')[0]) if '-' in game_id else 2025
-                    
+                    year = int(game_id.split("-")[0]) if "-" in game_id else 2025
+
                     player_game_stat = {
                         "player_id": player_stat["player"]["playerID"],
                         "game_id": game_id,
@@ -82,14 +82,18 @@ def _import_game_stats_chunk(game_chunk_data: tuple[list[dict], int]) -> dict[st
                         "pulls": player_stat.get("pulls", 0),
                         "ob_pulls": player_stat.get("obPulls", 0),
                         "recorded_pulls": player_stat.get("recordedPulls", 0),
-                        "recorded_pulls_hangtime": player_stat.get("recordedPullsHangtime"),
+                        "recorded_pulls_hangtime": player_stat.get(
+                            "recordedPullsHangtime"
+                        ),
                         "o_points_played": player_stat.get("oPointsPlayed", 0),
                         "o_points_scored": player_stat.get("oPointsScored", 0),
                         "d_points_played": player_stat.get("dPointsPlayed", 0),
                         "d_points_scored": player_stat.get("dPointsScored", 0),
                         "seconds_played": player_stat.get("secondsPlayed", 0),
                         "o_opportunities": player_stat.get("oOpportunities", 0),
-                        "o_opportunity_scores": player_stat.get("oOpportunityScores", 0),
+                        "o_opportunity_scores": player_stat.get(
+                            "oOpportunityScores", 0
+                        ),
                         "d_opportunities": player_stat.get("dOpportunities", 0),
                         "d_opportunity_stops": player_stat.get("dOpportunityStops", 0),
                     }
@@ -117,13 +121,20 @@ def _import_game_stats_chunk(game_chunk_data: tuple[list[dict], int]) -> dict[st
                     )
                     count += 1
                 except Exception as e:
-                    logger.warning(f"[Chunk {chunk_num}] Failed to import player game stat for {player_stat.get('player', {}).get('playerID', 'unknown')}: {e}")
-                    
-        except Exception as e:
-            logger.warning(f"[Chunk {chunk_num}] Failed to get player stats for game {game_id}: {e}")
+                    logger.warning(
+                        f"[Chunk {chunk_num}] Failed to import player game stat for {player_stat.get('player', {}).get('playerID', 'unknown')}: {e}"
+                    )
 
-    logger.info(f"[Chunk {chunk_num}] Imported {count} player game stats from {len(games_chunk)} games")
+        except Exception as e:
+            logger.warning(
+                f"[Chunk {chunk_num}] Failed to get player stats for game {game_id}: {e}"
+            )
+
+    logger.info(
+        f"[Chunk {chunk_num}] Imported {count} player game stats from {len(games_chunk)} games"
+    )
     return {"player_game_stats": count, "games_processed": len(games_chunk)}
+
 
 # Setup logging
 logging.basicConfig(
@@ -281,34 +292,42 @@ class UFAAPIClient:
     def get_player_game_stats(self, game_id: str) -> list[dict[str, Any]]:
         """Get player game statistics for a specific game."""
         data = self._make_request("playerGameStats", {"gameID": game_id})
-        
+
         if "data" in data and data["data"]:
-            self.logger.info(f"Retrieved {len(data['data'])} player game stats records for game {game_id}")
+            self.logger.info(
+                f"Retrieved {len(data['data'])} player game stats records for game {game_id}"
+            )
             return data["data"]
         else:
             self.logger.warning(f"No player game stats found for game {game_id}")
             return []
 
-    def get_player_stats(self, player_ids: list[str], years: list[int] = None) -> list[dict[str, Any]]:
+    def get_player_stats(
+        self, player_ids: list[str], years: list[int] = None
+    ) -> list[dict[str, Any]]:
         """Get season statistics for specific players."""
         # UFA API has a limit of 100 players per request
         all_stats = []
-        
+
         for i in range(0, len(player_ids), 100):
-            chunk = player_ids[i:i+100]
+            chunk = player_ids[i : i + 100]
             params = {"playerIDs": ",".join(chunk)}
-            
+
             if years:
                 params["years"] = ",".join(map(str, years))
-            
+
             data = self._make_request("playerStats", params)
-            
+
             if "data" in data and data["data"]:
-                self.logger.info(f"Retrieved {len(data['data'])} player season stats records")
+                self.logger.info(
+                    f"Retrieved {len(data['data'])} player season stats records"
+                )
                 all_stats.extend(data["data"])
             else:
-                self.logger.warning(f"No player season stats found for chunk {i//100 + 1}")
-        
+                self.logger.warning(
+                    f"No player season stats found for chunk {i//100 + 1}"
+                )
+
         return all_stats
 
     def get_games(
@@ -395,7 +414,13 @@ class UFADataManager:
 
         logger.info(f"Starting direct API import for years: {years}")
 
-        counts = {"teams": 0, "players": 0, "games": 0, "player_game_stats": 0, "player_season_stats": 0}
+        counts = {
+            "teams": 0,
+            "players": 0,
+            "games": 0,
+            "player_game_stats": 0,
+            "player_season_stats": 0,
+        }
 
         try:
             if clear_existing:
@@ -423,12 +448,16 @@ class UFADataManager:
             # Import player game stats for each game
             if games_data:
                 logger.info("Importing player game statistics...")
-                counts["player_game_stats"] = self._import_player_game_stats_from_api(games_data)
+                counts["player_game_stats"] = self._import_player_game_stats_from_api(
+                    games_data
+                )
 
             # Import player season stats
             if players_data:
                 logger.info("Importing player season statistics...")
-                counts["player_season_stats"] = self._import_player_season_stats_from_api(players_data, years)
+                counts["player_season_stats"] = (
+                    self._import_player_season_stats_from_api(players_data, years)
+                )
 
             logger.info(f"Import complete. Total: {counts}")
             return counts
@@ -438,29 +467,40 @@ class UFADataManager:
             raise
 
     def import_from_api_parallel(
-        self, years: list[int] | None = None, clear_existing: bool = True, workers: int = None
+        self,
+        years: list[int] | None = None,
+        clear_existing: bool = True,
+        workers: int = None,
     ) -> dict[str, int]:
         """
         Import UFA data directly from API into the database with parallel processing.
-        
+
         Args:
             years: List of years to import. If None, imports 2012-2025 (excluding 2020)
             clear_existing: Whether to clear existing data first
             workers: Number of parallel workers. If None, uses CPU count
-            
+
         Returns:
             Dictionary with counts of imported data
         """
         if years is None:
             years = [y for y in range(2012, 2026) if y != 2020]
-            
+
         if workers is None:
             workers = min(cpu_count(), 8)  # Limit to avoid overwhelming API
-            
-        logger.info(f"Starting parallel API import for years: {years} with {workers} workers")
-        
-        counts = {"teams": 0, "players": 0, "games": 0, "player_game_stats": 0, "player_season_stats": 0}
-        
+
+        logger.info(
+            f"Starting parallel API import for years: {years} with {workers} workers"
+        )
+
+        counts = {
+            "teams": 0,
+            "players": 0,
+            "games": 0,
+            "player_game_stats": 0,
+            "player_season_stats": 0,
+        }
+
         try:
             if clear_existing:
                 logger.info("Clearing existing data...")
@@ -486,13 +526,19 @@ class UFADataManager:
 
             # Import player game stats in parallel (this is the slow part)
             if games_data:
-                logger.info(f"Importing player game statistics in parallel with {workers} workers...")
-                counts["player_game_stats"] = self._import_player_game_stats_parallel(games_data, workers)
+                logger.info(
+                    f"Importing player game statistics in parallel with {workers} workers..."
+                )
+                counts["player_game_stats"] = self._import_player_game_stats_parallel(
+                    games_data, workers
+                )
 
             # Import player season stats
             if players_data:
                 logger.info("Importing player season statistics...")
-                counts["player_season_stats"] = self._import_player_season_stats_from_api(players_data, years)
+                counts["player_season_stats"] = (
+                    self._import_player_season_stats_from_api(players_data, years)
+                )
 
             logger.info(f"Parallel import complete. Total: {counts}")
             return counts
@@ -500,28 +546,36 @@ class UFADataManager:
         except Exception as e:
             logger.error(f"Error during parallel import: {e}")
             raise
-    
-    def _import_player_game_stats_parallel(self, games_data: list[dict[str, Any]], workers: int) -> int:
+
+    def _import_player_game_stats_parallel(
+        self, games_data: list[dict[str, Any]], workers: int
+    ) -> int:
         """Import player game statistics using parallel processing."""
         total_games = len(games_data)
-        chunk_size = max(10, total_games // (workers * 2))  # Ensure reasonable chunk size
-        
+        chunk_size = max(
+            10, total_games // (workers * 2)
+        )  # Ensure reasonable chunk size
+
         # Split games into chunks
         chunks = []
         for i in range(0, total_games, chunk_size):
-            chunk = games_data[i:i + chunk_size]
+            chunk = games_data[i : i + chunk_size]
             chunks.append((chunk, i // chunk_size + 1))
-        
-        logger.info(f"  Processing {total_games} games in {len(chunks)} chunks with {workers} workers")
-        
+
+        logger.info(
+            f"  Processing {total_games} games in {len(chunks)} chunks with {workers} workers"
+        )
+
         total_count = 0
         completed_chunks = 0
-        
+
         with ProcessPoolExecutor(max_workers=workers) as executor:
             # Submit all chunks
-            future_to_chunk = {executor.submit(_import_game_stats_chunk, chunk_data): chunk_data[1] 
-                             for chunk_data in chunks}
-            
+            future_to_chunk = {
+                executor.submit(_import_game_stats_chunk, chunk_data): chunk_data[1]
+                for chunk_data in chunks
+            }
+
             # Process completed chunks
             for future in as_completed(future_to_chunk):
                 chunk_num = future_to_chunk[future]
@@ -529,42 +583,50 @@ class UFADataManager:
                     result = future.result()
                     total_count += result["player_game_stats"]
                     completed_chunks += 1
-                    
+
                     progress = (completed_chunks / len(chunks)) * 100
-                    logger.info(f"  Progress: {completed_chunks}/{len(chunks)} chunks completed ({progress:.1f}%)")
-                    
+                    logger.info(
+                        f"  Progress: {completed_chunks}/{len(chunks)} chunks completed ({progress:.1f}%)"
+                    )
+
                 except Exception as e:
                     logger.error(f"  Chunk {chunk_num} failed: {e}")
-        
-        logger.info(f"  Imported {total_count} player game stats from {total_games} games")
+
+        logger.info(
+            f"  Imported {total_count} player game stats from {total_games} games"
+        )
         return total_count
 
-    def complete_missing_imports(self, years: list[int] | None = None) -> dict[str, int]:
+    def complete_missing_imports(
+        self, years: list[int] | None = None
+    ) -> dict[str, int]:
         """
         Complete missing imports (games and season stats) without clearing existing data.
         Use this to finish a partially completed import.
-        
+
         Args:
             years: List of years to import. If None, imports 2012-2025 (excluding 2020)
-            
+
         Returns:
             Dictionary with counts of imported data
         """
         if years is None:
             years = [y for y in range(2012, 2026) if y != 2020]
-            
+
         logger.info(f"Completing missing imports for years: {years}")
-        
+
         counts = {"games": 0, "player_season_stats": 0}
-        
+
         try:
             # Check what we already have
             existing_games = self.db.get_row_count("games")
             existing_stats = self.db.get_row_count("player_game_stats")
             existing_season = self.db.get_row_count("player_season_stats")
-            
-            logger.info(f"Current status: {existing_games} games, {existing_stats} game stats, {existing_season} season stats")
-            
+
+            logger.info(
+                f"Current status: {existing_games} games, {existing_stats} game stats, {existing_season} season stats"
+            )
+
             # Import games if missing
             if existing_games == 0:
                 logger.info("Importing games data...")
@@ -573,15 +635,19 @@ class UFADataManager:
                     counts["games"] = self._import_games_from_api(games_data)
             else:
                 logger.info(f"Games already imported ({existing_games} records)")
-            
+
             # Import player season stats if missing
             if existing_season == 0:
                 logger.info("Importing player season statistics...")
                 players_data = self.api_client.get_players(years=years)
                 if players_data:
-                    counts["player_season_stats"] = self._import_player_season_stats_from_api(players_data, years)
+                    counts["player_season_stats"] = (
+                        self._import_player_season_stats_from_api(players_data, years)
+                    )
             else:
-                logger.info(f"Season stats already imported ({existing_season} records)")
+                logger.info(
+                    f"Season stats already imported ({existing_season} records)"
+                )
 
             logger.info(f"Missing imports complete. Imported: {counts}")
             return counts
@@ -692,8 +758,8 @@ class UFADataManager:
             try:
                 # Extract year from game_id or use current year
                 game_id = game.get("gameID", "")
-                year = int(game_id.split('-')[0]) if '-' in game_id else 2025
-                
+                year = int(game_id.split("-")[0]) if "-" in game_id else 2025
+
                 game_data = {
                     "game_id": game_id,
                     "away_team_id": game.get("awayTeam", ""),
@@ -730,25 +796,27 @@ class UFADataManager:
         logger.info(f"  Imported {count} games")
         return count
 
-    def _import_player_game_stats_from_api(self, games_data: list[dict[str, Any]]) -> int:
+    def _import_player_game_stats_from_api(
+        self, games_data: list[dict[str, Any]]
+    ) -> int:
         """Import player game statistics for all games."""
         count = 0
         total_games = len(games_data)
-        
+
         for i, game in enumerate(games_data, 1):
             game_id = game.get("gameID", "")
             if not game_id:
                 continue
-                
+
             try:
                 # Get player game stats for this game
                 player_stats_data = self.api_client.get_player_game_stats(game_id)
-                
+
                 for player_stat in player_stats_data:
                     try:
                         # Extract year from game_id or use current year
-                        year = int(game_id.split('-')[0]) if '-' in game_id else 2025
-                        
+                        year = int(game_id.split("-")[0]) if "-" in game_id else 2025
+
                         player_game_stat = {
                             "player_id": player_stat["player"]["playerID"],
                             "game_id": game_id,
@@ -773,16 +841,22 @@ class UFADataManager:
                             "pulls": player_stat.get("pulls", 0),
                             "ob_pulls": player_stat.get("obPulls", 0),
                             "recorded_pulls": player_stat.get("recordedPulls", 0),
-                            "recorded_pulls_hangtime": player_stat.get("recordedPullsHangtime"),
+                            "recorded_pulls_hangtime": player_stat.get(
+                                "recordedPullsHangtime"
+                            ),
                             "o_points_played": player_stat.get("oPointsPlayed", 0),
                             "o_points_scored": player_stat.get("oPointsScored", 0),
                             "d_points_played": player_stat.get("dPointsPlayed", 0),
                             "d_points_scored": player_stat.get("dPointsScored", 0),
                             "seconds_played": player_stat.get("secondsPlayed", 0),
                             "o_opportunities": player_stat.get("oOpportunities", 0),
-                            "o_opportunity_scores": player_stat.get("oOpportunityScores", 0),
+                            "o_opportunity_scores": player_stat.get(
+                                "oOpportunityScores", 0
+                            ),
                             "d_opportunities": player_stat.get("dOpportunities", 0),
-                            "d_opportunity_stops": player_stat.get("dOpportunityStops", 0),
+                            "d_opportunity_stops": player_stat.get(
+                                "dOpportunityStops", 0
+                            ),
                         }
 
                         # Insert player game stats
@@ -808,33 +882,41 @@ class UFADataManager:
                         )
                         count += 1
                     except Exception as e:
-                        logger.warning(f"Failed to import player game stat for {player_stat.get('player', {}).get('playerID', 'unknown')}: {e}")
-                        
+                        logger.warning(
+                            f"Failed to import player game stat for {player_stat.get('player', {}).get('playerID', 'unknown')}: {e}"
+                        )
+
                 if i % 100 == 0:
-                    logger.info(f"  Processed {i}/{total_games} games, imported {count} player game stats so far")
-                    
+                    logger.info(
+                        f"  Processed {i}/{total_games} games, imported {count} player game stats so far"
+                    )
+
             except Exception as e:
                 logger.warning(f"Failed to get player stats for game {game_id}: {e}")
 
         logger.info(f"  Imported {count} player game stats from {total_games} games")
         return count
 
-    def _import_player_season_stats_from_api(self, players_data: list[dict[str, Any]], years: list[int]) -> int:
+    def _import_player_season_stats_from_api(
+        self, players_data: list[dict[str, Any]], years: list[int]
+    ) -> int:
         """Import player season statistics."""
         count = 0
-        
+
         # Extract all unique player IDs
         player_ids = []
         for player in players_data:
             player_id = player.get("playerID", "")
             if player_id and player_id not in player_ids:
                 player_ids.append(player_id)
-        
-        logger.info(f"  Fetching season stats for {len(player_ids)} players across {len(years)} years")
-        
+
+        logger.info(
+            f"  Fetching season stats for {len(player_ids)} players across {len(years)} years"
+        )
+
         # Get season stats from API
         season_stats_data = self.api_client.get_player_stats(player_ids, years)
-        
+
         for stat in season_stats_data:
             try:
                 player_season_stat = {
@@ -871,18 +953,23 @@ class UFADataManager:
                     "total_d_opportunities": stat.get("dOpportunities", 0),
                     "total_d_opportunity_stops": stat.get("dOpportunityStops", 0),
                 }
-                
+
                 # Calculate completion percentage
                 if player_season_stat["total_throw_attempts"] > 0:
                     player_season_stat["completion_percentage"] = round(
-                        player_season_stat["total_completions"] * 100.0 / player_season_stat["total_throw_attempts"], 2
+                        player_season_stat["total_completions"]
+                        * 100.0
+                        / player_season_stat["total_throw_attempts"],
+                        2,
                     )
                 else:
                     player_season_stat["completion_percentage"] = 0
-                
+
                 # Find team_id for this player/year combination from players data
                 for player in players_data:
-                    if player.get("playerID") == stat["player"]["playerID"] and player.get("year") == stat.get("year"):
+                    if player.get("playerID") == stat["player"][
+                        "playerID"
+                    ] and player.get("year") == stat.get("year"):
                         player_season_stat["team_id"] = player.get("teamID", "")
                         break
 
@@ -913,7 +1000,9 @@ class UFADataManager:
                 )
                 count += 1
             except Exception as e:
-                logger.warning(f"Failed to import season stat for {stat.get('player', {}).get('playerID', 'unknown')}: {e}")
+                logger.warning(
+                    f"Failed to import season stat for {stat.get('player', {}).get('playerID', 'unknown')}: {e}"
+                )
 
         logger.info(f"  Imported {count} player season stats")
         return count
@@ -924,28 +1013,42 @@ def main():
     if len(sys.argv) < 2:
         print("Usage:")
         print("  python ufa_data_manager.py import-api [years...]")
-        print("  python ufa_data_manager.py import-api-parallel [--workers N] [years...]")
+        print(
+            "  python ufa_data_manager.py import-api-parallel [--workers N] [years...]"
+        )
         print("  python ufa_data_manager.py complete-missing [years...]")
         print("")
         print("Examples:")
-        print("  python ufa_data_manager.py import-api          # Import all years (sequential)")
-        print("  python ufa_data_manager.py import-api 2023     # Import only 2023 (sequential)")
-        print("  python ufa_data_manager.py import-api-parallel # Import all years (parallel, auto workers)")
-        print("  python ufa_data_manager.py import-api-parallel --workers 4  # Import with 4 workers")
-        print("  python ufa_data_manager.py import-api-parallel 2022 2023    # Import specific years (parallel)")
-        print("  python ufa_data_manager.py complete-missing    # Complete missing games and season stats")
+        print(
+            "  python ufa_data_manager.py import-api          # Import all years (sequential)"
+        )
+        print(
+            "  python ufa_data_manager.py import-api 2023     # Import only 2023 (sequential)"
+        )
+        print(
+            "  python ufa_data_manager.py import-api-parallel # Import all years (parallel, auto workers)"
+        )
+        print(
+            "  python ufa_data_manager.py import-api-parallel --workers 4  # Import with 4 workers"
+        )
+        print(
+            "  python ufa_data_manager.py import-api-parallel 2022 2023    # Import specific years (parallel)"
+        )
+        print(
+            "  python ufa_data_manager.py complete-missing    # Complete missing games and season stats"
+        )
         sys.exit(1)
 
     manager = UFADataManager()
     command = sys.argv[1]
-    
+
     # Parse arguments
     years = None
     workers = None
-    
+
     if command in ["import-api", "import-api-parallel", "complete-missing"]:
         args = sys.argv[2:]
-        
+
         # Handle --workers option for parallel command
         if command == "import-api-parallel" and "--workers" in args:
             workers_idx = args.index("--workers")
@@ -955,11 +1058,11 @@ def main():
             try:
                 workers = int(args[workers_idx + 1])
                 # Remove --workers and its value from args
-                args = args[:workers_idx] + args[workers_idx + 2:]
+                args = args[:workers_idx] + args[workers_idx + 2 :]
             except ValueError:
                 print("Error: --workers must be an integer")
                 sys.exit(1)
-        
+
         # Parse remaining arguments as years
         if args:
             try:
@@ -972,18 +1075,20 @@ def main():
         if command == "import-api":
             result = manager.import_from_api(years)
             print(f"Successfully imported: {result}")
-            
+
         elif command == "import-api-parallel":
             result = manager.import_from_api_parallel(years, workers=workers)
             print(f"Successfully imported (parallel): {result}")
-            
+
         elif command == "complete-missing":
             result = manager.complete_missing_imports(years)
             print(f"Successfully completed missing imports: {result}")
 
         else:
             print(f"Unknown command: {command}")
-            print("Supported commands: 'import-api', 'import-api-parallel', 'complete-missing'")
+            print(
+                "Supported commands: 'import-api', 'import-api-parallel', 'complete-missing'"
+            )
             sys.exit(1)
 
     except Exception as e:

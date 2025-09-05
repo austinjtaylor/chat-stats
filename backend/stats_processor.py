@@ -235,8 +235,6 @@ class StatsProcessor:
                 SUM(pgs.callahans) as total_callahans,
                 SUM(pgs.drops) as total_drops,
                 SUM(pgs.stalls) as total_stalls,
-                AVG(pgs.goals) as avg_goals_per_game,
-                AVG(pgs.assists) as avg_assists_per_game,
                 CASE 
                     WHEN SUM(pgs.throw_attempts) > 0 
                     THEN CAST(SUM(pgs.completions) AS FLOAT) / SUM(pgs.throw_attempts) * 100
