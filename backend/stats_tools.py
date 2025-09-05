@@ -411,8 +411,8 @@ class StatsToolManager:
                ht.name as home_team_name, ht.abbrev as home_team_abbr,
                at.name as away_team_name, at.abbrev as away_team_abbr
         FROM games g
-        JOIN teams ht ON g.home_team_id = ht.team_id AND g.year = ht.year
-        JOIN teams at ON g.away_team_id = at.team_id AND g.year = at.year
+        JOIN teams ht ON LOWER(ht.abbrev) = g.home_team_id AND g.year = ht.year
+        JOIN teams at ON LOWER(at.abbrev) = g.away_team_id AND g.year = at.year
         WHERE 1=1
         """
         params = {}

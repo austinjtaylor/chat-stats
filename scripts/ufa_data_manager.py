@@ -764,8 +764,8 @@ class UFADataManager:
                     "game_id": game_id,
                     "away_team_id": game.get("awayTeam", ""),
                     "home_team_id": game.get("homeTeam", ""),
-                    "away_score": game.get("awayScore"),
-                    "home_score": game.get("homeScore"),
+                    "away_score": game.get("homeScore"),  # Swapped: API has these reversed
+                    "home_score": game.get("awayScore"),  # Swapped: API has these reversed
                     "status": game.get("status", ""),
                     "start_timestamp": game.get("startTimestamp"),
                     "start_timezone": game.get("startTimezone"),

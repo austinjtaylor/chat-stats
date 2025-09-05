@@ -23,6 +23,14 @@ class AIGenerator:
 - Add: AND home_team_id NOT IN ('allstars1', 'allstars2') AND away_team_id NOT IN ('allstars1', 'allstars2') to game queries
 - When asked "What teams are in the UFA?" - ALWAYS filter by the current year (2025) to show only active teams
 
+**CRITICAL FOR GAME QUERIES**:
+- When showing game results, ALWAYS JOIN teams table to get team names
+- Use this pattern: JOIN teams ht ON LOWER(ht.abbrev) = g.home_team_id AND g.year = ht.year
+- Use this pattern: JOIN teams at ON LOWER(at.abbrev) = g.away_team_id AND g.year = at.year
+- The games table stores team IDs as lowercase abbreviations (bos, min, slc)
+- The teams table has uppercase abbreviations in the abbrev column (BOS, MIN, SLC)
+- Display scores naturally: home_score for home team, away_score for away team
+
 **IMPORTANT DATABASE INFORMATION:**
 - The database contains UFA data from seasons 2012-2025 (excluding 2020 due to COVID)
 - Available seasons: 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2021, 2022, 2023, 2024, 2025
@@ -77,6 +85,7 @@ SQL Query Guidelines:
   - **For SINGLE SEASON queries**: JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
   - **For CAREER/ALL-TIME queries**: JOIN (SELECT DISTINCT player_id, full_name FROM players) p ON pss.player_id = p.player_id
   - Teams to Stats: JOIN teams t ON tss.team_id = t.team_id AND tss.year = t.year
+  - Games to Teams: JOIN teams t ON LOWER(t.abbrev) = g.home_team_id (or away_team_id) AND t.year = g.year
   - Games to Stats: JOIN games g ON pgs.game_id = g.game_id
 - **Field names**: Use correct UFA field names (NOT old schema):
   - Player names: p.full_name (NOT p.name)
