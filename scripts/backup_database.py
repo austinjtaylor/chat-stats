@@ -8,12 +8,10 @@ backup retention to prevent storage bloat.
 
 import argparse
 import gzip
-import os
 import shutil
 import sqlite3
 from datetime import datetime
 from pathlib import Path
-from typing import List
 
 
 def get_project_root() -> Path:
@@ -87,7 +85,7 @@ def export_sql_dump() -> Path:
     return dump_path
 
 
-def list_backups() -> List[Path]:
+def list_backups() -> list[Path]:
     """List all backup files sorted by creation time (newest first)."""
     backups_dir = get_backups_dir()
     backups = []

@@ -457,7 +457,7 @@ REMEMBER: When you execute a query, you MUST present the actual results (names a
 
         # Pre-build base API parameters
         self.base_params = {"model": self.model, "temperature": 0, "max_tokens": 800}
-    
+
     @with_rate_limit_retry(max_retries=4, base_delay=2.0, max_delay=32.0)
     def _make_api_call(self, **params):
         """Make an API call to Claude with automatic retry on rate limits."""
@@ -700,15 +700,7 @@ REMEMBER: When you execute a query, you MUST present the actual results (names a
                 {"role": "user", "content": synthesis_instruction}
             )
 
-            print("DEBUG: Final synthesis messages structure:")
-            for i, msg in enumerate(messages_for_round):
-                print(
-                    f"  {i}: {msg['role']} - {type(msg.get('content', 'no content'))}"
-                )
-                if isinstance(msg.get("content"), str):
-                    print(f"      Content preview: {msg['content'][:100]}...")
-                elif isinstance(msg.get("content"), list):
-                    print(f"      Content list with {len(msg['content'])} items")
+            # Messages prepared for synthesis round
 
         # Prepare API call with or without tools based on final_synthesis flag
         round_params = {

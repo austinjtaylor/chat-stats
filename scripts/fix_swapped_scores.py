@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 def fix_swapped_scores():
     """Fix all swapped scores in the games table."""
     db = get_db()
-    
+
     try:
         # First, let's verify the issue exists by checking a known game
         test_query = """
@@ -30,34 +30,38 @@ def fix_swapped_scores():
         FROM games 
         WHERE game_id = '2025-08-23-BOS-MIN'
         """
-        
+
         result = db.execute_query(test_query)
         if result:
             game = result[0]
-            logger.info(f"Before fix - Game {game['game_id']}: "
-                       f"{game['home_team_id']} (home) {game['home_score']} - "
-                       f"{game['away_score']} {game['away_team_id']} (away)")
-        
+            logger.info(
+                f"Before fix - Game {game['game_id']}: "
+                f"{game['home_team_id']} (home) {game['home_score']} - "
+                f"{game['away_score']} {game['away_team_id']} (away)"
+            )
+
         # Swap all scores in the games table
         logger.info("Swapping home_score and away_score for all games...")
-        
+
         swap_query = """
         UPDATE games 
         SET home_score = away_score,
             away_score = home_score
         """
-        
+
         db.execute_query(swap_query)
         logger.info("Scores swapped successfully!")
-        
+
         # Verify the fix
         result = db.execute_query(test_query)
         if result:
             game = result[0]
-            logger.info(f"After fix - Game {game['game_id']}: "
-                       f"{game['home_team_id']} (home) {game['home_score']} - "
-                       f"{game['away_score']} {game['away_team_id']} (away)")
-        
+            logger.info(
+                f"After fix - Game {game['game_id']}: "
+                f"{game['home_team_id']} (home) {game['home_score']} - "
+                f"{game['away_score']} {game['away_team_id']} (away)"
+            )
+
         # Show some recent games to verify
         verify_query = """
         SELECT g.game_id, 
@@ -70,15 +74,17 @@ def fix_swapped_scores():
         ORDER BY g.start_timestamp DESC
         LIMIT 5
         """
-        
+
         recent_games = db.execute_query(verify_query)
         logger.info("\nRecent games after fix:")
         for game in recent_games:
-            logger.info(f"  {game['away_team_name']} @ {game['home_team_name']}: "
-                       f"{game['away_score']}-{game['home_score']}")
-        
+            logger.info(
+                f"  {game['away_team_name']} @ {game['home_team_name']}: "
+                f"{game['away_score']}-{game['home_score']}"
+            )
+
         return True
-        
+
     except Exception as e:
         logger.error(f"Error fixing scores: {e}")
         return False

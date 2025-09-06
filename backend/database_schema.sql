@@ -152,19 +152,19 @@ CREATE TABLE IF NOT EXISTS team_season_stats (
 );
 
 -- Indexes for performance (UFA API compatible)
-CREATE INDEX idx_teams_team_id ON teams(team_id);
-CREATE INDEX idx_teams_year ON teams(year);
-CREATE INDEX idx_players_team ON players(team_id);
-CREATE INDEX idx_players_player_id ON players(player_id);
-CREATE INDEX idx_players_year ON players(year);
-CREATE INDEX idx_games_year ON games(year);
-CREATE INDEX idx_games_teams ON games(home_team_id, away_team_id);
-CREATE INDEX idx_games_game_id ON games(game_id);
-CREATE INDEX idx_player_game_stats_player ON player_game_stats(player_id);
-CREATE INDEX idx_player_game_stats_game ON player_game_stats(game_id);
-CREATE INDEX idx_player_game_stats_year ON player_game_stats(year);
-CREATE INDEX idx_player_season_stats ON player_season_stats(player_id, year);
-CREATE INDEX idx_team_season_stats ON team_season_stats(team_id, year);
+CREATE INDEX IF NOT EXISTS idx_teams_team_id ON teams(team_id);
+CREATE INDEX IF NOT EXISTS idx_teams_year ON teams(year);
+CREATE INDEX IF NOT EXISTS idx_players_team ON players(team_id);
+CREATE INDEX IF NOT EXISTS idx_players_player_id ON players(player_id);
+CREATE INDEX IF NOT EXISTS idx_players_year ON players(year);
+CREATE INDEX IF NOT EXISTS idx_games_year ON games(year);
+CREATE INDEX IF NOT EXISTS idx_games_teams ON games(home_team_id, away_team_id);
+CREATE INDEX IF NOT EXISTS idx_games_game_id ON games(game_id);
+CREATE INDEX IF NOT EXISTS idx_player_game_stats_player ON player_game_stats(player_id);
+CREATE INDEX IF NOT EXISTS idx_player_game_stats_game ON player_game_stats(game_id);
+CREATE INDEX IF NOT EXISTS idx_player_game_stats_year ON player_game_stats(year);
+CREATE INDEX IF NOT EXISTS idx_player_season_stats ON player_season_stats(player_id, year);
+CREATE INDEX IF NOT EXISTS idx_team_season_stats ON team_season_stats(team_id, year);
 
 -- Views for common queries (UFA API compatible)
 CREATE VIEW IF NOT EXISTS current_season_leaders AS

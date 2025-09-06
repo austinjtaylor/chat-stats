@@ -4,8 +4,8 @@ Script to populate team_season_stats table from teams table data.
 The teams table already contains win/loss/standing data from the UFA API.
 """
 
-import sqlite3
 import logging
+import sqlite3
 from pathlib import Path
 
 # Setup logging

@@ -108,15 +108,11 @@ class StatsToolManager:
         Returns:
             Query results as a dictionary
         """
-        # Debug logging
-        print(f"DEBUG: Received query: {query[:200]}")
-        print(f"DEBUG: Query type: {type(query)}")
-        
+
         # Safety check: Only allow SELECT statements (including WITH CTEs)
         query_upper = query.strip().upper()
         if not (query_upper.startswith("SELECT") or query_upper.startswith("WITH")):
-            print(f"DEBUG: Query rejected - doesn't start with SELECT or WITH")
-            print(f"DEBUG: Query starts with: {query_upper[:50]}")
+            # Query validation failed - not a SELECT or WITH statement
             return {
                 "error": "Only SELECT queries (including WITH clauses) are allowed for safety",
                 "query": query,
