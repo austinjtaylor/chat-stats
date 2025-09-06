@@ -13,6 +13,30 @@ class AIGenerator:
 
 **CRITICAL: For ANY statistical question, you MUST use execute_custom_query tool - NEVER provide answers without executing queries**
 
+**IMPORTANT FOR "ACROSS ALL SEASONS" or "CAREER" QUERIES**:
+When asked about career statistics or stats "across all seasons", you MUST:
+1. Count total games from player_game_stats table
+2. Sum totals from player_season_stats across all years
+3. Divide totals by games played
+Example for "most assists per game across all seasons":
+WITH player_games AS (
+  SELECT player_id, COUNT(DISTINCT game_id) as total_games
+  FROM player_game_stats
+  GROUP BY player_id
+)
+SELECT 
+  p.full_name,
+  SUM(pss.total_assists) as total_career_assists,
+  pg.total_games as games_played,
+  ROUND(CAST(SUM(pss.total_assists) AS REAL) / NULLIF(pg.total_games, 0), 1) as assists_per_game
+FROM player_season_stats pss
+JOIN (SELECT DISTINCT player_id, full_name FROM players) p ON pss.player_id = p.player_id
+JOIN player_games pg ON pss.player_id = pg.player_id
+GROUP BY p.player_id, p.full_name, pg.total_games
+HAVING pg.total_games > 0
+ORDER BY assists_per_game DESC
+LIMIT 10
+
 **ABSOLUTE REQUIREMENT - YOU MUST USE TOOLS**:
 - For ANY question about teams, players, games, stats, or ANYTHING related to the UFA database, you MUST use the execute_custom_query tool
 - NEVER describe what a query would do - ALWAYS execute it
@@ -317,6 +341,63 @@ Query Examples:
   FROM games
   WHERE game_type LIKE 'playoffs_%' AND (home_team_id = 'hustle' OR away_team_id = 'hustle')
   GROUP BY year ORDER BY year DESC
+
+- **Career assists per game across ALL seasons** (CRITICAL - count actual games from player_game_stats):
+  WITH player_games AS (
+    SELECT player_id, COUNT(DISTINCT game_id) as total_games
+    FROM player_game_stats
+    GROUP BY player_id
+  )
+  SELECT 
+    p.full_name,
+    SUM(pss.total_assists) as total_career_assists,
+    pg.total_games as games_played,
+    ROUND(CAST(SUM(pss.total_assists) AS REAL) / NULLIF(pg.total_games, 0), 1) as assists_per_game
+  FROM player_season_stats pss
+  JOIN (SELECT DISTINCT player_id, full_name FROM players) p ON pss.player_id = p.player_id
+  JOIN player_games pg ON pss.player_id = pg.player_id
+  GROUP BY p.player_id, p.full_name, pg.total_games
+  HAVING pg.total_games > 0
+  ORDER BY assists_per_game DESC
+  LIMIT 10
+
+- **Career goals per game across ALL seasons** (CRITICAL - count actual games from player_game_stats):
+  WITH player_games AS (
+    SELECT player_id, COUNT(DISTINCT game_id) as total_games
+    FROM player_game_stats
+    GROUP BY player_id
+  )
+  SELECT 
+    p.full_name,
+    SUM(pss.total_goals) as total_career_goals,
+    pg.total_games as games_played,
+    ROUND(CAST(SUM(pss.total_goals) AS REAL) / NULLIF(pg.total_games, 0), 1) as goals_per_game
+  FROM player_season_stats pss
+  JOIN (SELECT DISTINCT player_id, full_name FROM players) p ON pss.player_id = p.player_id
+  JOIN player_games pg ON pss.player_id = pg.player_id
+  GROUP BY p.player_id, p.full_name, pg.total_games
+  HAVING pg.total_games > 0
+  ORDER BY goals_per_game DESC
+  LIMIT 10
+
+- **Career scores (goals + assists) per game** (CRITICAL - count actual games from player_game_stats):
+  WITH player_games AS (
+    SELECT player_id, COUNT(DISTINCT game_id) as total_games
+    FROM player_game_stats
+    GROUP BY player_id
+  )
+  SELECT 
+    p.full_name,
+    SUM(pss.total_goals + pss.total_assists) as total_career_scores,
+    pg.total_games as games_played,
+    ROUND(CAST(SUM(pss.total_goals + pss.total_assists) AS REAL) / NULLIF(pg.total_games, 0), 1) as scores_per_game
+  FROM player_season_stats pss
+  JOIN (SELECT DISTINCT player_id, full_name FROM players) p ON pss.player_id = p.player_id
+  JOIN player_games pg ON pss.player_id = pg.player_id
+  GROUP BY p.player_id, p.full_name, pg.total_games
+  HAVING pg.total_games > 0
+  ORDER BY scores_per_game DESC
+  LIMIT 10
 
 - **Most efficient scorers ALL-TIME** (career efficiency - goals per point):
   SELECT p.full_name as name,
