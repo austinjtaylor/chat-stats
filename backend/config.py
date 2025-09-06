@@ -31,6 +31,16 @@ class Config:
     # Cache settings
     ENABLE_CACHE: bool = True
     CACHE_TTL: int = 300  # Cache time-to-live in seconds
+    
+    # Rate limit handling settings
+    RATE_LIMIT_MAX_RETRIES: int = 4  # Maximum number of retry attempts
+    RATE_LIMIT_BASE_DELAY: float = 2.0  # Initial delay in seconds
+    RATE_LIMIT_MAX_DELAY: float = 32.0  # Maximum delay in seconds
+    ENABLE_RATE_LIMIT_RETRY: bool = True  # Enable automatic retry on rate limits
+    
+    # Token optimization settings
+    OPTIMIZE_SYSTEM_PROMPT: bool = True  # Use optimized shorter system prompt
+    MAX_PROMPT_TOKENS: int = 5000  # Target maximum tokens for system prompt
 
 
 config = Config()

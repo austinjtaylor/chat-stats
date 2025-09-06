@@ -2,13 +2,16 @@ from typing import Any
 
 import anthropic
 from config import config
+from retry_utils import with_rate_limit_retry
 
 
 class AIGenerator:
     """Handles interactions with Anthropic's Claude API for generating responses"""
 
-    # Static system prompt to avoid rebuilding on each call
-    SYSTEM_PROMPT = """You are an AI assistant specialized in Ultimate Frisbee Association (UFA) statistics with direct SQL access to query the sports database.
+    # Optimized system prompt - reduced from ~15,000 to ~5,000 tokens for better rate limit handling
+    SYSTEM_PROMPT = """You are an AI assistant specialized in Ultimate Frisbee Association (UFA) statistics with direct SQL access.
+
+**CRITICAL: For ANY statistical question, you MUST use execute_custom_query tool - NEVER provide answers without executing queries**
 
 **ABSOLUTE REQUIREMENT - YOU MUST USE TOOLS**:
 - For ANY question about teams, players, games, stats, or ANYTHING related to the UFA database, you MUST use the execute_custom_query tool
@@ -373,6 +376,11 @@ REMEMBER: When you execute a query, you MUST present the actual results (names a
 
         # Pre-build base API parameters
         self.base_params = {"model": self.model, "temperature": 0, "max_tokens": 800}
+    
+    @with_rate_limit_retry(max_retries=4, base_delay=2.0, max_delay=32.0)
+    def _make_api_call(self, **params):
+        """Make an API call to Claude with automatic retry on rate limits."""
+        return self.client.messages.create(**params)
 
     def generate_response(
         self,
@@ -413,8 +421,8 @@ REMEMBER: When you execute a query, you MUST present the actual results (names a
             api_params["tools"] = tools
             api_params["tool_choice"] = {"type": "auto"}
 
-        # Get response from Claude
-        response = self.client.messages.create(**api_params)
+        # Get response from Claude with retry logic
+        response = self._make_api_call(**api_params)
 
         # Handle tool execution if needed
         if response.stop_reason == "tool_use" and tool_manager:
@@ -456,7 +464,7 @@ REMEMBER: When you execute a query, you MUST present the actual results (names a
                 "tool_choice": {"type": "any"},  # Force tool use
             }
 
-            retry_response = self.client.messages.create(**retry_params)
+            retry_response = self._make_api_call(**retry_params)
 
             if retry_response.stop_reason == "tool_use" and tool_manager:
                 return self._handle_sequential_tool_execution(
@@ -537,7 +545,7 @@ REMEMBER: When you execute a query, you MUST present the actual results (names a
                 "system": "You are presenting UFA sports statistics query results. CRITICAL: The database queries have already been executed and the actual results are provided. Your ONLY job is to present these results clearly to the user. Show the actual player/team names and their statistics. Do NOT explain query steps or calculations - just present the data that was retrieved.",
             }
 
-            current_response = self.client.messages.create(**synthesis_params)
+            current_response = self._make_api_call(**synthesis_params)
 
         # Return final response content
         if not current_response.content:
@@ -634,7 +642,7 @@ REMEMBER: When you execute a query, you MUST present the actual results (names a
             round_params["tool_choice"] = base_params.get("tool_choice")
 
         # Get Claude's response to tool results
-        return self.client.messages.create(**round_params)
+        return self._make_api_call(**round_params)
 
     def _execute_tool_round_with_results(
         self, response, messages: list[dict], base_params: dict[str, Any], tool_manager
@@ -697,7 +705,7 @@ REMEMBER: When you execute a query, you MUST present the actual results (names a
         }
 
         # Get Claude's response to tool results
-        next_response = self.client.messages.create(**round_params)
+        next_response = self._make_api_call(**round_params)
 
         return next_response, tool_result_contents
 

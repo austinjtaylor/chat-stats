@@ -94,8 +94,14 @@ class StatsChatSystem:
             return response, sources
 
         except Exception as e:
-            # Return error message on any failure
-            error_response = f"I'm sorry, I encountered an error: {str(e)}"
+            # Check if it's a rate limit error
+            error_msg = str(e)
+            if "429" in error_msg or "rate_limit" in error_msg.lower():
+                # Return a user-friendly message for rate limits
+                error_response = "The system is experiencing high demand. Please wait a moment and try again. Your query will be processed automatically."
+            else:
+                # Return generic error message for other failures
+                error_response = f"I'm sorry, I encountered an error: {error_msg}"
             return error_response, []
 
     def get_stats_summary(self) -> dict[str, Any]:
