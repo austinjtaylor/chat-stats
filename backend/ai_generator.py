@@ -20,11 +20,11 @@ When asked about career statistics or stats "across all seasons", you MUST:
 3. Divide totals by games played
 Example for "most assists per game across all seasons":
 WITH player_games AS (
-  SELECT player_id, COUNT(DISTINCT game_id) as total_games
+  SELECTplayer_id, COUNT(DISTINCT game_id) as total_games
   FROM player_game_stats
   GROUP BY player_id
 )
-SELECT 
+SELECT
   p.full_name,
   SUM(pss.total_assists) as total_career_assists,
   pg.total_games as games_played,
@@ -175,13 +175,13 @@ Ultimate Frisbee Context and Statistics:
 
 Query Examples:
 - **What teams are in the UFA?** (MUST filter by current year):
-  SELECT DISTINCT t.full_name, t.city, t.division_name
+  SELECTDISTINCT t.full_name, t.city, t.division_name
   FROM teams t
   WHERE t.year = 2025  -- ALWAYS use current year for "What teams are in UFA"
     AND t.team_id NOT IN ('allstars1', 'allstars2')
   ORDER BY t.division_name, t.full_name
 - **Best plus/minus in the 2024 season** (season-specific):
-  SELECT p.full_name, ROUND(pss.calculated_plus_minus, 1) as plus_minus
+  SELECTp.full_name, ROUND(pss.calculated_plus_minus, 1) as plus_minus
   FROM player_season_stats pss
   JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
   WHERE pss.year = 2024
@@ -189,7 +189,7 @@ Query Examples:
   ORDER BY pss.calculated_plus_minus DESC
   LIMIT 3
 - **Most total yards ALL-TIME** (career totals - no year filter):
-  SELECT p.full_name,
+  SELECTp.full_name,
          ROUND(SUM(pss.total_yards_thrown + pss.total_yards_received), 1) as career_total_yards
   FROM player_season_stats pss
   JOIN (SELECT DISTINCT player_id, full_name FROM players) p
@@ -199,14 +199,14 @@ Query Examples:
   ORDER BY career_total_yards DESC
   LIMIT 3
 - **Most throwing yards in the 2025 season** (season-specific, throwing only):
-  SELECT p.full_name, ROUND(pss.total_yards_thrown, 1) as throwing_yards
+  SELECTp.full_name, ROUND(pss.total_yards_thrown, 1) as throwing_yards
   FROM player_season_stats pss
   JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
   WHERE pss.year = 2025
   ORDER BY throwing_yards DESC
   LIMIT 3
 - **Most yards per game in the 2025 season** (CRITICAL - calculate ratio BEFORE sorting):
-  SELECT p.full_name,
+  SELECTp.full_name,
          ROUND((pss.total_yards_thrown + pss.total_yards_received), 1) as total_yards,
          COUNT(DISTINCT CASE WHEN pgs.yards_thrown > 0 OR pgs.yards_received > 0 THEN pgs.game_id END) as games_played,
          ROUND(CAST((pss.total_yards_thrown + pss.total_yards_received) AS REAL) /
@@ -221,7 +221,7 @@ Query Examples:
   LIMIT 3
 
 - **Top scorers ALL-TIME** (Goals + Assists - total offensive contribution):
-  SELECT p.full_name,
+  SELECTp.full_name,
          ROUND(SUM(pss.total_goals + pss.total_assists), 1) as total_scores,
          ROUND(SUM(pss.total_goals), 1) as goals,
          ROUND(SUM(pss.total_assists), 1) as assists
@@ -233,7 +233,7 @@ Query Examples:
   LIMIT 3
 
 - **Top goal scorers ALL-TIME** (Goals only - not assists):
-  SELECT p.full_name, ROUND(SUM(pss.total_goals), 1) as career_goals
+  SELECTp.full_name, ROUND(SUM(pss.total_goals), 1) as career_goals
   FROM player_season_stats pss
   JOIN (SELECT DISTINCT player_id, full_name FROM players) p
     ON pss.player_id = p.player_id
@@ -242,7 +242,7 @@ Query Examples:
   LIMIT 3
 
 - **Most hucks completed in the 2025 season** (season-specific):
-  SELECT p.full_name, ROUND(pss.total_hucks_completed, 1) as hucks_completed, pss.total_hucks_attempted
+  SELECTp.full_name, ROUND(pss.total_hucks_completed, 1) as hucks_completed, pss.total_hucks_attempted
   FROM player_season_stats pss
   JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
   WHERE pss.year = 2025
@@ -250,7 +250,7 @@ Query Examples:
   LIMIT 3
 
 - **Top assist leaders ALL-TIME** (career totals - aggregates all seasons):
-  SELECT p.full_name, ROUND(SUM(pss.total_assists), 1) as career_assists
+  SELECTp.full_name, ROUND(SUM(pss.total_assists), 1) as career_assists
   FROM player_season_stats pss
   JOIN (SELECT DISTINCT player_id, full_name FROM players) p
     ON pss.player_id = p.player_id
@@ -259,7 +259,7 @@ Query Examples:
   LIMIT 3
 
 - **Top assists THIS SEASON** (current season = 2025):
-  SELECT p.full_name, ROUND(pss.total_assists, 1) as assists
+  SELECTp.full_name, ROUND(pss.total_assists, 1) as assists
   FROM player_season_stats pss
   JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
   WHERE pss.year = 2025  -- "this season" always means the latest season (2025)
@@ -267,7 +267,7 @@ Query Examples:
   LIMIT 3
 
 - **Most assists per game in the 2025 season** (CRITICAL - divide total by games, not average from game stats):
-  SELECT p.full_name,
+  SELECTp.full_name,
          pss.total_assists as total_assists,
          COUNT(DISTINCT pgs.game_id) as games_played,
          ROUND(CAST(pss.total_assists AS REAL) / NULLIF(COUNT(DISTINCT pgs.game_id), 0), 1) as assists_per_game
@@ -281,7 +281,7 @@ Query Examples:
   LIMIT 3
 
 - **Most goals per game in the 2025 season** (CRITICAL - use season totals divided by games):
-  SELECT p.full_name,
+  SELECTp.full_name,
          pss.total_goals as total_goals,
          COUNT(DISTINCT pgs.game_id) as games_played,
          ROUND(CAST(pss.total_goals AS REAL) / NULLIF(COUNT(DISTINCT pgs.game_id), 0), 1) as goals_per_game
@@ -295,7 +295,7 @@ Query Examples:
   LIMIT 3
 
 - **Team standings for the 2025 season** (season-specific):
-  SELECT t.full_name, tss.wins, tss.losses, tss.ties, tss.standing
+  SELECTt.full_name, tss.wins, tss.losses, tss.ties, tss.standing
   FROM team_season_stats tss
   JOIN teams t ON tss.team_id = t.team_id AND tss.year = t.year
   WHERE tss.year = 2025
@@ -303,7 +303,7 @@ Query Examples:
   ORDER BY tss.standing ASC
 
 - **Specific player's hucks in the 2025 season** (season-specific):
-  SELECT p.full_name, ROUND(pgs.hucks_completed, 1) as hucks_completed, pgs.hucks_attempted, g.game_id
+  SELECTp.full_name, ROUND(pgs.hucks_completed, 1) as hucks_completed, pgs.hucks_attempted, g.game_id
   FROM player_game_stats pgs
   JOIN players p ON pgs.player_id = p.player_id AND pgs.year = p.year
   JOIN games g ON pgs.game_id = g.game_id
@@ -311,7 +311,7 @@ Query Examples:
   ORDER BY g.start_timestamp DESC
 
 - **Player performance in specific game**:
-  SELECT p.full_name, ROUND(pgs.goals, 1) as goals, ROUND(pgs.assists, 1) as assists,
+  SELECTp.full_name, ROUND(pgs.goals, 1) as goals, ROUND(pgs.assists, 1) as assists,
          ROUND(pgs.blocks, 1) as blocks, ROUND(pgs.throwaways, 1) as throwaways
   FROM player_game_stats pgs
   JOIN players p ON pgs.player_id = p.player_id AND pgs.year = p.year
@@ -319,7 +319,7 @@ Query Examples:
   ORDER BY (pgs.goals + pgs.assists + pgs.blocks) DESC
 
 - **Last game between two teams**:
-  SELECT g.game_id, g.start_timestamp, pgs.player_id, pgs.hucks_completed, pgs.hucks_attempted
+  SELECTg.game_id, g.start_timestamp, pgs.player_id, pgs.hucks_completed, pgs.hucks_attempted
   FROM games g
   JOIN player_game_stats pgs ON g.game_id = pgs.game_id
   JOIN players p ON pgs.player_id = p.player_id AND pgs.year = p.year
@@ -333,7 +333,7 @@ Query Examples:
   LIMIT 1
 
 - **Team playoff history** (CRITICAL - only years with actual playoff games):
-  SELECT DISTINCT year, COUNT(*) as playoff_games,
+  SELECTDISTINCT year, COUNT(*) as playoff_games,
          SUM(CASE WHEN (home_team_id = 'hustle' AND home_score > away_score) OR
                        (away_team_id = 'hustle' AND away_score > home_score) THEN 1 ELSE 0 END) as wins,
          SUM(CASE WHEN (home_team_id = 'hustle' AND home_score < away_score) OR
@@ -344,11 +344,11 @@ Query Examples:
 
 - **Career assists per game across ALL seasons** (CRITICAL - count actual games from player_game_stats):
   WITH player_games AS (
-    SELECT player_id, COUNT(DISTINCT game_id) as total_games
+    SELECTplayer_id, COUNT(DISTINCT game_id) as total_games
     FROM player_game_stats
     GROUP BY player_id
   )
-  SELECT 
+  SELECT
     p.full_name,
     SUM(pss.total_assists) as total_career_assists,
     pg.total_games as games_played,
@@ -363,11 +363,11 @@ Query Examples:
 
 - **Career goals per game across ALL seasons** (CRITICAL - count actual games from player_game_stats):
   WITH player_games AS (
-    SELECT player_id, COUNT(DISTINCT game_id) as total_games
+    SELECTplayer_id, COUNT(DISTINCT game_id) as total_games
     FROM player_game_stats
     GROUP BY player_id
   )
-  SELECT 
+  SELECT
     p.full_name,
     SUM(pss.total_goals) as total_career_goals,
     pg.total_games as games_played,
@@ -382,11 +382,11 @@ Query Examples:
 
 - **Career scores (goals + assists) per game** (CRITICAL - count actual games from player_game_stats):
   WITH player_games AS (
-    SELECT player_id, COUNT(DISTINCT game_id) as total_games
+    SELECTplayer_id, COUNT(DISTINCT game_id) as total_games
     FROM player_game_stats
     GROUP BY player_id
   )
-  SELECT 
+  SELECT
     p.full_name,
     SUM(pss.total_goals + pss.total_assists) as total_career_scores,
     pg.total_games as games_played,
@@ -400,7 +400,7 @@ Query Examples:
   LIMIT 10
 
 - **Most efficient scorers ALL-TIME** (career efficiency - goals per point):
-  SELECT p.full_name as name,
+  SELECTp.full_name as name,
          ROUND(SUM(pss.total_goals), 1) as total_goals,
          SUM(pss.total_o_points_played + pss.total_d_points_played) as total_points_played,
          ROUND(CAST(SUM(pss.total_goals) AS REAL) /
@@ -620,10 +620,21 @@ REMEMBER: When you execute a query, you MUST present the actual results (names a
             ]
 
             # Make final synthesis call
+            # Preserve the original system prompt (which may include conversation history)
+            synthesis_system = "You are presenting UFA sports statistics query results. CRITICAL: The database queries have already been executed and the actual results are provided. Your ONLY job is to present these results clearly to the user. Show the actual player/team names and their statistics. Do NOT explain query steps or calculations - just present the data that was retrieved."
+            if (
+                "system" in base_params
+                and "Previous conversation:" in base_params["system"]
+            ):
+                # If there was conversation history, preserve it
+                synthesis_system = base_params["system"].replace(
+                    self.SYSTEM_PROMPT, synthesis_system
+                )
+
             synthesis_params = {
                 **self.base_params,
                 "messages": final_messages,
-                "system": "You are presenting UFA sports statistics query results. CRITICAL: The database queries have already been executed and the actual results are provided. Your ONLY job is to present these results clearly to the user. Show the actual player/team names and their statistics. Do NOT explain query steps or calculations - just present the data that was retrieved.",
+                "system": synthesis_system,
             }
 
             current_response = self._make_api_call(**synthesis_params)
