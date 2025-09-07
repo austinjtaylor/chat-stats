@@ -5,6 +5,8 @@ Defines tools that Claude can use to query the SQL database for sports statistic
 
 from typing import Any
 
+from cache_manager import cache_key_for_query, get_cache
+from config import config
 from sql_database import SQLDatabase
 
 

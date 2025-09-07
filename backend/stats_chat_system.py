@@ -6,6 +6,7 @@ Replaces the RAG system with direct SQL database queries for sports stats.
 from typing import Any
 
 from ai_generator import AIGenerator
+from cache_manager import get_cache, cache_key_for_endpoint
 from session_manager import SessionManager
 from sql_database import get_db
 from stats_processor import StatsProcessor
@@ -111,6 +112,15 @@ class StatsChatSystem:
         Returns:
             Dictionary with counts and summary information
         """
+        # Check cache first if enabled
+        cache = get_cache() if self.config.ENABLE_CACHE else None
+        cache_key = cache_key_for_endpoint("stats_summary")
+        
+        if cache:
+            cached_result = cache.get(cache_key)
+            if cached_result is not None:
+                return cached_result
+        
         summary = {
             "total_players": self.db.get_row_count("players"),
             "total_teams": self.db.get_row_count("teams"),
@@ -209,6 +219,10 @@ class StatsChatSystem:
                 print(f"Could not get teams: {e}")
                 summary["team_standings"] = []
 
+        # Cache the result if caching is enabled
+        if cache:
+            cache.set(cache_key, summary, ttl=300)  # 5 minutes TTL
+            
         return summary
 
     def get_database_stats(self) -> dict[str, Any]:
@@ -218,6 +232,15 @@ class StatsChatSystem:
         Returns:
             Dictionary with database statistics and counts
         """
+        # Check cache first if enabled
+        cache = get_cache() if self.config.ENABLE_CACHE else None
+        cache_key = cache_key_for_endpoint("database_stats")
+        
+        if cache:
+            cached_result = cache.get(cache_key)
+            if cached_result is not None:
+                return cached_result
+                
         try:
             # Get basic counts
             total_players_query = "SELECT COUNT(*) as count FROM players"
@@ -240,12 +263,18 @@ class StatsChatSystem:
             """
             top_scorers_result = self.db.execute_query(top_scorers_query)
 
-            return {
+            result = {
                 "total_players": players_result[0]["count"],
                 "total_teams": teams_result[0]["count"],
                 "total_games": games_result[0]["count"],
                 "top_scorers": top_scorers_result,
             }
+            
+            # Cache the result if caching is enabled
+            if cache:
+                cache.set(cache_key, result, ttl=300)  # 5 minutes TTL
+                
+            return result
         except Exception as e:
             print(f"Error getting database stats: {e}")
             return {

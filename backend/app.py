@@ -5,6 +5,7 @@ warnings.filterwarnings("ignore", message="resource_tracker: There appear to be.
 import os
 from typing import Any
 
+from cache_manager import get_cache
 from config import config
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -143,6 +144,30 @@ async def search_teams(q: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/cache/stats")
+async def get_cache_stats():
+    """Get cache statistics including hit rate and memory usage"""
+    cache = get_cache()
+    stats = cache.get_stats()
+    
+    # Add cache configuration
+    stats["enabled"] = config.ENABLE_CACHE
+    stats["default_ttl"] = config.CACHE_TTL
+    
+    return stats
+
+
+@app.post("/api/cache/clear")
+async def clear_cache():
+    """Clear all cached entries"""
+    if not config.ENABLE_CACHE:
+        return {"message": "Cache is disabled"}
+    
+    cache = get_cache()
+    cache.clear()
+    return {"message": "Cache cleared successfully"}
+
+
 @app.get("/api/games/recent")
 async def get_recent_games(limit: int = 10):
     """Get recent games"""
@@ -222,7 +247,9 @@ def get_sort_column(sort_key, is_career=False, per_game=False, team=None):
             "games_played",
         ]:
             # Use the full games_played subquery for career stats
-            team_filter = f" AND pgs_sub.team_id = '{team}'" if team and team != "all" else ""
+            team_filter = (
+                f" AND pgs_sub.team_id = '{team}'" if team and team != "all" else ""
+            )
             games_played_expr = f"""(SELECT COUNT(DISTINCT pgs_sub.game_id) 
                  FROM player_game_stats pgs_sub 
                  JOIN games g_sub ON pgs_sub.game_id = g_sub.game_id
