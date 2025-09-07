@@ -161,7 +161,8 @@ class TestCustomQueryTool:
 
         parsed_result = json.loads(result)
         assert "error" in parsed_result
-        assert "Only SELECT queries are allowed" in parsed_result["error"]
+        assert "Only SELECT queries" in parsed_result["error"]
+        assert "allowed for safety" in parsed_result["error"]
 
     def test_execute_custom_query_database_error(self, tool_manager, mock_db_with_data):
         """Test custom query handles database errors"""
@@ -212,8 +213,8 @@ class TestLegacyToolMethods:
                 # Player lookup query
                 return [
                     {
-                        "id": 1,
-                        "name": "Test Player",
+                        "player_id": 1,
+                        "full_name": "Test Player",
                         "team_name": "Test Team",
                         "position": "Forward",
                         "jersey_number": 23,
@@ -224,7 +225,7 @@ class TestLegacyToolMethods:
                 return [
                     {
                         "player_id": 1,
-                        "season": "2024",
+                        "year": 2024,
                         "team_name": "Test Team",
                         "total_goals": 15,
                         "total_assists": 8,
@@ -265,7 +266,7 @@ class TestLegacyToolMethods:
         parsed_result = json.loads(result)
         assert "player" in parsed_result
         assert "season_stats" in parsed_result
-        assert parsed_result["player"]["name"] == "Test Player"
+        assert parsed_result["player"]["full_name"] == "Test Player"
         assert parsed_result["season_stats"]["total_goals"] == 15
 
         # Verify database was called
@@ -279,13 +280,13 @@ class TestLegacyToolMethods:
         def mock_team_execute_query(query, params=None):
             if "FROM teams" in query:
                 # Team lookup query
-                return [{"id": 1, "name": "Test Team", "abbreviation": "TT"}]
+                return [{"team_id": "test-team", "name": "Test Team", "abbrev": "TT"}]
             elif "team_season_stats" in query:
                 # Team stats query
                 return [
                     {
-                        "team_id": 1,
-                        "season": "2024",
+                        "team_id": "test-team",
+                        "year": 2024,
                         "wins": 10,
                         "losses": 5,
                         "points_for": 150,

@@ -84,12 +84,19 @@ class StatsToolManager:
 
         try:
             result = tool_methods[tool_name](**kwargs)
-            # Store sources for later retrieval
-            if isinstance(result, dict) and "sources" in result:
-                self.last_sources = result["sources"]
+            
+            # Store the actual result data for later retrieval
+            if isinstance(result, dict):
+                # Create a source entry with the tool name, parameters, and results
+                source_entry = {
+                    "tool": tool_name,
+                    "parameters": kwargs,
+                    "data": result
+                }
+                self.last_sources.append(source_entry)
+            
             # Convert result to string for Claude
             import json
-
             return json.dumps(result, indent=2, default=str)
         except Exception as e:
             return f"Error executing tool: {str(e)}"
