@@ -350,7 +350,10 @@ class TestSourcesTracking:
                 "execute_custom_query", query="SELECT 1", explanation="test"
             )
 
-            assert tool_manager.last_sources == ["query1", "query2"]
+            # Check that sources were stored with the new format
+            assert len(tool_manager.last_sources) == 1
+            assert tool_manager.last_sources[0]["tool"] == "execute_custom_query"
+            assert tool_manager.last_sources[0]["data"] == mock_result
 
 
 class TestToolIntegration:
