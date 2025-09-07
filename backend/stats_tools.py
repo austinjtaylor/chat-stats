@@ -28,7 +28,6 @@ class StatsToolManager:
         Returns:
             List of tool definition dictionaries
         """
-        # Generic SQL executor tool for maximum flexibility
         return [
             {
                 "name": "execute_custom_query",
@@ -51,10 +50,30 @@ class StatsToolManager:
                     },
                     "required": ["query", "explanation"],
                 },
+            },
+            {
+                "name": "get_game_details",
+                "description": "Get comprehensive details about a specific game, including individual stat leaders and team statistics. Use this when users ask for detailed information about a specific game.",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "game_id": {
+                            "type": "string",
+                            "description": "The game ID (e.g., '2025-08-23-BOS-MIN')",
+                        },
+                        "date": {
+                            "type": "string",
+                            "description": "The game date in YYYY-MM-DD format",
+                        },
+                        "teams": {
+                            "type": "string",
+                            "description": "The teams playing (e.g., 'BOS-MIN' or 'Boston vs Minnesota')",
+                        },
+                    },
+                    "required": [],
+                },
             }
         ]
-
-        # Specialized tools (temporarily disabled for testing generic SQL)
 
     def execute_tool(self, tool_name: str, **kwargs) -> str:
         """
@@ -72,6 +91,7 @@ class StatsToolManager:
             "get_player_stats": self._get_player_stats,
             "get_team_stats": self._get_team_stats,
             "get_game_results": self._get_game_results,
+            "get_game_details": self._get_game_details,
             "get_league_leaders": self._get_league_leaders,
             "compare_players": self._compare_players,
             "search_players": self._search_players,
@@ -770,6 +790,167 @@ class StatsToolManager:
             }
 
         return {"error": f"Invalid category: {category}"}
+
+    def _get_game_details(self, game_id: str = None, date: str = None, teams: str = None) -> dict[str, Any]:
+        """Get comprehensive game details similar to UFA game summary page."""
+        
+        # First, find the game
+        game_query = """
+        SELECT g.*,
+               ht.name as home_team_name, ht.abbrev as home_team_abbr, ht.standing as home_standing,
+               ht.team_id as home_full_team_id,
+               at.name as away_team_name, at.abbrev as away_team_abbr, at.standing as away_standing,
+               at.team_id as away_full_team_id
+        FROM games g
+        JOIN teams ht ON LOWER(ht.abbrev) = g.home_team_id AND g.year = ht.year
+        JOIN teams at ON LOWER(at.abbrev) = g.away_team_id AND g.year = at.year
+        WHERE 1=1
+        """
+        params = {}
+        
+        if game_id:
+            game_query += " AND g.game_id = :game_id"
+            params["game_id"] = game_id
+        elif date and teams:
+            game_query += " AND DATE(g.start_timestamp) = :date"
+            game_query += """ AND (
+                (LOWER(ht.abbrev) LIKE LOWER(:team1) AND LOWER(at.abbrev) LIKE LOWER(:team2))
+                OR (LOWER(ht.abbrev) LIKE LOWER(:team2) AND LOWER(at.abbrev) LIKE LOWER(:team1))
+            )"""
+            params["date"] = date
+            team_parts = teams.replace("-", " ").replace("vs", " ").replace("@", " ").split()
+            if len(team_parts) >= 2:
+                params["team1"] = f"%{team_parts[0]}%"
+                params["team2"] = f"%{team_parts[1]}%"
+        
+        game = self.db.execute_query(game_query, params)
+        if not game:
+            return {"error": "Game not found"}
+        
+        game = game[0]
+        game_id = game["game_id"]
+        
+        # Get individual leaders (top 1 per category per team)
+        leaders = {}
+        
+        # Helper function to get top player for a stat
+        def get_stat_leader(stat_column, stat_name):
+            query = f"""
+            SELECT p.full_name, pgs.{stat_column} as value, pgs.team_id,
+                   t.name as team_name
+            FROM player_game_stats pgs
+            JOIN players p ON pgs.player_id = p.player_id
+            JOIN teams t ON pgs.team_id = t.team_id AND pgs.year = t.year
+            WHERE pgs.game_id = :game_id
+            AND pgs.team_id = :team_id
+            AND pgs.{stat_column} > 0
+            ORDER BY pgs.{stat_column} DESC
+            LIMIT 1
+            """
+            
+            home_leader = self.db.execute_query(query, {
+                "game_id": game_id,
+                "team_id": game["home_full_team_id"]
+            })
+            
+            away_leader = self.db.execute_query(query, {
+                "game_id": game_id,
+                "team_id": game["away_full_team_id"]
+            })
+            
+            return {
+                "home": home_leader[0] if home_leader else None,
+                "away": away_leader[0] if away_leader else None
+            }
+        
+        # Get leaders for each category
+        leaders["assists"] = get_stat_leader("assists", "Assists")
+        leaders["goals"] = get_stat_leader("goals", "Goals")
+        leaders["blocks"] = get_stat_leader("blocks", "Blocks")
+        leaders["completions"] = get_stat_leader("completions", "Completions")
+        leaders["points_played"] = get_stat_leader("o_points_played + d_points_played", "Points Played")
+        
+        # Plus/minus requires special handling
+        pm_query = """
+        SELECT p.full_name, 
+               (pgs.goals + pgs.assists + pgs.blocks - pgs.throwaways - pgs.stalls - pgs.drops) as value,
+               pgs.team_id, t.name as team_name
+        FROM player_game_stats pgs
+        JOIN players p ON pgs.player_id = p.player_id
+        JOIN teams t ON pgs.team_id = t.team_id AND pgs.year = t.year
+        WHERE pgs.game_id = :game_id
+        AND pgs.team_id = :team_id
+        ORDER BY value DESC
+        LIMIT 1
+        """
+        
+        home_pm = self.db.execute_query(pm_query, {
+            "game_id": game_id,
+            "team_id": game["home_full_team_id"]
+        })
+        
+        away_pm = self.db.execute_query(pm_query, {
+            "game_id": game_id,
+            "team_id": game["away_full_team_id"]
+        })
+        
+        leaders["plus_minus"] = {
+            "home": home_pm[0] if home_pm else None,
+            "away": away_pm[0] if away_pm else None
+        }
+        
+        # Get team statistics
+        team_stats_query = """
+        SELECT 
+            team_id,
+            SUM(completions) as total_completions,
+            SUM(throw_attempts) as total_attempts,
+            SUM(hucks_completed) as total_hucks_completed,
+            SUM(hucks_attempted) as total_hucks_attempted,
+            SUM(blocks) as total_blocks,
+            SUM(throwaways + stalls + drops) as total_turnovers,
+            SUM(o_points_played) as total_o_points,
+            SUM(o_points_scored) as total_o_scores,
+            SUM(d_points_played) as total_d_points,
+            SUM(d_points_scored) as total_d_scores
+        FROM player_game_stats
+        WHERE game_id = :game_id
+        GROUP BY team_id
+        """
+        
+        team_stats = self.db.execute_query(team_stats_query, {"game_id": game_id})
+        
+        # Organize team stats by team
+        home_stats = None
+        away_stats = None
+        for stat in team_stats:
+            if stat["team_id"] == game["home_full_team_id"]:
+                home_stats = stat
+            elif stat["team_id"] == game["away_full_team_id"]:
+                away_stats = stat
+        
+        # Calculate percentages
+        def calculate_percentages(stats):
+            if stats:
+                stats["completion_percentage"] = round(stats["total_completions"] / stats["total_attempts"] * 100, 1) if stats["total_attempts"] > 0 else 0
+                stats["huck_percentage"] = round(stats["total_hucks_completed"] / stats["total_hucks_attempted"] * 100, 1) if stats["total_hucks_attempted"] > 0 else 0
+                stats["hold_percentage"] = round(stats["total_o_scores"] / stats["total_o_points"] * 100, 1) if stats["total_o_points"] > 0 else 0
+                stats["break_percentage"] = round(stats["total_d_scores"] / stats["total_d_points"] * 100, 1) if stats["total_d_points"] > 0 else 0
+                stats["o_conversion"] = round(stats["total_o_scores"] / stats["total_o_points"] * 100, 1) if stats["total_o_points"] > 0 else 0
+                stats["d_conversion"] = round((1 - stats["total_d_scores"] / stats["total_d_points"]) * 100, 1) if stats["total_d_points"] > 0 else 0
+            return stats
+        
+        home_stats = calculate_percentages(home_stats)
+        away_stats = calculate_percentages(away_stats)
+        
+        return {
+            "game": game,
+            "individual_leaders": leaders,
+            "team_statistics": {
+                "home": home_stats,
+                "away": away_stats
+            }
+        }
 
     def get_last_sources(self) -> list[str]:
         """Get the last sources used in tool execution."""

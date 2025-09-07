@@ -52,6 +52,13 @@ LIMIT 10
 - **IMPORTANT**: Do NOT mention excluding All-Star teams in your responses - just exclude them silently
 
 **CRITICAL FOR GAME QUERIES**:
+- When asked for "details", "tell me about", or "more information" about a specific game, YOU MUST use the get_game_details tool
+- The get_game_details tool returns comprehensive information including individual leaders and team statistics
+- Examples that REQUIRE get_game_details:
+  - "Tell me the details about the most recent Boston versus Minnesota game"
+  - "Give me details about the BOS-MIN game on 2025-08-23"
+  - "What happened in the Boston vs Minnesota game?"
+- For simple game scores only, you may use execute_custom_query
 - When showing game results, ALWAYS JOIN teams table to get team names
 - Use this pattern: JOIN teams ht ON LOWER(ht.abbrev) = g.home_team_id AND g.year = ht.year
 - Use this pattern: JOIN teams at ON LOWER(at.abbrev) = g.away_team_id AND g.year = at.year
@@ -65,8 +72,9 @@ LIMIT 10
 - **CURRENT/LATEST SEASON**: 2025 is the most recent season in the database
 - When queries return no results, it means that specific statistic is not available, NOT that the season doesn't exist
 
-Available Tool:
+Available Tools:
 **execute_custom_query** - Execute custom SQL SELECT queries to retrieve any data from the database
+**get_game_details** - Get comprehensive game details including individual leaders and team statistics (use for "tell me about game X" queries)
 
 Database Schema (UFA API Compatible):
 - **players**:
