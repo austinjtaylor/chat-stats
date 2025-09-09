@@ -442,8 +442,8 @@ class StatsToolManager:
                ht.name as home_team_name, ht.abbrev as home_team_abbr,
                at.name as away_team_name, at.abbrev as away_team_abbr
         FROM games g
-        JOIN teams ht ON LOWER(ht.abbrev) = g.home_team_id AND g.year = ht.year
-        JOIN teams at ON LOWER(at.abbrev) = g.away_team_id AND g.year = at.year
+        LEFT JOIN teams ht ON ht.team_id = g.home_team_id AND g.year = ht.year
+        LEFT JOIN teams at ON at.team_id = g.away_team_id AND g.year = at.year
         WHERE 1=1
         """
         params = {}
@@ -804,8 +804,8 @@ class StatsToolManager:
                at.name as away_team_name, at.abbrev as away_team_abbr, at.standing as away_standing,
                at.team_id as away_full_team_id
         FROM games g
-        JOIN teams ht ON LOWER(ht.abbrev) = g.home_team_id AND g.year = ht.year
-        JOIN teams at ON LOWER(at.abbrev) = g.away_team_id AND g.year = at.year
+        LEFT JOIN teams ht ON ht.team_id = g.home_team_id AND g.year = ht.year
+        LEFT JOIN teams at ON at.team_id = g.away_team_id AND g.year = at.year
         WHERE 1=1
         """
         params = {}
@@ -944,6 +944,156 @@ class StatsToolManager:
         
         home_stats = calculate_percentages(home_stats)
         away_stats = calculate_percentages(away_stats)
+        
+        # Calculate redzone stats from game events if available
+        def calculate_redzone_stats(team_id, is_home_team):
+            """Calculate redzone percentage from game events"""
+            # Get ALL events for the game (both teams) to track attacking direction properly
+            events_query = """
+            SELECT event_type, receiver_y, thrower_y, team, event_index
+            FROM game_events
+            WHERE game_id = :game_id
+            AND event_type IN (18, 19, 11, 13, 20, 22, 24, 28, 29, 30)  -- Pass, Goal, turnovers, quarter changes
+            ORDER BY event_index  -- Process chronologically
+            """
+            # Map team_id to home/away for the game_events table
+            team_type = "home" if is_home_team else "away"
+            events = self.db.execute_query(events_query, {"game_id": game_id})
+            
+            if not events:
+                return None
+                
+            # Track attacking direction and possessions throughout the game
+            # At start: away team pulls from north, home team attacks north
+            attacking_north = True
+            current_team = "home"  # Home team starts with possession
+            current_possession_events = []
+            team_possessions = []  # Only track target team's possessions
+            
+            for event in events:
+                event_type = event["event_type"]
+                event_team = event["team"]
+                
+                # Quarter changes switch attacking direction
+                if event_type in [28, 29, 30]:  # End of Q1, Halftime, End of Q3
+                    # Save current possession if it's our team
+                    if current_team == team_type and current_possession_events:
+                        team_possessions.append({
+                            'events': current_possession_events,
+                            'attacking_north': attacking_north,
+                            'ended_in_goal': False
+                        })
+                        current_possession_events = []
+                    
+                    # Switch attacking direction at quarter change
+                    attacking_north = not attacking_north
+                    continue
+                
+                # Track passes
+                if event_type == 18:  # Pass
+                    if event_team == team_type:
+                        current_possession_events.append(event)
+                    current_team = event_team
+                
+                # Goal ends possession and sets next attacking direction
+                elif event_type == 19:  # Goal
+                    goal_y = event.get("receiver_y")
+                    
+                    # If this team scored, save their possession
+                    if event_team == team_type and current_possession_events:
+                        current_possession_events.append(event)
+                        team_possessions.append({
+                            'events': current_possession_events,
+                            'attacking_north': attacking_north,
+                            'ended_in_goal': True
+                        })
+                    
+                    # After goal: scoring team pulls, other team attacks same endzone where goal was scored
+                    if goal_y:
+                        if goal_y > 100:  # Goal scored in north endzone
+                            attacking_north = True  # Next possession attacks north
+                        elif goal_y < 20:  # Goal scored in south endzone
+                            attacking_north = False  # Next possession attacks south
+                    
+                    current_possession_events = []
+                    # Possession switches to team that receives the pull
+                    current_team = "home" if event_team == "away" else "away"
+                
+                # Turnovers switch attacking direction and possession
+                elif event_type in [11, 13, 20, 22, 24]:  # Block, Throwaway, Drop, Stall
+                    # If our team had possession before turnover, save it
+                    if current_team == team_type and current_possession_events:
+                        team_possessions.append({
+                            'events': current_possession_events,
+                            'attacking_north': attacking_north,
+                            'ended_in_goal': False
+                        })
+                    
+                    # Switch attacking direction after turnover
+                    attacking_north = not attacking_north
+                    
+                    current_possession_events = []
+                    # Possession switches to other team
+                    current_team = "home" if current_team == "away" else "away"
+            
+            # Add any remaining possession for our team
+            if current_team == team_type and current_possession_events:
+                team_possessions.append({
+                    'events': current_possession_events,
+                    'attacking_north': attacking_north,
+                    'ended_in_goal': False
+                })
+            
+            # Count redzone possessions and goals
+            redzone_possessions = 0
+            redzone_goals = 0
+            
+            for possession in team_possessions:
+                reached_redzone = False
+                
+                # Check if any pass/goal was in the attacking redzone
+                for event in possession['events']:
+                    if event['event_type'] in [18, 19]:  # Pass or Goal
+                        position_y = event.get('receiver_y')
+                        if position_y:
+                            # Check if in redzone for current attacking direction
+                            if possession['attacking_north'] and 80 < position_y < 100:
+                                reached_redzone = True
+                                break
+                            elif not possession['attacking_north'] and 20 < position_y < 40:
+                                reached_redzone = True
+                                break
+                    
+                    # Also check thrower position for goals
+                    if event['event_type'] == 19:
+                        thrower_y = event.get('thrower_y')
+                        if thrower_y:
+                            if possession['attacking_north'] and 80 < thrower_y < 100:
+                                reached_redzone = True
+                                break
+                            elif not possession['attacking_north'] and 20 < thrower_y < 40:
+                                reached_redzone = True
+                                break
+                
+                if reached_redzone:
+                    redzone_possessions += 1
+                    if possession['ended_in_goal']:
+                        redzone_goals += 1
+            
+            if redzone_possessions > 0:
+                return round((redzone_goals / redzone_possessions) * 100, 1)
+            return None
+        
+        # Add redzone percentage to stats if available
+        if home_stats:
+            redzone_pct = calculate_redzone_stats(game["home_full_team_id"], is_home_team=True)
+            if redzone_pct is not None:
+                home_stats["redzone_percentage"] = redzone_pct
+                
+        if away_stats:
+            redzone_pct = calculate_redzone_stats(game["away_full_team_id"], is_home_team=False)
+            if redzone_pct is not None:
+                away_stats["redzone_percentage"] = redzone_pct
         
         return {
             "game": game,

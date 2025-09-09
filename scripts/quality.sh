@@ -25,6 +25,8 @@ FORMAT=false
 CHECK=false
 LINT=false
 TYPE=false
+TEST=false
+CRITICAL=false
 ALL=false
 
 if [ $# -eq 0 ]; then
@@ -49,6 +51,14 @@ while [[ $# -gt 0 ]]; do
             TYPE=true
             shift
             ;;
+        --test)
+            TEST=true
+            shift
+            ;;
+        --critical)
+            CRITICAL=true
+            shift
+            ;;
         -a|--all)
             ALL=true
             shift
@@ -60,6 +70,8 @@ while [[ $# -gt 0 ]]; do
             echo "  -c, --check     Check formatting with black"
             echo "  -l, --lint      Run ruff linter"
             echo "  -t, --type      Run mypy type checker"
+            echo "  --test          Run all tests"
+            echo "  --critical      Run critical query tests only"
             echo "  -a, --all       Run all checks (default)"
             echo "  -h, --help      Show this help message"
             exit 0
@@ -90,6 +102,30 @@ fi
 # Run mypy type checker
 if [ "$TYPE" = true ] || [ "$ALL" = true ]; then
     run_check "Type checking with mypy" uv run mypy .
+fi
+
+# Run all tests
+if [ "$TEST" = true ] || [ "$ALL" = true ]; then
+    run_check "Running all tests" uv run pytest backend/tests/ -v
+fi
+
+# Run critical query tests (always run these - they're essential)
+if [ "$CRITICAL" = true ] || [ "$ALL" = true ]; then
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "🚨 Running CRITICAL query tests (must pass)"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    
+    # Run critical tests and capture exit code
+    if uv run pytest backend/tests/test_critical_queries.py -v; then
+        echo "✅ Critical query tests passed!"
+    else
+        echo ""
+        echo "❌ CRITICAL QUERY TESTS FAILED!"
+        echo "These tests ensure that essential queries work correctly."
+        echo "The build cannot proceed until these tests pass."
+        exit 1
+    fi
 fi
 
 echo ""

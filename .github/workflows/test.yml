@@ -1,0 +1,186 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12', '3.13']
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install uv
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+    
+    - name: Install dependencies
+      run: |
+        uv sync
+    
+    - name: Initialize test database
+      run: |
+        # Create minimal test database with required tables
+        uv run python scripts/database_setup.py init
+        
+        # Import minimal test data for critical queries
+        # This ensures Boston vs Minnesota game exists for tests
+        uv run python -c "
+        import sys
+        sys.path.append('backend')
+        from sql_database import get_db
+        
+        db = get_db()
+        
+        # Add minimal test data for critical queries
+        test_data = '''
+        -- Test teams
+        INSERT OR IGNORE INTO teams (team_id, year, city, name, full_name, abbrev)
+        VALUES 
+          ('glory', 2025, 'Boston', 'Glory', 'Boston Glory', 'BOS'),
+          ('windchill', 2025, 'Minnesota', 'Wind Chill', 'Minnesota Wind Chill', 'MIN');
+        
+        -- Test game
+        INSERT OR IGNORE INTO games (game_id, year, home_team_id, away_team_id, home_score, away_score, status)
+        VALUES ('2025-08-23-BOS-MIN', 2025, 'windchill', 'glory', 15, 17, 'Final');
+        
+        -- Test game events for redzone calculations
+        INSERT OR IGNORE INTO game_events (game_id, event_index, team, event_type, thrower_y)
+        VALUES 
+          -- Boston goals (13 from redzone, 4 from outside)
+          ('2025-08-23-BOS-MIN', 1, 'away', 19, 85),
+          ('2025-08-23-BOS-MIN', 2, 'away', 19, 90),
+          ('2025-08-23-BOS-MIN', 3, 'away', 19, 95),
+          ('2025-08-23-BOS-MIN', 4, 'away', 19, 88),
+          ('2025-08-23-BOS-MIN', 5, 'away', 19, 92),
+          ('2025-08-23-BOS-MIN', 6, 'away', 19, 85),
+          ('2025-08-23-BOS-MIN', 7, 'away', 19, 90),
+          ('2025-08-23-BOS-MIN', 8, 'away', 19, 95),
+          ('2025-08-23-BOS-MIN', 9, 'away', 19, 88),
+          ('2025-08-23-BOS-MIN', 10, 'away', 19, 92),
+          ('2025-08-23-BOS-MIN', 11, 'away', 19, 85),
+          ('2025-08-23-BOS-MIN', 12, 'away', 19, 90),
+          ('2025-08-23-BOS-MIN', 13, 'away', 19, 95),
+          ('2025-08-23-BOS-MIN', 14, 'away', 19, 70),
+          ('2025-08-23-BOS-MIN', 15, 'away', 19, 65),
+          ('2025-08-23-BOS-MIN', 16, 'away', 19, 75),
+          ('2025-08-23-BOS-MIN', 17, 'away', 19, 60),
+          -- Minnesota goals (11 from redzone, 4 from outside)
+          ('2025-08-23-BOS-MIN', 18, 'home', 19, 85),
+          ('2025-08-23-BOS-MIN', 19, 'home', 19, 90),
+          ('2025-08-23-BOS-MIN', 20, 'home', 19, 95),
+          ('2025-08-23-BOS-MIN', 21, 'home', 19, 88),
+          ('2025-08-23-BOS-MIN', 22, 'home', 19, 92),
+          ('2025-08-23-BOS-MIN', 23, 'home', 19, 85),
+          ('2025-08-23-BOS-MIN', 24, 'home', 19, 90),
+          ('2025-08-23-BOS-MIN', 25, 'home', 19, 95),
+          ('2025-08-23-BOS-MIN', 26, 'home', 19, 88),
+          ('2025-08-23-BOS-MIN', 27, 'home', 19, 92),
+          ('2025-08-23-BOS-MIN', 28, 'home', 19, 85),
+          ('2025-08-23-BOS-MIN', 29, 'home', 19, 70),
+          ('2025-08-23-BOS-MIN', 30, 'home', 19, 65),
+          ('2025-08-23-BOS-MIN', 31, 'home', 19, 75),
+          ('2025-08-23-BOS-MIN', 32, 'home', 19, 60);
+        '''
+        
+        for statement in test_data.strip().split(';'):
+            if statement.strip():
+                db.execute_query(statement.strip() + ';', {})
+        
+        print('Test database initialized with minimal data')
+        "
+    
+    - name: Run code quality checks
+      run: |
+        ./scripts/quality.sh --check --lint
+    
+    - name: Run critical query tests
+      run: |
+        uv run pytest backend/tests/test_critical_queries.py -v --tb=short
+      env:
+        DATABASE_PATH: ./db/sports_stats.db
+    
+    - name: Run all tests
+      run: |
+        uv run pytest backend/tests/ -v --tb=short
+      env:
+        DATABASE_PATH: ./db/sports_stats.db
+    
+    - name: Test coverage report
+      if: matrix.python-version == '3.11'
+      run: |
+        uv add --group dev coverage
+        uv run coverage run -m pytest backend/tests/
+        uv run coverage report
+        uv run coverage xml
+    
+    - name: Upload coverage to Codecov
+      if: matrix.python-version == '3.11'
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install uv
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+    
+    - name: Install dependencies
+      run: |
+        uv sync
+    
+    - name: Initialize database with full test data
+      run: |
+        uv run python scripts/database_setup.py reset
+    
+    - name: Start API server
+      run: |
+        uv run uvicorn backend.app:app --port 8000 &
+        sleep 5  # Wait for server to start
+    
+    - name: Test API endpoints
+      run: |
+        # Test query endpoint with critical query
+        response=$(curl -s -X POST http://localhost:8000/api/query \
+          -H "Content-Type: application/json" \
+          -d '{"query": "Show me details about the recent Boston vs Minnesota game", "session_id": "test"}')
+        
+        # Check response contains expected statistics
+        echo "$response" | grep -q "Completion Percentage" || (echo "Missing Completion Percentage" && exit 1)
+        echo "$response" | grep -q "O-Line Conversion" || (echo "Missing O-Line Conversion" && exit 1)
+        echo "$response" | grep -q "Red Zone Conversion" || (echo "Missing Red Zone Conversion" && exit 1)
+        
+        echo "✅ API integration tests passed!"
+    
+    - name: Stop API server
+      if: always()
+      run: |
+        pkill -f "uvicorn backend.app:app" || true

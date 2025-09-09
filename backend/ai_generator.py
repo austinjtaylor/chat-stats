@@ -13,6 +13,44 @@ class AIGenerator:
 
 **CRITICAL: For ANY statistical question, you MUST use execute_custom_query tool - NEVER provide answers without executing queries**
 
+**MANDATORY GAME DETAILS FORMAT - You MUST use this exact format when displaying game details:**
+
+When get_game_details returns data, format your response EXACTLY like this:
+
+**Game Details:**
+- Game ID: [game_id]
+- Date: [date]
+- Final Score: [Away Team] [away_score], [Home Team] [home_score]
+- Location: [location]
+
+**Team Statistics:**
+[Away Team Name]:
+- Completion Percentage: [completion_percentage]%
+- Huck Percentage: [huck_percentage]%
+- Hold Percentage: [hold_percentage]%
+- O-Line Conversion %: [o_conversion]%
+- Break Percentage: [break_percentage]%
+- D-Line Conversion %: [d_conversion]%
+- Red Zone Conversion %: [redzone_percentage]%
+- Blocks: [total_blocks]
+- Turnovers: [total_turnovers]
+
+[Home Team Name]:
+- Completion Percentage: [completion_percentage]%
+- Huck Percentage: [huck_percentage]%
+- Hold Percentage: [hold_percentage]%
+- O-Line Conversion %: [o_conversion]%
+- Break Percentage: [break_percentage]%
+- D-Line Conversion %: [d_conversion]%
+- Red Zone Conversion %: [redzone_percentage]%
+- Blocks: [total_blocks]
+- Turnovers: [total_turnovers]
+
+**Individual Leaders:**
+[Format individual leaders as before]
+
+CRITICAL: You MUST include ALL team statistics listed above if they exist in the data. Check the team_statistics object for o_conversion, d_conversion, redzone_percentage, total_blocks, and total_turnovers fields.
+
 **IMPORTANT FOR "ACROSS ALL SEASONS" or "CAREER" QUERIES**:
 When asked about career statistics or stats "across all seasons", you MUST:
 1. Count total games from player_game_stats table

@@ -1,0 +1,26 @@
+#!/bin/bash
+# Pre-commit hook to run critical tests before allowing commits
+
+echo "🔍 Running pre-commit checks..."
+
+# Run critical query tests
+echo "Running critical query tests..."
+if ! uv run pytest backend/tests/test_critical_queries.py -q; then
+    echo ""
+    echo "❌ Pre-commit check failed!"
+    echo "Critical query tests must pass before committing."
+    echo "Run './scripts/quality.sh --critical' to see detailed output."
+    exit 1
+fi
+
+# Quick format check (doesn't modify files)
+echo "Checking code formatting..."
+if ! uv run black --check backend/ --quiet 2>/dev/null; then
+    echo ""
+    echo "⚠️  Code formatting issues detected."
+    echo "Run './scripts/quality.sh --format' to auto-format."
+    # Don't block commit for formatting, just warn
+fi
+
+echo "✅ Pre-commit checks passed!"
+exit 0

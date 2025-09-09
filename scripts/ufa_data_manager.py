@@ -4,6 +4,7 @@ Unified UFA (Ultimate Frisbee Association) Data Manager.
 This script consolidates all UFA data operations for direct API-to-database import.
 """
 
+import json
 import logging
 import os
 import sys
@@ -128,6 +129,110 @@ def _import_game_stats_chunk(game_chunk_data: tuple[list[dict], int]) -> dict[st
         except Exception as e:
             logger.warning(
                 f"[Chunk {chunk_num}] Failed to get player stats for game {game_id}: {e}"
+            )
+        
+        # Import game events for this game
+        try:
+            events_data = api_client.get_game_events(game_id)
+            if events_data:
+                events_count = 0
+                
+                # Process home events
+                for idx, event in enumerate(events_data.get("homeEvents", [])):
+                    try:
+                        event_record = {
+                            "game_id": game_id,
+                            "event_index": idx,
+                            "team": "home",
+                            "event_type": event.get("type", 0),
+                            "event_time": event.get("time"),
+                            "thrower_id": event.get("thrower"),
+                            "receiver_id": event.get("receiver"),
+                            "defender_id": event.get("defender"),
+                            "puller_id": event.get("puller"),
+                            "thrower_x": event.get("throwerX"),
+                            "thrower_y": event.get("throwerY"),
+                            "receiver_x": event.get("receiverX"),
+                            "receiver_y": event.get("receiverY"),
+                            "turnover_x": event.get("turnoverX"),
+                            "turnover_y": event.get("turnoverY"),
+                            "pull_x": event.get("pullX"),
+                            "pull_y": event.get("pullY"),
+                            "pull_ms": event.get("pullMs"),
+                            "line_players": json.dumps(event.get("line", [])) if event.get("line") else None,
+                        }
+                        
+                        db.execute_query(
+                            """
+                            INSERT OR IGNORE INTO game_events (
+                                game_id, event_index, team, event_type, event_time,
+                                thrower_id, receiver_id, defender_id, puller_id,
+                                thrower_x, thrower_y, receiver_x, receiver_y,
+                                turnover_x, turnover_y, pull_x, pull_y, pull_ms, line_players
+                            ) VALUES (
+                                :game_id, :event_index, :team, :event_type, :event_time,
+                                :thrower_id, :receiver_id, :defender_id, :puller_id,
+                                :thrower_x, :thrower_y, :receiver_x, :receiver_y,
+                                :turnover_x, :turnover_y, :pull_x, :pull_y, :pull_ms, :line_players
+                            )
+                            """,
+                            event_record,
+                        )
+                        events_count += 1
+                    except Exception as e:
+                        pass  # Silently skip individual event errors
+                
+                # Process away events  
+                for idx, event in enumerate(events_data.get("awayEvents", [])):
+                    try:
+                        event_record = {
+                            "game_id": game_id,
+                            "event_index": idx,
+                            "team": "away",
+                            "event_type": event.get("type", 0),
+                            "event_time": event.get("time"),
+                            "thrower_id": event.get("thrower"),
+                            "receiver_id": event.get("receiver"),
+                            "defender_id": event.get("defender"),
+                            "puller_id": event.get("puller"),
+                            "thrower_x": event.get("throwerX"),
+                            "thrower_y": event.get("throwerY"),
+                            "receiver_x": event.get("receiverX"),
+                            "receiver_y": event.get("receiverY"),
+                            "turnover_x": event.get("turnoverX"),
+                            "turnover_y": event.get("turnoverY"),
+                            "pull_x": event.get("pullX"),
+                            "pull_y": event.get("pullY"),
+                            "pull_ms": event.get("pullMs"),
+                            "line_players": json.dumps(event.get("line", [])) if event.get("line") else None,
+                        }
+                        
+                        db.execute_query(
+                            """
+                            INSERT OR IGNORE INTO game_events (
+                                game_id, event_index, team, event_type, event_time,
+                                thrower_id, receiver_id, defender_id, puller_id,
+                                thrower_x, thrower_y, receiver_x, receiver_y,
+                                turnover_x, turnover_y, pull_x, pull_y, pull_ms, line_players
+                            ) VALUES (
+                                :game_id, :event_index, :team, :event_type, :event_time,
+                                :thrower_id, :receiver_id, :defender_id, :puller_id,
+                                :thrower_x, :thrower_y, :receiver_x, :receiver_y,
+                                :turnover_x, :turnover_y, :pull_x, :pull_y, :pull_ms, :line_players
+                            )
+                            """,
+                            event_record,
+                        )
+                        events_count += 1
+                    except Exception as e:
+                        pass  # Silently skip individual event errors
+                        
+                if events_count > 0:
+                    logger.info(f"[Chunk {chunk_num}] Imported {events_count} events for game {game_id}")
+                    
+        except Exception as e:
+            logger.warning(
+                f"[Chunk {chunk_num}] Failed to get events for game {game_id}: {e}"
             )
 
     logger.info(
@@ -386,6 +491,29 @@ class UFAAPIClient:
         else:
             self.logger.warning("No game data found")
             return []
+
+    def get_game_events(self, game_id: str) -> dict[str, Any]:
+        """
+        Get game events with field position data
+        
+        Args:
+            game_id: The game ID to query
+            
+        Returns:
+            Dictionary with homeEvents and awayEvents arrays
+        """
+        params = {"gameID": game_id}
+        data = self._make_request("gameEvents", params)
+        
+        if "data" in data:
+            events = data["data"]
+            home_count = len(events.get("homeEvents", []))
+            away_count = len(events.get("awayEvents", []))
+            self.logger.info(f"Retrieved {home_count} home events and {away_count} away events for game {game_id}")
+            return events
+        else:
+            self.logger.warning(f"No event data found for game {game_id}")
+            return {"homeEvents": [], "awayEvents": []}
 
 
 class UFADataManager:
@@ -764,12 +892,8 @@ class UFADataManager:
                     "game_id": game_id,
                     "away_team_id": game.get("awayTeam", ""),
                     "home_team_id": game.get("homeTeam", ""),
-                    "away_score": game.get(
-                        "homeScore"
-                    ),  # Swapped: API has these reversed
-                    "home_score": game.get(
-                        "awayScore"
-                    ),  # Swapped: API has these reversed
+                    "away_score": game.get("awayScore"),  # Fixed: Use correct scores
+                    "home_score": game.get("homeScore"),  # Fixed: Use correct scores
                     "status": game.get("status", ""),
                     "start_timestamp": game.get("startTimestamp"),
                     "start_timezone": game.get("startTimezone"),
@@ -1010,6 +1134,116 @@ class UFADataManager:
 
         logger.info(f"  Imported {count} player season stats")
         return count
+
+    def _import_game_events_from_api(self, game_id: str) -> int:
+        """Import game events from API data for a specific game."""
+        try:
+            # Get game events from API
+            events_data = self.api_client.get_game_events(game_id)
+            
+            if not events_data:
+                return 0
+            
+            count = 0
+            
+            # Process home events
+            for idx, event in enumerate(events_data.get("homeEvents", [])):
+                try:
+                    event_record = {
+                        "game_id": game_id,
+                        "event_index": idx,
+                        "team": "home",
+                        "event_type": event.get("type", 0),
+                        "event_time": event.get("time"),
+                        "thrower_id": event.get("thrower"),
+                        "receiver_id": event.get("receiver"),
+                        "defender_id": event.get("defender"),
+                        "puller_id": event.get("puller"),
+                        "thrower_x": event.get("throwerX"),
+                        "thrower_y": event.get("throwerY"),
+                        "receiver_x": event.get("receiverX"),
+                        "receiver_y": event.get("receiverY"),
+                        "turnover_x": event.get("turnoverX"),
+                        "turnover_y": event.get("turnoverY"),
+                        "pull_x": event.get("pullX"),
+                        "pull_y": event.get("pullY"),
+                        "pull_ms": event.get("pullMs"),
+                        "line_players": json.dumps(event.get("line", [])) if event.get("line") else None,
+                    }
+                    
+                    self.db.execute_query(
+                        """
+                        INSERT OR IGNORE INTO game_events (
+                            game_id, event_index, team, event_type, event_time,
+                            thrower_id, receiver_id, defender_id, puller_id,
+                            thrower_x, thrower_y, receiver_x, receiver_y,
+                            turnover_x, turnover_y, pull_x, pull_y, pull_ms, line_players
+                        ) VALUES (
+                            :game_id, :event_index, :team, :event_type, :event_time,
+                            :thrower_id, :receiver_id, :defender_id, :puller_id,
+                            :thrower_x, :thrower_y, :receiver_x, :receiver_y,
+                            :turnover_x, :turnover_y, :pull_x, :pull_y, :pull_ms, :line_players
+                        )
+                        """,
+                        event_record,
+                    )
+                    count += 1
+                except Exception as e:
+                    logger.warning(f"Failed to import home event {idx} for game {game_id}: {e}")
+            
+            # Process away events
+            for idx, event in enumerate(events_data.get("awayEvents", [])):
+                try:
+                    event_record = {
+                        "game_id": game_id,
+                        "event_index": idx,
+                        "team": "away",
+                        "event_type": event.get("type", 0),
+                        "event_time": event.get("time"),
+                        "thrower_id": event.get("thrower"),
+                        "receiver_id": event.get("receiver"),
+                        "defender_id": event.get("defender"),
+                        "puller_id": event.get("puller"),
+                        "thrower_x": event.get("throwerX"),
+                        "thrower_y": event.get("throwerY"),
+                        "receiver_x": event.get("receiverX"),
+                        "receiver_y": event.get("receiverY"),
+                        "turnover_x": event.get("turnoverX"),
+                        "turnover_y": event.get("turnoverY"),
+                        "pull_x": event.get("pullX"),
+                        "pull_y": event.get("pullY"),
+                        "pull_ms": event.get("pullMs"),
+                        "line_players": json.dumps(event.get("line", [])) if event.get("line") else None,
+                    }
+                    
+                    self.db.execute_query(
+                        """
+                        INSERT OR IGNORE INTO game_events (
+                            game_id, event_index, team, event_type, event_time,
+                            thrower_id, receiver_id, defender_id, puller_id,
+                            thrower_x, thrower_y, receiver_x, receiver_y,
+                            turnover_x, turnover_y, pull_x, pull_y, pull_ms, line_players
+                        ) VALUES (
+                            :game_id, :event_index, :team, :event_type, :event_time,
+                            :thrower_id, :receiver_id, :defender_id, :puller_id,
+                            :thrower_x, :thrower_y, :receiver_x, :receiver_y,
+                            :turnover_x, :turnover_y, :pull_x, :pull_y, :pull_ms, :line_players
+                        )
+                        """,
+                        event_record,
+                    )
+                    count += 1
+                except Exception as e:
+                    logger.warning(f"Failed to import away event {idx} for game {game_id}: {e}")
+            
+            if count > 0:
+                logger.info(f"  Imported {count} game events for {game_id}")
+            
+            return count
+            
+        except Exception as e:
+            logger.warning(f"Failed to import game events for {game_id}: {e}")
+            return 0
 
 
 def main():
