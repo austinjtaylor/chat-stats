@@ -68,13 +68,17 @@ def format_game_details_response(answer: str, data: list) -> str:
     if away_stats:
         team_name = game_info.get("away_team_name", "Away Team")
         enhanced_stats.append(f"\n{team_name}:")
-        enhanced_stats.append(f"- Completion Percentage: {away_stats.get('completion_percentage', 0)}%")
-        enhanced_stats.append(f"- Huck Percentage: {away_stats.get('huck_percentage', 0)}%")
-        enhanced_stats.append(f"- Hold Percentage: {away_stats.get('hold_percentage', 0)}%")
-        enhanced_stats.append(f"- O-Line Conversion %: {away_stats.get('o_conversion', 0)}%")
-        enhanced_stats.append(f"- Break Percentage: {away_stats.get('break_percentage', 0)}%")
-        enhanced_stats.append(f"- D-Line Conversion %: {away_stats.get('d_conversion', 0)}%")
-        enhanced_stats.append(f"- Red Zone Conversion %: {away_stats.get('redzone_percentage', 'N/A')}%")
+        enhanced_stats.append(f"- Completion Percentage: {away_stats.get('completion_percentage_display', away_stats.get('completion_percentage', 0))}")
+        enhanced_stats.append(f"- Huck Percentage: {away_stats.get('huck_percentage_display', away_stats.get('huck_percentage', 0))}")
+        enhanced_stats.append(f"- Hold %: {away_stats.get('hold_percentage_display', away_stats.get('hold_percentage', 0))}")
+        enhanced_stats.append(f"- O-Line Conversion %: {away_stats.get('o_conversion_display', away_stats.get('o_conversion', 0))}")
+        enhanced_stats.append(f"- Break %: {away_stats.get('break_percentage_display', away_stats.get('break_percentage', 0))}")
+        enhanced_stats.append(f"- D-Line Conversion %: {away_stats.get('d_conversion_display', away_stats.get('d_conversion', 0))}")
+        redzone_display = away_stats.get('redzone_percentage_display')
+        if redzone_display:
+            enhanced_stats.append(f"- Red Zone Conversion %: {redzone_display}")
+        elif away_stats.get('redzone_percentage') is not None:
+            enhanced_stats.append(f"- Red Zone Conversion %: {away_stats.get('redzone_percentage')}%")
         enhanced_stats.append(f"- Blocks: {away_stats.get('total_blocks', 0)}")
         enhanced_stats.append(f"- Turnovers: {away_stats.get('total_turnovers', 0)}")
     
@@ -83,13 +87,17 @@ def format_game_details_response(answer: str, data: list) -> str:
     if home_stats:
         team_name = game_info.get("home_team_name", "Home Team")
         enhanced_stats.append(f"\n{team_name}:")
-        enhanced_stats.append(f"- Completion Percentage: {home_stats.get('completion_percentage', 0)}%")
-        enhanced_stats.append(f"- Huck Percentage: {home_stats.get('huck_percentage', 0)}%")
-        enhanced_stats.append(f"- Hold Percentage: {home_stats.get('hold_percentage', 0)}%")
-        enhanced_stats.append(f"- O-Line Conversion %: {home_stats.get('o_conversion', 0)}%")
-        enhanced_stats.append(f"- Break Percentage: {home_stats.get('break_percentage', 0)}%")
-        enhanced_stats.append(f"- D-Line Conversion %: {home_stats.get('d_conversion', 0)}%")
-        enhanced_stats.append(f"- Red Zone Conversion %: {home_stats.get('redzone_percentage', 'N/A')}%")
+        enhanced_stats.append(f"- Completion Percentage: {home_stats.get('completion_percentage_display', home_stats.get('completion_percentage', 0))}")
+        enhanced_stats.append(f"- Huck Percentage: {home_stats.get('huck_percentage_display', home_stats.get('huck_percentage', 0))}")
+        enhanced_stats.append(f"- Hold %: {home_stats.get('hold_percentage_display', home_stats.get('hold_percentage', 0))}")
+        enhanced_stats.append(f"- O-Line Conversion %: {home_stats.get('o_conversion_display', home_stats.get('o_conversion', 0))}")
+        enhanced_stats.append(f"- Break %: {home_stats.get('break_percentage_display', home_stats.get('break_percentage', 0))}")
+        enhanced_stats.append(f"- D-Line Conversion %: {home_stats.get('d_conversion_display', home_stats.get('d_conversion', 0))}")
+        redzone_display = home_stats.get('redzone_percentage_display')
+        if redzone_display:
+            enhanced_stats.append(f"- Red Zone Conversion %: {redzone_display}")
+        elif home_stats.get('redzone_percentage') is not None:
+            enhanced_stats.append(f"- Red Zone Conversion %: {home_stats.get('redzone_percentage')}%")
         enhanced_stats.append(f"- Blocks: {home_stats.get('total_blocks', 0)}")
         enhanced_stats.append(f"- Turnovers: {home_stats.get('total_turnovers', 0)}")
     

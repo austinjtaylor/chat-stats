@@ -166,6 +166,36 @@ CREATE INDEX IF NOT EXISTS idx_player_game_stats_year ON player_game_stats(year)
 CREATE INDEX IF NOT EXISTS idx_player_season_stats ON player_season_stats(player_id, year);
 CREATE INDEX IF NOT EXISTS idx_team_season_stats ON team_season_stats(team_id, year);
 
+-- Game events table for play-by-play data (UFA API compatible)
+CREATE TABLE IF NOT EXISTS game_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_id VARCHAR(100) NOT NULL,  -- UFA gameID
+    event_index INTEGER NOT NULL,  -- Event order within the game
+    team VARCHAR(10) NOT NULL,  -- 'home' or 'away'
+    event_type INTEGER NOT NULL,  -- Event type code
+    event_time INTEGER,  -- Time in seconds
+    thrower_id VARCHAR(50),  -- UFA playerID of thrower
+    receiver_id VARCHAR(50),  -- UFA playerID of receiver
+    defender_id VARCHAR(50),  -- UFA playerID of defender
+    puller_id VARCHAR(50),  -- UFA playerID of puller
+    thrower_x REAL,  -- X coordinate of thrower
+    thrower_y REAL,  -- Y coordinate of thrower (0-120 yards)
+    receiver_x REAL,  -- X coordinate of receiver
+    receiver_y REAL,  -- Y coordinate of receiver (0-120 yards)
+    turnover_x REAL,  -- X coordinate of turnover
+    turnover_y REAL,  -- Y coordinate of turnover
+    pull_x REAL,  -- X coordinate of pull landing
+    pull_y REAL,  -- Y coordinate of pull landing
+    pull_ms INTEGER,  -- Pull hangtime in milliseconds
+    line_players TEXT,  -- JSON array of player IDs on the line
+    UNIQUE(game_id, event_index, team)
+);
+
+-- Indexes for game events
+CREATE INDEX IF NOT EXISTS idx_game_events_game ON game_events(game_id);
+CREATE INDEX IF NOT EXISTS idx_game_events_type ON game_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_game_events_team ON game_events(team);
+
 -- Views for common queries (UFA API compatible)
 CREATE VIEW IF NOT EXISTS current_season_leaders AS
 SELECT 

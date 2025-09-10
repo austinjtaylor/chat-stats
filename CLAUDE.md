@@ -71,6 +71,9 @@ uv run python scripts/ufa_data_manager.py import-api-parallel --workers 4 2022 2
 
 # Complete missing imports (games and season stats)
 uv run python scripts/ufa_data_manager.py complete-missing
+
+# Import game events for a specific game (required for possession stats)
+python -c "from scripts.ufa_data_manager import UFADataManager; m = UFADataManager(); m._import_game_events_from_api('GAME_ID')"
 ```
 
 **Note**: See `docs/ufa_api_documentation.txt` for complete UFA API reference.
@@ -199,6 +202,7 @@ The system uses SQLite with the following main tables:
 - **player_game_stats** - Individual player performance per game
 - **player_season_stats** - Aggregated season statistics per player
 - **team_season_stats** - Team performance and standings
+- **game_events** - Play-by-play event data for possession tracking (pull, goal, turnover events)
 
 ### Claude Tool Integration
 
@@ -273,3 +277,33 @@ HTML/CSS/JavaScript chat interface that:
 - Basic stats (goals, assists, blocks, +/-, completions, turnovers, etc.) - Available for all years (2012-present)
 
 Note: The player stats page automatically hides columns for statistics that are not available in the selected season.
+
+### UFA Possession Statistics Methodology
+
+**Important**: The system calculates UFA-style possession statistics from the `game_events` table. Understanding the methodology is crucial:
+
+#### Key Concepts:
+- **Point**: One scoring opportunity, from pull (start) to goal (end)
+- **Possession**: Each time a team has control of the disc
+- **O-line (Offensive Line)**: The team that receives the pull to start a point
+- **D-line (Defensive Line)**: The team that pulls to start a point
+
+#### Statistics Calculated:
+- **Hold %**: O-line scores / O-line points (ability to score when starting on offense)
+- **O-Line Conversion %**: O-line scores / O-line possessions (efficiency on offense)
+- **Break %**: D-line scores / D-line points (ability to score when starting on defense)
+- **D-Line Conversion %**: D-line scores / D-line possessions (efficiency after forcing turnovers)
+
+#### Important Implementation Notes:
+1. **Game events must be imported**: Possession stats require the `game_events` table to be populated
+2. **Duplicate events**: Both teams record events at the same index - the algorithm must handle these duplicates
+3. **Event ordering**: At the same index, process goals before pulls to properly separate points
+4. **Possession tracking**: A single point can have multiple possessions due to turnovers
+5. **Turnover types**:
+   - Block (event_type=22): Blocking team gains possession
+   - Throwaway/Drop/Stall (event_types=11,13,20): Other team gains possession
+
+#### Example:
+If Team A receives the pull (1 O-line possession), throws it away, Team B picks it up (1 D-line possession for Team B), then Team B scores:
+- Team A: 0/1 O-line points, 0/1 O-line possessions
+- Team B: 1/1 D-line points, 1/1 D-line possessions (a "break")
