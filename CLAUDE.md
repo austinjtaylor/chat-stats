@@ -278,6 +278,32 @@ HTML/CSS/JavaScript chat interface that:
 
 Note: The player stats page automatically hides columns for statistics that are not available in the selected season.
 
+## Important UFA terminology
+
+### Ultimate Frisbee Attacking Direction Rules
+
+1. **Initial Pull**: The pulling team pulls from their defending endzone to the opposite endzone
+   - If Away team pulls from South (0-20) to North (100-120), Home team receives and attacks SOUTH
+   - If Away team pulls from North (100-120) to South (0-20), Home team receives and attacks NORTH
+
+2. **After Turnover**: The team gaining possession attacks the OPPOSITE direction from the previous offense
+   - If Home was attacking North and turns it over, Away attacks SOUTH
+   - If Away was attacking South and turns it over, Home attacks NORTH
+   - Teams do NOT continue in the same direction after turnovers
+
+3. **After Goal**: The scoring team pulls from the endzone where they just scored
+   - The receiving team attacks back toward that same endzone
+   - This switches the attacking directions from the previous point
+
+4. **Field Layout** (0-120 yards):
+   - South Endzone: 0-20 yards
+   - South Red Zone: 20-40 yards  
+   - Midfield: 40-80 yards
+   - North Red Zone: 80-100 yards
+   - North Endzone: 100-120 yards
+
+5. **Key Concept**: You always attack the endzone you're moving TOWARD, not where you came from, just like in American football
+
 ### UFA Possession Statistics Methodology
 
 **Important**: The system calculates UFA-style possession statistics from the `game_events` table. Understanding the methodology is crucial:
@@ -300,8 +326,8 @@ Note: The player stats page automatically hides columns for statistics that are 
 3. **Event ordering**: At the same index, process goals before pulls to properly separate points
 4. **Possession tracking**: A single point can have multiple possessions due to turnovers
 5. **Turnover types**:
-   - Block (event_type=22): Blocking team gains possession
-   - Throwaway/Drop/Stall (event_types=11,13,20): Other team gains possession
+   - Block (event_type=11): Blocking team gains possession
+   - Throwaway/Drop/Stall (event_types=22,20,14): Other team gains possession
 
 #### Example:
 If Team A receives the pull (1 O-line possession), throws it away, Team B picks it up (1 D-line possession for Team B), then Team B scores:

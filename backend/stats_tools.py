@@ -997,9 +997,10 @@ class StatsToolManager:
                     current_possession = None
                 
                 # Turnovers change possession
-                elif event_type in [11, 13, 20, 22] and current_point:  # Throwaway, Drop, Stall, Block
+                # Event types: 11=Block, 13=Throwaway(opp), 20=Drop, 22=Throwaway(rec), 24=Stall
+                elif event_type in [11, 13, 20, 22, 24] and current_point:
                     # Determine who gets possession after turnover
-                    if event_type == 22:  # Block - blocking team gets it
+                    if event_type == 11:  # Block - blocking team gets it
                         new_possession = event_team
                     else:  # Other turnovers - other team gets it
                         new_possession = opponent_type if event_team == team_type else team_type
@@ -1206,7 +1207,7 @@ class StatsToolManager:
             SELECT event_type, receiver_y, thrower_y, team, event_index
             FROM game_events
             WHERE game_id = :game_id
-            AND event_type IN (18, 19, 11, 13, 20, 22, 24, 28, 29, 30)  -- Pass, Goal, turnovers, quarter changes
+            AND event_type IN (18, 19, 11, 13, 20, 22, 24, 28, 29, 30)  -- Pass, Goal, Block, Throwaways, Drop, Stall, quarter changes
             ORDER BY event_index  -- Process chronologically
             """
             # Map team_id to home/away for the game_events table
@@ -1217,11 +1218,14 @@ class StatsToolManager:
                 return None
                 
             # Track attacking direction and possessions throughout the game
-            # At start: away team pulls from north, home team attacks north
-            attacking_north = True
-            current_team = "home"  # Home team starts with possession
+            # Standard UFA game starts with away team pulling from north to south
+            # Therefore home team receives and attacks back north
+            # This will be confirmed/adjusted based on first goal location
+            attacking_north = True  # Home team typically starts attacking north
+            current_team = "home"  # Home team starts with possession (receives first pull)
             current_possession_events = []
             team_possessions = []  # Only track target team's possessions
+            initial_direction_set = False
             
             for event in events:
                 event_type = event["event_type"]
@@ -1233,13 +1237,14 @@ class StatsToolManager:
                     if current_team == team_type and current_possession_events:
                         team_possessions.append({
                             'events': current_possession_events,
-                            'attacking_north': attacking_north,
+                            'attacking_north': attacking_north if attacking_north is not None else True,
                             'ended_in_goal': False
                         })
                         current_possession_events = []
                     
-                    # Switch attacking direction at quarter change
-                    attacking_north = not attacking_north
+                    # Switch attacking direction at quarter change (if set)
+                    if attacking_north is not None:
+                        attacking_north = not attacking_north
                     continue
                 
                 # Track passes
@@ -1251,6 +1256,23 @@ class StatsToolManager:
                 # Goal ends possession and sets next attacking direction
                 elif event_type == 19:  # Goal
                     goal_y = event.get("receiver_y")
+                    
+                    # Verify/set initial attacking direction from first goal
+                    if not initial_direction_set and goal_y:
+                        initial_direction_set = True
+                        if goal_y > 100:  # Goal in north endzone
+                            # If home team scored north, they were attacking north
+                            expected_attacking_north = (event_team == "home")
+                        elif goal_y < 20:  # Goal in south endzone  
+                            # If home team scored south, they were attacking south
+                            expected_attacking_north = (event_team != "home")
+                        else:
+                            expected_attacking_north = attacking_north
+                        
+                        # Log if our assumption was wrong
+                        if expected_attacking_north != attacking_north and game_id == "2025-08-23-BOS-MIN":
+                            print(f"  Direction mismatch: expected {expected_attacking_north}, had {attacking_north}")
+                        attacking_north = expected_attacking_north
                     
                     # If this team scored, save their possession
                     if event_team == team_type and current_possession_events:
@@ -1272,18 +1294,25 @@ class StatsToolManager:
                     # Possession switches to team that receives the pull
                     current_team = "home" if event_team == "away" else "away"
                 
-                # Turnovers switch attacking direction and possession
-                elif event_type in [11, 13, 20, 22, 24]:  # Block, Throwaway, Drop, Stall
+                # Turnovers switch possession AND attacking direction
+                # Correct event types per UFA API docs:
+                # 11 = Block
+                # 13 = Throwaway (by opposing team)
+                # 20 = Drop 
+                # 22 = Throwaway (by recording team)
+                # 24 = Stall (against recording team)
+                elif event_type in [11, 13, 20, 22, 24]:  # All turnover types
                     # If our team had possession before turnover, save it
                     if current_team == team_type and current_possession_events:
                         team_possessions.append({
                             'events': current_possession_events,
-                            'attacking_north': attacking_north,
+                            'attacking_north': attacking_north if attacking_north is not None else True,
                             'ended_in_goal': False
                         })
                     
-                    # Switch attacking direction after turnover
-                    attacking_north = not attacking_north
+                    # CRITICAL: Switch attacking direction after turnover - new team attacks opposite direction
+                    if attacking_north is not None:
+                        attacking_north = not attacking_north
                     
                     current_possession_events = []
                     # Possession switches to other team
@@ -1293,7 +1322,7 @@ class StatsToolManager:
             if current_team == team_type and current_possession_events:
                 team_possessions.append({
                     'events': current_possession_events,
-                    'attacking_north': attacking_north,
+                    'attacking_north': attacking_north if attacking_north is not None else True,
                     'ended_in_goal': False
                 })
             
@@ -1301,7 +1330,7 @@ class StatsToolManager:
             redzone_possessions = 0
             redzone_goals = 0
             
-            for possession in team_possessions:
+            for i, possession in enumerate(team_possessions):
                 reached_redzone = False
                 
                 # Check if any pass/goal was in the attacking redzone
@@ -1312,9 +1341,13 @@ class StatsToolManager:
                             # Check if in redzone for current attacking direction
                             if possession['attacking_north'] and 80 < position_y < 100:
                                 reached_redzone = True
+                                if game_id == "2025-08-23-BOS-MIN":
+                                    print(f"  Possession {i}: Reached RZ (north) at y={position_y}")
                                 break
                             elif not possession['attacking_north'] and 20 < position_y < 40:
                                 reached_redzone = True
+                                if game_id == "2025-08-23-BOS-MIN":
+                                    print(f"  Possession {i}: Reached RZ (south) at y={position_y}")
                                 break
                     
                     # Also check thrower position for goals
@@ -1323,9 +1356,13 @@ class StatsToolManager:
                         if thrower_y:
                             if possession['attacking_north'] and 80 < thrower_y < 100:
                                 reached_redzone = True
+                                if game_id == "2025-08-23-BOS-MIN":
+                                    print(f"  Possession {i}: Reached RZ (north, thrower) at y={thrower_y}")
                                 break
                             elif not possession['attacking_north'] and 20 < thrower_y < 40:
                                 reached_redzone = True
+                                if game_id == "2025-08-23-BOS-MIN":
+                                    print(f"  Possession {i}: Reached RZ (south, thrower) at y={thrower_y}")
                                 break
                 
                 if reached_redzone:
@@ -1335,6 +1372,15 @@ class StatsToolManager:
             
             if redzone_possessions > 0:
                 pct = round((redzone_goals / redzone_possessions) * 100, 1)
+                
+                # Debug output for the specific game
+                if game_id == "2025-08-23-BOS-MIN":
+                    print(f"\n=== Red Zone Debug for {team_type} ({team_id}) ===")
+                    print(f"Total possessions analyzed: {len(team_possessions)}")
+                    print(f"Red zone possessions: {redzone_possessions}")
+                    print(f"Red zone goals: {redzone_goals}")
+                    print(f"Red zone %: {pct}% ({redzone_goals}/{redzone_possessions})")
+                
                 return {
                     "percentage": pct,
                     "goals": redzone_goals,
