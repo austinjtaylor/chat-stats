@@ -52,7 +52,7 @@ class ResponseHandler:
             retry_messages.append(
                 {
                     "role": "user",
-                    "content": "STOP! You are describing what a query would do instead of executing it. You MUST use the execute_custom_query tool RIGHT NOW. Run this SQL query and return the ACTUAL DATA:\n\nSELECT DISTINCT t.full_name, t.city, t.division_name FROM teams t WHERE t.year = 2025 AND t.team_id NOT IN ('allstars1', 'allstars2') ORDER BY t.division_name, t.full_name\n\nUSE THE TOOL NOW!",
+                    "content": "STOP! You are describing what a query would do instead of executing it. You MUST use the execute_custom_query tool RIGHT NOW. Run this SQL query and return the ACTUAL DATA:\n\nSELECT DISTINCT t.full_name, t.city, t.division_name FROM teams t WHERE t.year = 2025 ORDER BY t.division_name, t.full_name\n\nUSE THE TOOL NOW!",
                 }
             )
 

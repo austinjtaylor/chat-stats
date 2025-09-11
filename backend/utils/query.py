@@ -56,9 +56,7 @@ def get_sort_column(sort_key, is_career=False, per_game=False, team=None):
                  FROM player_game_stats pgs_sub 
                  JOIN games g_sub ON pgs_sub.game_id = g_sub.game_id
                  WHERE pgs_sub.player_id = pss.player_id 
-                 AND (pgs_sub.o_points_played > 0 OR pgs_sub.d_points_played > 0 OR pgs_sub.seconds_played > 0 OR pgs_sub.goals > 0 OR pgs_sub.assists > 0)
-                 AND pgs_sub.team_id NOT IN ('allstars1', 'allstars2')
-                 AND (g_sub.home_team_id NOT IN ('allstars1', 'allstars2') AND g_sub.away_team_id NOT IN ('allstars1', 'allstars2')){team_filter})"""
+                 AND (pgs_sub.o_points_played > 0 OR pgs_sub.d_points_played > 0 OR pgs_sub.seconds_played > 0 OR pgs_sub.goals > 0 OR pgs_sub.assists > 0){team_filter})"""
             return f"CASE WHEN {games_played_expr} > 0 THEN CAST({base_column} AS REAL) / {games_played_expr} ELSE 0 END"
 
         return base_column

@@ -76,7 +76,9 @@ uv run python scripts/ufa_data_manager.py complete-missing
 python -c "from scripts.ufa_data_manager import UFADataManager; m = UFADataManager(); m._import_game_events_from_api('GAME_ID')"
 ```
 
-**Note**: See `docs/ufa_api_documentation.txt` for complete UFA API reference.
+**Important Notes**: 
+- All-star games are automatically excluded during import to reduce database size and improve query performance
+- See `docs/ufa_api_documentation.txt` for complete UFA API reference
 
 ### Testing
 ```bash

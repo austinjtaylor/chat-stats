@@ -181,7 +181,6 @@ class StatsChatSystem:
                     MAX(full_name) as full_name,
                     MAX(year) as last_year
                 FROM teams
-                WHERE team_id NOT IN ('allstars1', 'allstars2')
                 GROUP BY team_id, name
             ),
             team_list AS (

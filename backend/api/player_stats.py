@@ -71,8 +71,6 @@ def create_player_stats_route(stats_system):
                      JOIN games g_sub ON pgs_sub.game_id = g_sub.game_id
                      WHERE pgs_sub.player_id = pss.player_id 
                      AND (pgs_sub.o_points_played > 0 OR pgs_sub.d_points_played > 0 OR pgs_sub.seconds_played > 0 OR pgs_sub.goals > 0 OR pgs_sub.assists > 0)
-                     AND pgs_sub.team_id NOT IN ('allstars1', 'allstars2')
-                     AND (g_sub.home_team_id NOT IN ('allstars1', 'allstars2') AND g_sub.away_team_id NOT IN ('allstars1', 'allstars2'))
                      {team_filter.replace('pss.', 'pgs_sub.')}
                     ) as games_played,
                     SUM(pss.total_o_opportunities) as possessions,
@@ -99,11 +97,9 @@ def create_player_stats_route(stats_system):
                              MAX(p.team_id) as team_id
                       FROM player_season_stats pss2
                       JOIN players p ON pss2.player_id = p.player_id AND pss2.year = p.year
-                      WHERE pss2.team_id NOT IN ('allstars1', 'allstars2')
                       GROUP BY pss2.player_id) p ON pss.player_id = p.player_id
                 LEFT JOIN teams t ON pss.team_id = t.team_id AND pss.year = t.year
                 WHERE 1=1{team_filter}
-                AND pss.team_id NOT IN ('allstars1', 'allstars2')
                 GROUP BY pss.player_id
                 ORDER BY {get_sort_column(sort, is_career=True, per_game=(per == "game"), team=team)} {order.upper()}
                 LIMIT {per_page} OFFSET {(page-1) * per_page}
@@ -163,8 +159,6 @@ def create_player_stats_route(stats_system):
                 LEFT JOIN player_game_stats pgs ON pss.player_id = pgs.player_id AND pss.year = pgs.year AND pss.team_id = pgs.team_id
                 LEFT JOIN games g ON pgs.game_id = g.game_id
                 WHERE 1=1{season_filter}{team_filter}
-                AND pss.team_id NOT IN ('allstars1', 'allstars2')
-                AND (g.home_team_id NOT IN ('allstars1', 'allstars2') AND g.away_team_id NOT IN ('allstars1', 'allstars2'))
                 GROUP BY pss.player_id, pss.team_id, pss.year
                 ORDER BY {get_sort_column(sort, per_game=(per == "game"))} {order.upper()}
                 LIMIT {per_page} OFFSET {(page-1) * per_page}
@@ -178,7 +172,6 @@ def create_player_stats_route(stats_system):
                 LEFT JOIN player_game_stats pgs ON pss.player_id = pgs.player_id AND pss.year = pgs.year AND pss.team_id = pgs.team_id
                 LEFT JOIN games g ON pgs.game_id = g.game_id
                 WHERE 1=1{team_filter}
-                AND (g.home_team_id NOT IN ('allstars1', 'allstars2') AND g.away_team_id NOT IN ('allstars1', 'allstars2'))
                 """
             else:
                 count_query = f"""
@@ -187,15 +180,12 @@ def create_player_stats_route(stats_system):
                 JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
                 LEFT JOIN teams t ON pss.team_id = t.team_id AND pss.year = t.year
                 WHERE 1=1{season_filter}{team_filter}
-                AND pss.team_id NOT IN ('allstars1', 'allstars2')
                 AND EXISTS (
                     SELECT 1 FROM player_game_stats pgs
                     LEFT JOIN games g ON pgs.game_id = g.game_id  
                     WHERE pgs.player_id = pss.player_id 
                     AND pgs.year = pss.year 
                     AND pgs.team_id = pss.team_id
-                    AND g.home_team_id NOT IN ('allstars1', 'allstars2') 
-                    AND g.away_team_id NOT IN ('allstars1', 'allstars2')
                     AND (pgs.o_points_played > 0 OR pgs.d_points_played > 0 OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0)
                 )
                 """

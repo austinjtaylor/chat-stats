@@ -45,9 +45,19 @@ def _import_game_stats_chunk(game_chunk_data: tuple[list[dict], int]) -> dict[st
     logger.info(f"[Chunk {chunk_num}] Processing {len(games_chunk)} games")
 
     count = 0
+    skipped_allstar = 0
     for i, game in enumerate(games_chunk, 1):
         game_id = game.get("gameID", "")
         if not game_id:
+            continue
+        
+        # Skip all-star games
+        away_team_id = game.get("awayTeamID", "")
+        home_team_id = game.get("homeTeamID", "")
+        if ("allstar" in game_id.lower() or 
+            "allstar" in away_team_id.lower() or 
+            "allstar" in home_team_id.lower()):
+            skipped_allstar += 1
             continue
 
         try:
@@ -152,10 +162,14 @@ def _import_game_stats_chunk(game_chunk_data: tuple[list[dict], int]) -> dict[st
                 f"[Chunk {chunk_num}] Failed to get events for game {game_id}: {e}"
             )
 
+    if skipped_allstar > 0:
+        logger.info(
+            f"[Chunk {chunk_num}] Skipped {skipped_allstar} all-star games"
+        )
     logger.info(
-        f"[Chunk {chunk_num}] Imported {count} player game stats from {len(games_chunk)} games"
+        f"[Chunk {chunk_num}] Imported {count} player game stats from {len(games_chunk) - skipped_allstar} regular games"
     )
-    return {"player_game_stats": count, "games_processed": len(games_chunk)}
+    return {"player_game_stats": count, "games_processed": len(games_chunk) - skipped_allstar}
 
 
 # Setup logging
@@ -801,16 +815,26 @@ class UFADataManager:
     def _import_games_from_api(self, games_data: list[dict[str, Any]]) -> int:
         """Import games from API data."""
         count = 0
+        skipped_allstar = 0
         for game in games_data:
             try:
                 # Extract year from game_id or use current year
                 game_id = game.get("gameID", "")
                 year = int(game_id.split("-")[0]) if "-" in game_id else 2025
+                
+                # Skip all-star games
+                away_team_id = game.get("awayTeamID", "")
+                home_team_id = game.get("homeTeamID", "")
+                if ("allstar" in game_id.lower() or 
+                    "allstar" in away_team_id.lower() or 
+                    "allstar" in home_team_id.lower()):
+                    skipped_allstar += 1
+                    continue
 
                 game_data = {
                     "game_id": game_id,
-                    "away_team_id": game.get("awayTeamID", ""),
-                    "home_team_id": game.get("homeTeamID", ""),
+                    "away_team_id": away_team_id,
+                    "home_team_id": home_team_id,
                     "away_score": game.get("awayScore"),
                     "home_score": game.get("homeScore"),
                     "status": game.get("status", ""),
@@ -840,6 +864,8 @@ class UFADataManager:
                     f"Failed to import game {game.get('gameID', 'unknown')}: {e}"
                 )
 
+        if skipped_allstar > 0:
+            logger.info(f"  Skipped {skipped_allstar} all-star games")
         logger.info(f"  Imported {count} games")
         return count
 
@@ -848,11 +874,21 @@ class UFADataManager:
     ) -> int:
         """Import player game statistics for all games."""
         count = 0
+        skipped_allstar = 0
         total_games = len(games_data)
 
         for i, game in enumerate(games_data, 1):
             game_id = game.get("gameID", "")
             if not game_id:
+                continue
+            
+            # Skip all-star games
+            away_team_id = game.get("awayTeamID", "")
+            home_team_id = game.get("homeTeamID", "")
+            if ("allstar" in game_id.lower() or 
+                "allstar" in away_team_id.lower() or 
+                "allstar" in home_team_id.lower()):
+                skipped_allstar += 1
                 continue
 
             try:
@@ -955,7 +991,9 @@ class UFADataManager:
             except Exception as e:
                 logger.warning(f"Failed to get player stats for game {game_id}: {e}")
 
-        logger.info(f"  Imported {count} player game stats from {total_games} games")
+        if skipped_allstar > 0:
+            logger.info(f"  Skipped {skipped_allstar} all-star games")
+        logger.info(f"  Imported {count} player game stats from {total_games - skipped_allstar} regular games")
         return count
 
     def _import_player_season_stats_from_api(
@@ -1170,6 +1208,10 @@ class UFADataManager:
 
     def _import_game_events_from_api(self, game_id: str) -> int:
         """Import game events from API data for a specific game."""
+        # Skip all-star games
+        if "allstar" in game_id.lower():
+            return 0
+            
         try:
             # Get game events from API
             events_data = self.api_client.get_game_events(game_id)

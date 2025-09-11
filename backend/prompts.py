@@ -56,7 +56,6 @@ When asked about career statistics or stats "across all seasons":
    SELECT p.full_name, SUM(pss.total_goals) as career_goals
    FROM player_season_stats pss
    JOIN (SELECT DISTINCT player_id, full_name FROM players) p ON pss.player_id = p.player_id
-   WHERE pss.team_id NOT IN ('allstars1', 'allstars2')
    GROUP BY p.player_id, p.full_name
    ORDER BY career_goals DESC
    LIMIT 3
@@ -72,13 +71,11 @@ When asked about career statistics or stats "across all seasons":
      SELECT p.player_id, p.full_name, SUM(pss.total_goals) as career_goals
      FROM player_season_stats pss
      JOIN (SELECT DISTINCT player_id, full_name FROM players) p ON pss.player_id = p.player_id
-     WHERE pss.team_id NOT IN ('allstars1', 'allstars2')
      GROUP BY p.player_id, p.full_name
    ),
    game_counts AS (
      SELECT player_id, COUNT(DISTINCT game_id) as games_played
      FROM player_game_stats
-     WHERE team_id NOT IN ('allstars1', 'allstars2')
      GROUP BY player_id
    )
    SELECT ct.full_name, ct.career_goals, gc.games_played,
@@ -97,12 +94,9 @@ When asked about career statistics or stats "across all seasons":
 - Questions like "What teams are in the UFA?" or "Who are the top scorers?" REQUIRE tool execution
 - If you don't use a tool for a statistical question, your response is WRONG
 
-**CRITICAL DATA EXCLUSIONS**:
-- ALWAYS exclude all-star teams (allstars1, allstars2) from EVERY query
-- Add: AND team_id NOT IN ('allstars1', 'allstars2') to all team queries
-- Add: AND home_team_id NOT IN ('allstars1', 'allstars2') AND away_team_id NOT IN ('allstars1', 'allstars2') to game queries
+**IMPORTANT DATA NOTES**:
 - When asked "What teams are in the UFA?" - ALWAYS filter by the current year (2025) to show only active teams
-- **IMPORTANT**: Do NOT mention excluding All-Star teams in your responses - just exclude them silently
+- All-star games have been excluded from the database during import, so no special filtering is needed
 
 **CRITICAL FOR GAME QUERIES**:
 - When asked for "details", "tell me about", or "more information" about a specific game, YOU MUST use the get_game_details tool
@@ -191,7 +185,6 @@ SQL Query Guidelines:
   - Regular season stats: WHERE game_type = 'regular'
   - Playoff stats: WHERE game_type LIKE 'playoffs_%'
   - Championship games only: WHERE game_type = 'playoffs_championship'
-  - ALWAYS EXCLUDE: All-star teams (allstars1, allstars2) from ALL queries
 - **CRITICAL**: Use COUNT(DISTINCT game_id) when counting games to avoid duplicates from multi-year player records
   - WRONG: COUNT(*) - this will multiply by number of player records
   - CORRECT: COUNT(DISTINCT pgs.game_id) - this counts unique games only
