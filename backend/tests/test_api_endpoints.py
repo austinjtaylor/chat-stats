@@ -42,7 +42,7 @@ def mock_stats_system():
 @pytest.fixture
 def test_client(mock_stats_system):
     """Create a test client with mocked stats system"""
-    with patch("stats_chat_system.get_stats_system", return_value=mock_stats_system):
+    with patch("core.chat_system.get_stats_system", return_value=mock_stats_system):
         # Import and create app with mocked stats_system
         from app import app
 

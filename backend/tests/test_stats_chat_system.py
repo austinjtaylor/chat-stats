@@ -14,9 +14,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from core.ai_generator import AIGenerator
 from core.chat_system import StatsChatSystem
 from core.session_manager import SessionManager
+from tools.manager import StatsToolManager
+
 from data.database import SQLDatabase
 from data.processor import StatsProcessor
-from tools.manager import StatsToolManager
 
 # ===== MODULE-LEVEL FIXTURES =====
 
@@ -76,11 +77,11 @@ def mock_session_manager():
 def chat_system(mock_config):
     """StatsChatSystem instance with mocked dependencies"""
     with (
-        patch("stats_chat_system.get_db") as mock_get_db,
-        patch("stats_chat_system.StatsProcessor") as mock_processor_class,
-        patch("stats_chat_system.StatsToolManager") as mock_tool_class,
-        patch("stats_chat_system.AIGenerator") as mock_ai_class,
-        patch("stats_chat_system.SessionManager") as mock_session_class,
+        patch("data.database.get_db") as mock_get_db,
+        patch("data.processor.StatsProcessor") as mock_processor_class,
+        patch("tools.manager.StatsToolManager") as mock_tool_class,
+        patch("core.ai_generator.AIGenerator") as mock_ai_class,
+        patch("core.session_manager.SessionManager") as mock_session_class,
     ):
 
         # Setup mocks
@@ -115,7 +116,7 @@ def chat_system(mock_config):
 @pytest.fixture
 def chat_system_with_mocks(mock_config):
     """Chat system with detailed mocks for query testing"""
-    with patch("stats_chat_system.get_db") as mock_get_db:
+    with patch("data.database.get_db") as mock_get_db:
         mock_db = Mock(spec=SQLDatabase)
         mock_get_db.return_value = mock_db
 
@@ -143,7 +144,7 @@ class TestStatsChatSystem:
 
     def test_init_with_defaults(self, mock_config):
         """Test initialization with default components"""
-        with patch("stats_chat_system.get_db") as mock_get_db:
+        with patch("data.database.get_db") as mock_get_db:
             mock_get_db.return_value = Mock(spec=SQLDatabase)
 
             system = StatsChatSystem(mock_config)
@@ -528,7 +529,7 @@ class TestConfigurationHandling:
         bad_config.ANTHROPIC_MODEL = "claude-3-5-sonnet"
         bad_config.MAX_HISTORY = 5
 
-        with patch("stats_chat_system.get_db"):
+        with patch("data.database.get_db"):
             with pytest.raises((ValueError, Exception)):
                 StatsChatSystem(bad_config)
 
@@ -539,7 +540,7 @@ class TestConfigurationHandling:
         bad_config.ANTHROPIC_MODEL = "invalid-model"
         bad_config.MAX_HISTORY = 5
 
-        with patch("stats_chat_system.get_db"):
+        with patch("data.database.get_db"):
             # Should initialize but may fail on first query
             system = StatsChatSystem(bad_config)
             assert system.config.ANTHROPIC_MODEL == "invalid-model"
@@ -547,7 +548,7 @@ class TestConfigurationHandling:
     def test_config_validation(self, mock_config):
         """Test configuration validation"""
         # Test with valid config
-        with patch("stats_chat_system.get_db"):
+        with patch("data.database.get_db"):
             system = StatsChatSystem(mock_config)
             assert system.config is mock_config
 
@@ -556,7 +557,7 @@ class TestConfigurationHandling:
         incomplete_config.ANTHROPIC_API_KEY = "test-key"
         # Missing ANTHROPIC_MODEL
 
-        with patch("stats_chat_system.get_db"):
+        with patch("data.database.get_db"):
             with pytest.raises(AttributeError):
                 StatsChatSystem(incomplete_config)
 

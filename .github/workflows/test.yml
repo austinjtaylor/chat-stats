@@ -41,7 +41,7 @@ jobs:
         uv run python -c "
         import sys
         sys.path.append('backend')
-        from sql_database import get_db
+        from data.database import get_db
         
         db = get_db()
         

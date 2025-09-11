@@ -14,7 +14,7 @@ from typing import Any
 # Add backend to path to import our modules
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "backend"))
 
-from sql_database import get_db
+from data.database import get_db
 
 
 class ImportStatusMonitor:

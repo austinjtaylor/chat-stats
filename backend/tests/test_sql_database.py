@@ -307,7 +307,7 @@ class TestSQLDatabase:
             temp_path = tmp.name
 
         try:
-            with patch("sql_database.os.path.exists") as mock_exists:
+            with patch("data.database.os.path.exists") as mock_exists:
                 # Mock that schema file exists
                 mock_exists.return_value = True
 
@@ -334,7 +334,7 @@ class TestSQLDatabase:
 class TestGetDBFunction:
     """Test get_db function"""
 
-    @patch("sql_database._db_instance", None)  # Reset singleton
+    @patch("data.database._db_instance", None)  # Reset singleton
     def test_get_db_creates_instance(self):
         """Test that get_db creates a singleton instance"""
         db1 = get_db()
@@ -344,7 +344,7 @@ class TestGetDBFunction:
         assert db1 is db2
         assert isinstance(db1, SQLDatabase)
 
-    @patch("sql_database._db_instance", None)  # Reset singleton
+    @patch("data.database._db_instance", None)  # Reset singleton
     def test_get_db_handles_missing_config(self):
         """Test get_db creates database with default path when no config"""
         db = get_db()

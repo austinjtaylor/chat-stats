@@ -12,8 +12,9 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from data.database import SQLDatabase
 from tools.manager import StatsToolManager
+
+from data.database import SQLDatabase
 
 
 class TestStatsToolManager:
@@ -367,7 +368,7 @@ class TestToolIntegration:
         if not os.path.exists(db_path):
             pytest.skip("Test database not available")
 
-        from sql_database import SQLDatabase
+        from data.database import SQLDatabase
 
         real_db = SQLDatabase(db_path)
         return StatsToolManager(real_db)
