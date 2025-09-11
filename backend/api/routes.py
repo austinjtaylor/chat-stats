@@ -130,13 +130,23 @@ def create_basic_routes(stats_system):
             raise HTTPException(status_code=500, detail=str(e))
 
     @router.get("/api/teams/stats")
-    async def get_team_stats(season: str = "2025", view: str = "total"):
-        """Get team statistics"""
+    async def get_team_stats(
+        season: str = "2025", 
+        view: str = "total", 
+        perspective: str = "team",
+        sort: str = "wins",
+        order: str = "desc"
+    ):
+        """Get comprehensive team statistics with all UFA-style columns"""
         try:
-            summary = stats_system.get_stats_summary()
-            teams = summary.get("team_standings", [])
-
-            return {"teams": teams, "total": len(teams), "season": season, "view": view}
+            teams = stats_system.get_comprehensive_team_stats(season, view, perspective, sort, order)
+            return {
+                "teams": teams, 
+                "total": len(teams), 
+                "season": season, 
+                "view": view,
+                "perspective": perspective
+            }
 
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))

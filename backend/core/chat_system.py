@@ -487,6 +487,154 @@ class StatsChatSystem:
         """
         return self.db.execute_query(query, {"limit": limit})
 
+    def get_comprehensive_team_stats(
+        self, season: str = "2025", view: str = "total", 
+        perspective: str = "team", sort: str = "wins", order: str = "desc"
+    ) -> list[dict[str, Any]]:
+        """
+        Get comprehensive team statistics with all UFA-style columns.
+        
+        Args:
+            season: Season year or 'career' for all-time stats
+            view: 'total' or 'per-game' for aggregation type
+            perspective: 'team' for team stats or 'opponent' for opponent stats
+            sort: Column to sort by
+            order: 'asc' or 'desc'
+            
+        Returns:
+            List of team statistics dictionaries
+        """
+        # Build WHERE clause for season filter
+        season_filter = "AND g.year = :season" if season != "career" else ""
+        season_param = int(season) if season.isdigit() else None
+        
+        # Determine if we're showing team stats or opponent stats
+        is_opponent_view = perspective == "opponent"
+        
+        query = f"""
+        WITH team_game_stats AS (
+            SELECT 
+                t.team_id,
+                t.name,
+                t.full_name,
+                -- Basic record stats
+                COUNT(DISTINCT CASE WHEN g.game_id IS NOT NULL THEN g.game_id END) as games_played,
+                COUNT(DISTINCT CASE WHEN 
+                    (g.home_team_id = t.team_id AND g.home_score > g.away_score) OR
+                    (g.away_team_id = t.team_id AND g.away_score > g.home_score)
+                THEN g.game_id END) as wins,
+                COUNT(DISTINCT CASE WHEN 
+                    (g.home_team_id = t.team_id AND g.home_score < g.away_score) OR
+                    (g.away_team_id = t.team_id AND g.away_score < g.home_score)
+                THEN g.game_id END) as losses,
+                -- Scores for and against
+                SUM(CASE WHEN g.home_team_id = t.team_id 
+                    THEN {'g.away_score' if is_opponent_view else 'g.home_score'}
+                    ELSE {'g.home_score' if is_opponent_view else 'g.away_score'} 
+                END) as scores,
+                SUM(CASE WHEN g.home_team_id = t.team_id 
+                    THEN {'g.home_score' if is_opponent_view else 'g.away_score'}
+                    ELSE {'g.away_score' if is_opponent_view else 'g.home_score'} 
+                END) as scores_against
+            FROM teams t
+            LEFT JOIN games g ON (g.home_team_id = t.team_id OR g.away_team_id = t.team_id)
+            WHERE 1=1 {season_filter}
+            GROUP BY t.team_id, t.name, t.full_name
+        ),
+        team_player_stats AS (
+            SELECT 
+                t.team_id,
+                -- Aggregate player statistics for the team or opponents
+                SUM(CASE WHEN pgs.team_id {'!=' if is_opponent_view else '='} t.team_id THEN pgs.completions ELSE 0 END) as total_completions,
+                SUM(CASE WHEN pgs.team_id {'!=' if is_opponent_view else '='} t.team_id THEN pgs.throw_attempts ELSE 0 END) as total_attempts,
+                SUM(CASE WHEN pgs.team_id {'!=' if is_opponent_view else '='} t.team_id THEN pgs.throwaways + pgs.drops + pgs.stalls ELSE 0 END) as total_turnovers,
+                SUM(CASE WHEN pgs.team_id {'!=' if is_opponent_view else '='} t.team_id THEN pgs.hucks_completed ELSE 0 END) as hucks_completed,
+                SUM(CASE WHEN pgs.team_id {'!=' if is_opponent_view else '='} t.team_id THEN pgs.hucks_attempted ELSE 0 END) as hucks_attempted,
+                SUM(CASE WHEN pgs.team_id {'!=' if is_opponent_view else '='} t.team_id THEN pgs.blocks ELSE 0 END) as total_blocks
+            FROM teams t
+            LEFT JOIN games g ON (g.home_team_id = t.team_id OR g.away_team_id = t.team_id)
+            LEFT JOIN player_game_stats pgs ON pgs.game_id = g.game_id
+            WHERE 1=1 {season_filter}
+            GROUP BY t.team_id
+        )
+        SELECT 
+            tgs.team_id,
+            tgs.name,
+            tgs.full_name,
+            tgs.games_played,
+            tgs.wins,
+            tgs.losses,
+            tgs.scores,
+            tgs.scores_against,
+            COALESCE(tps.total_completions, 0) as completions,
+            COALESCE(tps.total_turnovers, 0) as turnovers,
+            CASE WHEN COALESCE(tps.total_attempts, 0) > 0 
+                THEN ROUND((CAST(tps.total_completions AS FLOAT) / tps.total_attempts) * 100, 2)
+                ELSE 0 
+            END as completion_percentage,
+            COALESCE(tps.hucks_completed, 0) as hucks_completed,
+            CASE WHEN COALESCE(tps.hucks_attempted, 0) > 0 
+                THEN ROUND((CAST(tps.hucks_completed AS FLOAT) / tps.hucks_attempted) * 100, 2)
+                ELSE 0 
+            END as huck_percentage,
+            COALESCE(tps.total_blocks, 0) as blocks,
+            -- Placeholder values for possession stats (would need game_events calculation)
+            0.0 as hold_percentage,
+            0.0 as o_line_conversion,
+            0.0 as break_percentage,
+            0.0 as d_line_conversion,
+            0.0 as red_zone_conversion
+        FROM team_game_stats tgs
+        LEFT JOIN team_player_stats tps ON tgs.team_id = tps.team_id
+        WHERE tgs.games_played > 0
+        ORDER BY 
+            CASE WHEN :order = 'desc' THEN
+                CASE :sort_col
+                    WHEN 'wins' THEN tgs.wins
+                    WHEN 'losses' THEN tgs.losses
+                    WHEN 'games_played' THEN tgs.games_played
+                    WHEN 'scores' THEN tgs.scores
+                    WHEN 'scores_against' THEN tgs.scores_against
+                    WHEN 'completion_percentage' THEN (CASE WHEN COALESCE(tps.total_attempts, 0) > 0 THEN (CAST(tps.total_completions AS FLOAT) / tps.total_attempts) * 100 ELSE 0 END)
+                    ELSE tgs.wins
+                END
+            END DESC,
+            CASE WHEN :order = 'asc' THEN
+                CASE :sort_col
+                    WHEN 'wins' THEN tgs.wins
+                    WHEN 'losses' THEN tgs.losses
+                    WHEN 'games_played' THEN tgs.games_played
+                    WHEN 'scores' THEN tgs.scores
+                    WHEN 'scores_against' THEN tgs.scores_against
+                    WHEN 'completion_percentage' THEN (CASE WHEN COALESCE(tps.total_attempts, 0) > 0 THEN (CAST(tps.total_completions AS FLOAT) / tps.total_attempts) * 100 ELSE 0 END)
+                    ELSE tgs.wins
+                END
+            END ASC,
+            tgs.name ASC
+        """
+        
+        params = {
+            "season": season_param,
+            "sort_col": sort,
+            "order": order
+        }
+        
+        teams = self.db.execute_query(query, params)
+        
+        # Apply per-game calculations if requested
+        if view == "per-game":
+            for team in teams:
+                if team["games_played"] > 0:
+                    games = team["games_played"]
+                    team["scores"] = round(team["scores"] / games, 2)
+                    team["scores_against"] = round(team["scores_against"] / games, 2)
+                    team["completions"] = round(team["completions"] / games, 2)
+                    team["turnovers"] = round(team["turnovers"] / games, 2)
+                    team["hucks_completed"] = round(team["hucks_completed"] / games, 2)
+                    team["blocks"] = round(team["blocks"] / games, 2)
+        
+        return teams
+
     def close(self):
         """Close database connections and cleanup."""
         self.db.close()
