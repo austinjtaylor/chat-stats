@@ -158,7 +158,6 @@ class StatsChatSystem:
         SELECT DISTINCT year 
         FROM games 
         ORDER BY year DESC
-        LIMIT 5
         """
         try:
             seasons_result = self.db.execute_query(seasons_query)
@@ -167,34 +166,39 @@ class StatsChatSystem:
             print(f"Could not get seasons: {e}")
             summary["seasons"] = []
 
-        # Get team standings (UFA schema)
+        # Get team standings (UFA schema) - Show all teams from all years
         if summary["seasons"]:
-            current_year = int(summary["seasons"][0])
+            # Get most recent year for determining "current" teams
+            current_year = int(summary["seasons"][0]) if summary["seasons"] else 2025
 
-            # Get all teams with their standings
+            # Get all teams with their standings from all years - simplified approach
             all_teams_query = """
-            WITH current_teams AS (
-                SELECT DISTINCT team_id 
-                FROM teams 
-                WHERE year = :current_year 
-                  AND team_id NOT IN ('allstars1', 'allstars2')
+            WITH team_years AS (
+                -- Get each team's most recent year
+                SELECT 
+                    team_id,
+                    name,
+                    MAX(full_name) as full_name,
+                    MAX(year) as last_year
+                FROM teams
+                WHERE team_id NOT IN ('allstars1', 'allstars2')
+                GROUP BY team_id, name
             ),
             team_list AS (
-                SELECT DISTINCT 
-                    t.team_id,
-                    t.name,
-                    MAX(t.full_name) as full_name,
-                    MAX(t.year) as last_year,
-                    CASE WHEN ct.team_id IS NOT NULL THEN 1 ELSE 0 END as is_current,
+                SELECT 
+                    ty.team_id,
+                    ty.name,
+                    ty.full_name,
+                    ty.last_year,
+                    CASE WHEN ty.last_year = :current_year THEN 1 ELSE 0 END as is_current,
+                    -- Get stats from team_season_stats first, then fallback to teams table
                     COALESCE(tss.wins, t.wins, 0) as wins,
                     COALESCE(tss.losses, t.losses, 0) as losses,
                     COALESCE(tss.ties, t.ties, 0) as ties,
                     COALESCE(tss.standing, t.standing, 999) as standing
-                FROM teams t
-                LEFT JOIN current_teams ct ON t.team_id = ct.team_id
-                LEFT JOIN team_season_stats tss ON t.team_id = tss.team_id AND t.year = tss.year
-                WHERE t.team_id NOT IN ('allstars1', 'allstars2')
-                GROUP BY t.team_id, t.name, ct.team_id
+                FROM team_years ty
+                LEFT JOIN team_season_stats tss ON ty.team_id = tss.team_id AND ty.last_year = tss.year
+                LEFT JOIN teams t ON ty.team_id = t.team_id AND ty.last_year = t.year
             )
             SELECT 
                 team_id,
