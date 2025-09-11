@@ -12,7 +12,7 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "backend"))
 
-from backend.data.database import get_db
+from data.database import get_db
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
