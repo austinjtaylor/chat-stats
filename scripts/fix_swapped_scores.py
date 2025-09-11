@@ -8,10 +8,11 @@ import logging
 import os
 import sys
 
-# Add backend to path
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "backend"))
+# Add both parent directory and backend to path for proper import resolution
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))  # For backend.* imports
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "backend"))  # For internal backend imports
 
-from data.database import get_db
+from backend.data.database import get_db
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

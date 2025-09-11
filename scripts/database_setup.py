@@ -11,12 +11,13 @@ import random
 import sys
 from datetime import datetime, timedelta
 
-# Add backend to path
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "backend"))
+# Add both parent directory and backend to path for proper import resolution
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))  # For backend.* imports
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "backend"))  # For internal backend imports
 
-from config import config
-from data.database import get_db
-from data.processor import StatsProcessor
+from backend.config import config
+from backend.data.database import get_db
+from backend.data.processor import StatsProcessor
 
 # Setup logging
 logging.basicConfig(

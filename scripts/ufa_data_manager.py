@@ -16,11 +16,12 @@ from typing import Any
 
 import requests
 
-# Add backend to path
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "backend"))
+# Add both parent directory and backend to path for proper import resolution
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))  # For backend.* imports
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "backend"))  # For internal backend imports
 
-from data.database import get_db
-from data.processor import StatsProcessor
+from backend.data.database import get_db
+from backend.data.processor import StatsProcessor
 
 
 def _import_game_stats_chunk(game_chunk_data: tuple[list[dict], int]) -> dict[str, int]:
