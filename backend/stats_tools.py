@@ -1209,7 +1209,7 @@ class StatsToolManager:
         
         # Calculate redzone stats from game events if available
         def calculate_redzone_stats(team_id, is_home_team):
-            """Calculate redzone percentage from game events using proper event type understanding"""
+            """Calculate redzone percentage from game events with proper game-long direction tracking"""
             team_type = "home" if is_home_team else "away"
             
             # Get ONLY this team's events - each team has their own event stream
@@ -1225,11 +1225,11 @@ class StatsToolManager:
             if not events:
                 return None
             
-            # Process events to identify points and track red zone opportunities
-            points = []  # List of points with red zone tracking
-            current_point = None
-            current_possession = []
+            # Track red zone opportunities by POSSESSION, not by point
+            possessions = []  # List of possessions with red zone tracking
+            current_possession = None
             in_possession = False
+            point_num = 0
             
             for event in events:
                 event_type = event['event_type']
@@ -1237,92 +1237,105 @@ class StatsToolManager:
                 
                 # Point boundaries
                 if is_point_start(event_type):  # Types 1 (D point) or 2 (O point)
-                    # Save previous point if exists
-                    if current_point is not None:
-                        points.append(current_point)
+                    point_num += 1
                     
-                    # Start new point
-                    current_point = {
-                        'reached_redzone': False,
-                        'scored': False,
-                        'point_type': 'D' if event_type == 1 else 'O'
-                    }
-                    current_possession = []
-                    # O-line starts with possession, D-line doesn't
-                    in_possession = (event_type == 2)
-                
-                elif is_point_end(event_type):  # Types 15 (opponent scores) or 19 (we score)
-                    if current_point is not None:
-                        # Mark if we scored
-                        if event_type == 19:  # Our goal
-                            current_point['scored'] = True
-                            # Check if goal was in red zone
-                            if receiver_y and 80 < receiver_y < 100:
-                                current_point['reached_redzone'] = True
-                        
-                        points.append(current_point)
-                        current_point = None
-                        current_possession = []
+                    # O-line starts with possession
+                    if event_type == 2:  # START_O_POINT
+                        # Start new possession
+                        current_possession = {
+                            'point': point_num,
+                            'reached_redzone': False,
+                            'scored': False
+                        }
+                        in_possession = True
+                    else:
                         in_possession = False
                 
-                # Possession tracking
+                # New possession when we gain the disc
                 elif event_type == 11:  # Block - we get possession
-                    in_possession = True
-                    current_possession = []
+                    if not in_possession:
+                        # Save previous possession if exists
+                        if current_possession:
+                            possessions.append(current_possession)
+                        # Start new possession
+                        current_possession = {
+                            'point': point_num,
+                            'reached_redzone': False,
+                            'scored': False
+                        }
+                        in_possession = True
+                
+                elif event_type == 13:  # Throwaway by opposing team - we get possession
+                    if not in_possession:
+                        # Save previous possession if exists
+                        if current_possession:
+                            possessions.append(current_possession)
+                        # Start new possession
+                        current_possession = {
+                            'point': point_num,
+                            'reached_redzone': False,
+                            'scored': False
+                        }
+                        in_possession = True
                 
                 elif event_type == 18:  # Pass
                     if not in_possession:
-                        # First pass means we have possession
+                        # First pass after not having possession starts new possession
+                        if current_possession:
+                            possessions.append(current_possession)
+                        current_possession = {
+                            'point': point_num,
+                            'reached_redzone': False,
+                            'scored': False
+                        }
                         in_possession = True
-                        current_possession = [event]
-                    else:
-                        current_possession.append(event)
                     
-                    # Check if this pass reached red zone
-                    if current_point and receiver_y and 80 < receiver_y < 100:
-                        current_point['reached_redzone'] = True
+                    # Check for red zone possession
+                    if in_possession and current_possession and receiver_y:
+                        # Red zone is 80-100 yards (including goal line at 100)
+                        if 80 <= receiver_y <= 100:
+                            current_possession['reached_redzone'] = True
                 
+                # Lose possession on turnover
                 elif event_type in [20, 22, 24]:  # Drop, Throwaway, Stall - we lose possession
-                    in_possession = False
-                    current_possession = []
+                    if in_possession and current_possession:
+                        # Save current possession
+                        possessions.append(current_possession)
+                        current_possession = None
+                        in_possession = False
                 
-                elif event_type == 13:  # Throwaway by opposing team - we get possession
-                    in_possession = True
-                    current_possession = []
+                # Score or opponent scores
+                elif event_type == 19:  # Our goal
+                    if current_possession:
+                        current_possession['scored'] = True
+                        # Check if goal was thrown from red zone (even if caught in endzone)
+                        thrower_y = event.get('thrower_y')
+                        if thrower_y and 80 <= thrower_y <= 100:
+                            current_possession['reached_redzone'] = True
+                        possessions.append(current_possession)
+                        current_possession = None
+                        in_possession = False
+                
+                elif event_type == 15:  # Opponent scores
+                    if current_possession:
+                        possessions.append(current_possession)
+                        current_possession = None
+                        in_possession = False
             
-            # Add final point if exists
-            if current_point is not None:
-                points.append(current_point)
+            # Add final possession if exists
+            if current_possession:
+                possessions.append(current_possession)
             
             # Count red zone opportunities and goals
-            redzone_points = 0
-            redzone_goals = 0
+            redzone_possessions = [p for p in possessions if p['reached_redzone']]
+            redzone_goals = sum(1 for p in redzone_possessions if p['scored'])
             
-            for point in points:
-                if point['reached_redzone']:
-                    redzone_points += 1
-                    if point['scored']:
-                        redzone_goals += 1
-            
-            
-            # Debug output for the specific game
-            if game_id == "2025-08-23-BOS-MIN":
-                print(f"\n=== Red Zone Debug for {team_type} ({team_id}) ===")
-                print(f"Total points analyzed: {len(points)}")
-                print(f"Points where team reached RZ: {redzone_points}")
-                print(f"Goals from RZ points: {redzone_goals}")
-                if redzone_points > 0:
-                    pct = round((redzone_goals / redzone_points) * 100, 1)
-                    print(f"Red zone %: {pct}% ({redzone_goals}/{redzone_points})")
-                else:
-                    print("No red zone possessions found")
-            
-            if redzone_points > 0:
-                pct = round((redzone_goals / redzone_points) * 100, 1)
+            if len(redzone_possessions) > 0:
+                pct = round((redzone_goals / len(redzone_possessions)) * 100, 1)
                 return {
                     "percentage": pct,
                     "goals": redzone_goals,
-                    "possessions": redzone_points
+                    "possessions": len(redzone_possessions)
                 }
             return None
         
