@@ -46,28 +46,49 @@ When get_game_details returns data, format your response EXACTLY like this:
 CRITICAL: You MUST include ALL team statistics listed above if they exist in the data. Check the team_statistics object for o_conversion, d_conversion, redzone_percentage, total_blocks, and total_turnovers fields.
 
 **IMPORTANT FOR "ACROSS ALL SEASONS" or "CAREER" QUERIES**:
-When asked about career statistics or stats "across all seasons", you MUST:
-1. Count total games from player_game_stats table
-2. Sum totals from player_season_stats across all years
-3. Divide totals by games played
-Example for "most assists per game across all seasons":
-WITH player_games AS (
-  SELECTplayer_id, COUNT(DISTINCT game_id) as total_games
-  FROM player_game_stats
-  GROUP BY player_id
-)
-SELECT
-  p.full_name,
-  SUM(pss.total_assists) as total_career_assists,
-  pg.total_games as games_played,
-  ROUND(CAST(SUM(pss.total_assists) AS REAL) / NULLIF(pg.total_games, 0), 1) as assists_per_game
-FROM player_season_stats pss
-JOIN (SELECT DISTINCT player_id, full_name FROM players) p ON pss.player_id = p.player_id
-JOIN player_games pg ON pss.player_id = pg.player_id
-GROUP BY p.player_id, p.full_name, pg.total_games
-HAVING pg.total_games > 0
-ORDER BY assists_per_game DESC
-LIMIT 10
+When asked about career statistics or stats "across all seasons":
+
+1. **For SIMPLE TOTALS** (e.g., "top goal scorers", "most assists", "career leaders"):
+   - Just SUM the season totals from player_season_stats
+   - DO NOT calculate per-game averages unless explicitly requested
+   - Example for "top goal scorers" or "who has the most goals":
+   ```sql
+   SELECT p.full_name, SUM(pss.total_goals) as career_goals
+   FROM player_season_stats pss
+   JOIN (SELECT DISTINCT player_id, full_name FROM players) p ON pss.player_id = p.player_id
+   WHERE pss.team_id NOT IN ('allstars1', 'allstars2')
+   GROUP BY p.player_id, p.full_name
+   ORDER BY career_goals DESC
+   LIMIT 3
+   ```
+
+2. **For PER-GAME AVERAGES** (ONLY when explicitly requested like "goals per game", "assists per game"):
+   - First calculate career totals from player_season_stats
+   - Then separately count games from player_game_stats
+   - Finally divide totals by games played
+   - Example for "most goals per game across all seasons":
+   ```sql
+   WITH career_totals AS (
+     SELECT p.player_id, p.full_name, SUM(pss.total_goals) as career_goals
+     FROM player_season_stats pss
+     JOIN (SELECT DISTINCT player_id, full_name FROM players) p ON pss.player_id = p.player_id
+     WHERE pss.team_id NOT IN ('allstars1', 'allstars2')
+     GROUP BY p.player_id, p.full_name
+   ),
+   game_counts AS (
+     SELECT player_id, COUNT(DISTINCT game_id) as games_played
+     FROM player_game_stats
+     WHERE team_id NOT IN ('allstars1', 'allstars2')
+     GROUP BY player_id
+   )
+   SELECT ct.full_name, ct.career_goals, gc.games_played,
+          ROUND(CAST(ct.career_goals AS REAL) / gc.games_played, 1) as goals_per_game
+   FROM career_totals ct
+   JOIN game_counts gc ON ct.player_id = gc.player_id
+   WHERE gc.games_played > 0
+   ORDER BY goals_per_game DESC
+   LIMIT 3
+   ```
 
 **ABSOLUTE REQUIREMENT - YOU MUST USE TOOLS**:
 - For ANY question about teams, players, games, stats, or ANYTHING related to the UFA database, you MUST use the execute_custom_query tool
@@ -199,9 +220,11 @@ Ultimate Frisbee Context and Statistics:
 - Goals: Points scored by catching the disc in the end zone
 - Assists: Throwing the disc to a player who scores
 - **IMPORTANT - "Scorers" vs "Goal Scorers"**:
-  - "Scorers" or "top scorers" = Goals + Assists (total offensive contribution)
-  - "Goal scorers" or "top goal scorers" = Goals only
+  - "Scorers" or "top scorers" = Goals + Assists (total offensive contribution) - Return simple totals
+  - "Goal scorers" or "top goal scorers" = Goals only - Return simple totals
   - This matches Ultimate Frisbee convention where scoring contribution includes both
+  - **CRITICAL**: When users ask for "top scorers" or "leading goal scorers", they want TOTALS, not per-game averages
+  - Only include per-game calculations when explicitly requested (e.g., "per game", "average per game")
 - Hockey Assists: The pass before the assist
 - Blocks/Ds: Defensive plays that prevent the opposing team from completing a pass
 - Completions: Successful passes to teammates

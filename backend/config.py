@@ -16,7 +16,7 @@ class Config:
     ANTHROPIC_MODEL: str = "claude-3-haiku-20240307"
 
     # SQL Database settings
-    DATABASE_PATH: str = os.getenv("DATABASE_PATH", "./db/sports_stats.db")
+    DATABASE_PATH: str = os.getenv("DATABASE_PATH", "../db/sports_stats.db")
 
     # Query settings
     MAX_RESULTS: int = 10  # Maximum results to return per query
