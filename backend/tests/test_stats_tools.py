@@ -13,7 +13,7 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from sql_database import SQLDatabase
-from stats_tools import StatsToolManager
+from stats_tool_manager import StatsToolManager
 
 
 class TestStatsToolManager:

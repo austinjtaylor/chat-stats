@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 import pytest
 from ai_generator import AIGenerator
 from sql_database import SQLDatabase
-from stats_tools import StatsToolManager
+from stats_tool_manager import StatsToolManager
 
 # ===== MODULE-LEVEL FIXTURES =====
 

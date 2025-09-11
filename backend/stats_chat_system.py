@@ -11,7 +11,7 @@ from response_formatter import format_game_details_response, should_format_respo
 from session_manager import SessionManager
 from sql_database import get_db
 from stats_processor import StatsProcessor
-from stats_tools import StatsToolManager
+from stats_tool_manager import StatsToolManager
 
 
 class StatsChatSystem:

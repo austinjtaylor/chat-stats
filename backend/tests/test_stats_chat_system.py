@@ -16,7 +16,7 @@ from session_manager import SessionManager
 from sql_database import SQLDatabase
 from stats_chat_system import StatsChatSystem
 from stats_processor import StatsProcessor
-from stats_tools import StatsToolManager
+from stats_tool_manager import StatsToolManager
 
 # ===== MODULE-LEVEL FIXTURES =====
 
