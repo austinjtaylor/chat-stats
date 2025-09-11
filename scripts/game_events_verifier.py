@@ -7,7 +7,7 @@ Extracts and formats game events to match the UFA website display.
 import json
 import os
 import sys
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 # Add backend to path
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -50,7 +50,7 @@ class GameEventsVerifier:
             13: "❌",  # Throwaway by opposing team
         }
 
-    def get_game_info(self, game_id: str) -> Dict[str, Any]:
+    def get_game_info(self, game_id: str) -> dict[str, Any]:
         """Get basic game information."""
         query = """
         SELECT g.game_id, g.start_timestamp, g.home_score, g.away_score,
@@ -94,7 +94,7 @@ class GameEventsVerifier:
             return row["full_name"] or ""
         return player_id  # Fallback to ID if name not found
 
-    def get_game_events(self, game_id: str, team: str = None) -> List[Dict[str, Any]]:
+    def get_game_events(self, game_id: str, team: str = None) -> list[dict[str, Any]]:
         """Get all game events for a specific game and optionally a specific team."""
         query = """
         SELECT event_index, team, event_type, event_time,
@@ -140,7 +140,7 @@ class GameEventsVerifier:
 
         return events
 
-    def extract_first_point(self, game_id: str) -> Tuple[List[Dict], List[Dict]]:
+    def extract_first_point(self, game_id: str) -> tuple[list[dict], list[dict]]:
         """Extract the first point events from both team perspectives."""
         home_events = self.get_game_events(game_id, "home")
         away_events = self.get_game_events(game_id, "away")
@@ -179,7 +179,7 @@ class GameEventsVerifier:
             return f"{int(y_coord)}y"  # Midfield area
 
     def format_event_description(
-        self, event: Dict[str, Any], game_info: Dict[str, Any]
+        self, event: dict[str, Any], game_info: dict[str, Any]
     ) -> str:
         """Format an event into a human-readable description."""
         event_type = event["event_type"]
@@ -217,7 +217,7 @@ class GameEventsVerifier:
 
         elif event_type == 13:  # Throwaway by opposing team
             return (
-                f"They scored"
+                "They scored"
                 if event.get("thrower_y", 0) > 50
                 else "Throwaway by opposing team"
             )

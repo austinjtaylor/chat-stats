@@ -3,7 +3,7 @@ Response validation and processing for AI-generated content.
 Handles keyword detection and forces tool use when necessary.
 """
 
-from typing import Any, List
+from typing import Any
 
 
 class ResponseHandler:
@@ -124,12 +124,14 @@ class ResponseHandler:
                 return False
 
         return True
+
+
 """
 Response formatter for ensuring complete game statistics display.
 """
 
 import re
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 def format_game_details_response(answer: str, data: list) -> str:

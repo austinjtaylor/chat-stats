@@ -3,13 +3,13 @@ Team-related statistics tools for sports data.
 Handles team stats, standings, rosters, and playoff history.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from utils.stats import get_current_season
 
 
 def get_team_stats(
-    db, team_name: str, season: Optional[str] = None, include_roster: bool = False
+    db, team_name: str, season: str | None = None, include_roster: bool = False
 ) -> dict[str, Any]:
     """Get team statistics."""
     # Find team
@@ -109,9 +109,9 @@ def get_team_stats(
 
 def get_standings(
     db,
-    season: Optional[str] = None,
-    conference: Optional[str] = None,
-    division: Optional[str] = None,
+    season: str | None = None,
+    conference: str | None = None,
+    division: str | None = None,
 ) -> dict[str, Any]:
     """Get league standings."""
     # Get season if not provided

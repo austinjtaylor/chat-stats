@@ -1,12 +1,10 @@
-from typing import Any
 
 import anthropic
-
-from config import config
-from core.tool_executor import ToolExecutor
 from prompts import SYSTEM_PROMPT
 from utils.response import ResponseHandler
 from utils.retry import with_rate_limit_retry
+
+from core.tool_executor import ToolExecutor
 
 
 class AIGenerator:

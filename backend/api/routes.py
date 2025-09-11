@@ -2,11 +2,8 @@
 API routes for sports statistics endpoints.
 """
 
-from fastapi import APIRouter, HTTPException
-from sqlalchemy import text
-
 from config import config
-from data.cache import get_cache
+from fastapi import APIRouter, HTTPException
 from models.api import (
     PlayerSearchResponse,
     QueryRequest,
@@ -14,7 +11,8 @@ from models.api import (
     StatsResponse,
     TeamSearchResponse,
 )
-from utils.query import convert_to_per_game_stats, get_sort_column
+
+from data.cache import get_cache
 
 
 def create_basic_routes(stats_system):

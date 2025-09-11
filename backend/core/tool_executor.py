@@ -3,7 +3,7 @@ Tool execution handler for AI-driven queries.
 Manages sequential tool execution and result aggregation.
 """
 
-from typing import Any, List, Tuple
+from typing import Any
 
 from config import config
 
@@ -82,7 +82,7 @@ class ToolExecutor:
 
     def execute_tool_round_with_results(
         self, response, messages: list[dict], base_params: dict[str, Any], tool_manager
-    ) -> Tuple[Any, List[str]]:
+    ) -> tuple[Any, list[str]]:
         """
         Execute tools for a single round and return both response and tool results.
 
@@ -146,7 +146,7 @@ class ToolExecutor:
         return next_response, tool_result_contents
 
     def _synthesize_results(
-        self, all_tool_results: List[str], base_params: dict[str, Any]
+        self, all_tool_results: list[str], base_params: dict[str, Any]
     ) -> str:
         """
         Synthesize all tool results into a final response.

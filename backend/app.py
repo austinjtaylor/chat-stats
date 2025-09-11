@@ -4,10 +4,11 @@ warnings.filterwarnings("ignore", message="resource_tracker: There appear to be.
 
 import os
 
-# Import route modules
-from api.routes import create_basic_routes
 from api.game import create_game_routes
 from api.player_stats import create_player_stats_route
+
+# Import route modules
+from api.routes import create_basic_routes
 from config import config
 from core.chat_system import get_stats_system
 from fastapi import FastAPI

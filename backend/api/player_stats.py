@@ -4,7 +4,6 @@ Player statistics API endpoint with complex query logic.
 
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import text
-
 from utils.query import convert_to_per_game_stats, get_sort_column
 
 

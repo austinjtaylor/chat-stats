@@ -50,13 +50,15 @@ def _import_game_stats_chunk(game_chunk_data: tuple[list[dict], int]) -> dict[st
         game_id = game.get("gameID", "")
         if not game_id:
             continue
-        
+
         # Skip all-star games
         away_team_id = game.get("awayTeamID", "")
         home_team_id = game.get("homeTeamID", "")
-        if ("allstar" in game_id.lower() or 
-            "allstar" in away_team_id.lower() or 
-            "allstar" in home_team_id.lower()):
+        if (
+            "allstar" in game_id.lower()
+            or "allstar" in away_team_id.lower()
+            or "allstar" in home_team_id.lower()
+        ):
             skipped_allstar += 1
             continue
 
@@ -163,13 +165,14 @@ def _import_game_stats_chunk(game_chunk_data: tuple[list[dict], int]) -> dict[st
             )
 
     if skipped_allstar > 0:
-        logger.info(
-            f"[Chunk {chunk_num}] Skipped {skipped_allstar} all-star games"
-        )
+        logger.info(f"[Chunk {chunk_num}] Skipped {skipped_allstar} all-star games")
     logger.info(
         f"[Chunk {chunk_num}] Imported {count} player game stats from {len(games_chunk) - skipped_allstar} regular games"
     )
-    return {"player_game_stats": count, "games_processed": len(games_chunk) - skipped_allstar}
+    return {
+        "player_game_stats": count,
+        "games_processed": len(games_chunk) - skipped_allstar,
+    }
 
 
 # Setup logging
@@ -821,13 +824,15 @@ class UFADataManager:
                 # Extract year from game_id or use current year
                 game_id = game.get("gameID", "")
                 year = int(game_id.split("-")[0]) if "-" in game_id else 2025
-                
+
                 # Skip all-star games
                 away_team_id = game.get("awayTeamID", "")
                 home_team_id = game.get("homeTeamID", "")
-                if ("allstar" in game_id.lower() or 
-                    "allstar" in away_team_id.lower() or 
-                    "allstar" in home_team_id.lower()):
+                if (
+                    "allstar" in game_id.lower()
+                    or "allstar" in away_team_id.lower()
+                    or "allstar" in home_team_id.lower()
+                ):
                     skipped_allstar += 1
                     continue
 
@@ -881,13 +886,15 @@ class UFADataManager:
             game_id = game.get("gameID", "")
             if not game_id:
                 continue
-            
+
             # Skip all-star games
             away_team_id = game.get("awayTeamID", "")
             home_team_id = game.get("homeTeamID", "")
-            if ("allstar" in game_id.lower() or 
-                "allstar" in away_team_id.lower() or 
-                "allstar" in home_team_id.lower()):
+            if (
+                "allstar" in game_id.lower()
+                or "allstar" in away_team_id.lower()
+                or "allstar" in home_team_id.lower()
+            ):
                 skipped_allstar += 1
                 continue
 
@@ -993,7 +1000,9 @@ class UFADataManager:
 
         if skipped_allstar > 0:
             logger.info(f"  Skipped {skipped_allstar} all-star games")
-        logger.info(f"  Imported {count} player game stats from {total_games - skipped_allstar} regular games")
+        logger.info(
+            f"  Imported {count} player game stats from {total_games - skipped_allstar} regular games"
+        )
         return count
 
     def _import_player_season_stats_from_api(
@@ -1154,7 +1163,7 @@ class UFADataManager:
                     event_record,
                 )
                 count += 1
-            except Exception as e:
+            except Exception:
                 pass  # Silently skip individual event errors
 
         # Process away events
@@ -1201,7 +1210,7 @@ class UFADataManager:
                     event_record,
                 )
                 count += 1
-            except Exception as e:
+            except Exception:
                 pass  # Silently skip individual event errors
 
         return count
@@ -1211,7 +1220,7 @@ class UFADataManager:
         # Skip all-star games
         if "allstar" in game_id.lower():
             return 0
-            
+
         try:
             # Get game events from API
             events_data = self.api_client.get_game_events(game_id)

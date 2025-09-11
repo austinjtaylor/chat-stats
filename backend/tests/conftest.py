@@ -20,9 +20,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from config import Config
 from core.ai_generator import AIGenerator
 from core.session_manager import Message, SessionManager
+from tools.manager import StatsToolManager
+
 from data.database import SQLDatabase
 from data.processor import StatsProcessor
-from tools.manager import StatsToolManager
 
 # ===== CONFIGURATION FIXTURES =====
 

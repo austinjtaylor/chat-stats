@@ -3,7 +3,7 @@ Custom SQL query execution tools for sports statistics.
 Handles query validation, execution, and result formatting.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from utils.stats import format_results, validate_query_safety
 
@@ -11,8 +11,8 @@ from utils.stats import format_results, validate_query_safety
 def execute_custom_query(
     db,
     query: str,
-    parameters: Optional[dict[str, Any]] = None,
-    explanation: Optional[str] = None,
+    parameters: dict[str, Any] | None = None,
+    explanation: str | None = None,
 ) -> dict[str, Any]:
     """
     Execute a custom SQL query with safety checks.

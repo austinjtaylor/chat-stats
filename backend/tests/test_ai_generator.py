@@ -1,10 +1,10 @@
 from unittest.mock import Mock, patch
 
 import pytest
-
 from core.ai_generator import AIGenerator
-from data.database import SQLDatabase
 from tools.manager import StatsToolManager
+
+from data.database import SQLDatabase
 
 # ===== MODULE-LEVEL FIXTURES =====
 

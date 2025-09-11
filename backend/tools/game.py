@@ -3,13 +3,13 @@ Game-related statistics tools for sports data.
 Handles game results, searches, and basic game information.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 
 def get_game_results(
     db,
-    date: Optional[str] = None,
-    team_name: Optional[str] = None,
+    date: str | None = None,
+    team_name: str | None = None,
     include_stats: bool = False,
 ) -> dict[str, Any]:
     """Get game results."""

@@ -5,13 +5,14 @@ Replaces the RAG system with direct SQL database queries for sports stats.
 
 from typing import Any
 
+from tools.manager import StatsToolManager
+from utils.response import format_game_details_response, should_format_response
+
 from core.ai_generator import AIGenerator
 from core.session_manager import SessionManager
 from data.cache import cache_key_for_endpoint, get_cache
 from data.database import get_db
 from data.processor import StatsProcessor
-from tools.manager import StatsToolManager
-from utils.response import format_game_details_response, should_format_response
 
 
 class StatsChatSystem:

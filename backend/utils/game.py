@@ -3,7 +3,7 @@ Detailed game statistics and analysis tools.
 Handles comprehensive game details, individual leaders, and team statistics.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from data.possession import (
     calculate_possessions,
@@ -14,9 +14,9 @@ from data.possession import (
 
 def get_game_details(
     db,
-    game_id: Optional[str] = None,
-    date: Optional[str] = None,
-    teams: Optional[str] = None,
+    game_id: str | None = None,
+    date: str | None = None,
+    teams: str | None = None,
 ) -> dict[str, Any]:
     """Get comprehensive game details similar to UFA game summary page."""
 
@@ -119,7 +119,7 @@ def get_game_details(
     }
 
 
-def get_individual_leaders(db, game_id: str, game: Dict[str, Any]) -> Dict[str, Any]:
+def get_individual_leaders(db, game_id: str, game: dict[str, Any]) -> dict[str, Any]:
     """Get individual stat leaders for a game."""
     leaders = {}
 
@@ -190,7 +190,7 @@ def get_individual_leaders(db, game_id: str, game: Dict[str, Any]) -> Dict[str, 
     return leaders
 
 
-def get_team_statistics(db, game_id: str) -> list[Dict[str, Any]]:
+def get_team_statistics(db, game_id: str) -> list[dict[str, Any]]:
     """Get basic team statistics for a game."""
     team_stats_query = """
     SELECT 

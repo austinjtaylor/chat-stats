@@ -3,7 +3,7 @@ Player-related statistics tools for sports data.
 Handles player stats, comparisons, searches, and league leaders.
 """
 
-from typing import Any, List, Optional
+from typing import Any
 
 from utils.stats import get_current_season
 
@@ -11,9 +11,9 @@ from utils.stats import get_current_season
 def get_player_stats(
     db,
     player_name: str,
-    season: Optional[str] = None,
+    season: str | None = None,
     stat_type: str = "season",
-    game_date: Optional[str] = None,
+    game_date: str | None = None,
 ) -> dict[str, Any]:
     """Get player statistics."""
     # Find player
@@ -99,7 +99,7 @@ def get_player_stats(
 
 
 def get_league_leaders(
-    db, category: str, season: Optional[str] = None, limit: int = 3
+    db, category: str, season: str | None = None, limit: int = 3
 ) -> dict[str, Any]:
     """Get league leaders in a statistical category."""
     # Get season if not provided
@@ -183,9 +183,9 @@ def get_league_leaders(
 
 def compare_players(
     db,
-    player_names: List[str],
-    season: Optional[str] = None,
-    categories: Optional[List[str]] = None,
+    player_names: list[str],
+    season: str | None = None,
+    categories: list[str] | None = None,
 ) -> dict[str, Any]:
     """Compare multiple players."""
     if len(player_names) < 2 or len(player_names) > 5:
@@ -245,9 +245,9 @@ def compare_players(
 
 def search_players(
     db,
-    search_term: Optional[str] = None,
-    team_name: Optional[str] = None,
-    position: Optional[str] = None,
+    search_term: str | None = None,
+    team_name: str | None = None,
+    position: str | None = None,
 ) -> dict[str, Any]:
     """Search for players."""
     query = """
@@ -279,7 +279,7 @@ def search_players(
 
 
 def get_worst_performers(
-    db, category: str, season: Optional[str] = None, limit: int = 10
+    db, category: str, season: str | None = None, limit: int = 10
 ) -> dict[str, Any]:
     """Get players with worst performance in a category."""
     # Get season if not provided
