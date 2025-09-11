@@ -178,19 +178,61 @@ This is a **Sports Statistics Chat System** that uses SQL database queries with 
 
 ### Backend Architecture (`/backend/`)
 
-**Main Orchestrator:**
-- `stats_chat_system.py` - Central coordinator connecting all components
+**Organized Directory Structure:**
+```
+backend/
+├── api/               # API routes and handlers
+│   ├── routes.py      # Basic API endpoints
+│   ├── game.py        # Game-specific endpoints
+│   └── player_stats.py # Player statistics endpoints
+│
+├── core/              # Core business logic
+│   ├── chat_system.py # Central coordinator (formerly stats_chat_system.py)
+│   ├── ai_generator.py # Anthropic Claude API integration
+│   ├── session_manager.py # Conversation history management
+│   └── tool_executor.py # Tool execution handler
+│
+├── tools/             # Claude AI tool definitions
+│   ├── manager.py     # Tool manager (formerly stats_tool_manager.py)
+│   ├── player.py      # Player statistics tools
+│   ├── team.py        # Team statistics tools
+│   ├── game.py        # Game results tools
+│   └── query.py       # Custom SQL query tools
+│
+├── data/              # Data processing and database
+│   ├── database.py    # SQLAlchemy database connection (formerly sql_database.py)
+│   ├── processor.py   # Data ingestion and ETL (formerly stats_processor.py)
+│   ├── possession.py  # Possession statistics calculator
+│   └── cache.py       # In-memory cache manager
+│
+├── models/            # Data models
+│   ├── db.py          # Database models (formerly models.py)
+│   └── api.py         # API request/response models
+│
+├── utils/             # Utility functions
+│   ├── stats.py       # Statistics utilities
+│   ├── retry.py       # Rate limit retry logic
+│   ├── query.py       # Query helper functions
+│   ├── response.py    # Response formatting
+│   ├── game.py        # Game details utilities
+│   └── ufa_events.py  # UFA event type definitions
+│
+├── config.py          # Configuration settings
+├── middleware.py      # FastAPI middleware
+├── prompts.py         # AI system prompts
+├── app.py            # Main FastAPI application
+└── tests/            # Test suite
+```
+
+**Main Components:**
+- `core/chat_system.py` - Central coordinator connecting all components
 - `app.py` - FastAPI web server with sports statistics endpoints
-
-**Core Components:**
-- `sql_database.py` - SQLAlchemy database connection and query execution
-- `stats_processor.py` - Data ingestion and ETL for sports statistics
-- `stats_tools.py` - Claude tool definitions for SQL queries (replaces search_tools.py)
-- `ai_generator.py` - Anthropic Claude API integration with SQL function calling
-- `session_manager.py` - Maintains conversation history per user session
-
-**Data Models:**
-- `models.py` - Pydantic models for Player, Team, Game, PlayerGameStats, PlayerSeasonStats, TeamSeasonStats
+- `data/database.py` - SQLAlchemy database connection and query execution
+- `data/processor.py` - Data ingestion and ETL for sports statistics
+- `tools/manager.py` - Claude tool definitions for SQL queries
+- `core/ai_generator.py` - Anthropic Claude API integration with SQL function calling
+- `core/session_manager.py` - Maintains conversation history per user session
+- `models/db.py` - Pydantic models for Player, Team, Game, PlayerGameStats, PlayerSeasonStats, TeamSeasonStats
 - `database_schema.sql` - Complete SQL schema for sports statistics
 
 ### Database Schema

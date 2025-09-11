@@ -16,8 +16,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "backend"))
 
 from backend.config import config
-from backend.sql_database import get_db
-from backend.stats_processor import StatsProcessor
+from backend.data.database import get_db
+from backend.data.processor import StatsProcessor
 
 # Setup logging
 logging.basicConfig(

@@ -12,7 +12,7 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from sql_database import SQLDatabase, get_db
+from data.database import SQLDatabase, get_db
 
 
 class TestSQLDatabase:

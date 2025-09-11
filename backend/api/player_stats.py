@@ -4,7 +4,8 @@ Player statistics API endpoint with complex query logic.
 
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import text
-from query_helpers import get_sort_column, convert_to_per_game_stats
+
+from utils.query import convert_to_per_game_stats, get_sort_column
 
 
 def create_player_stats_route(stats_system):
@@ -247,7 +248,9 @@ def create_player_stats_route(stats_system):
                         "total_yards": row[33] or 0,
                         "minutes_played": row[34] or 0,
                         "huck_percentage": row[35] or 0,
-                        "offensive_efficiency": row[36] if row[36] is not None else None,
+                        "offensive_efficiency": (
+                            row[36] if row[36] is not None else None
+                        ),
                     }
                     players.append(player)
 

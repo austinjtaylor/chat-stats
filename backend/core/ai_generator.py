@@ -1,11 +1,12 @@
 from typing import Any
 
 import anthropic
+
 from config import config
-from retry_utils import with_rate_limit_retry
+from core.tool_executor import ToolExecutor
 from prompts import SYSTEM_PROMPT
-from tool_executor import ToolExecutor
-from response_handler import ResponseHandler
+from utils.response import ResponseHandler
+from utils.retry import with_rate_limit_retry
 
 
 class AIGenerator:
@@ -17,7 +18,7 @@ class AIGenerator:
 
         # Pre-build base API parameters
         self.base_params = {"model": self.model, "temperature": 0, "max_tokens": 800}
-        
+
         # Initialize handlers
         self.response_handler = ResponseHandler(self._make_api_call)
 

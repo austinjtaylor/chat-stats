@@ -3,8 +3,9 @@ Player-related statistics tools for sports data.
 Handles player stats, comparisons, searches, and league leaders.
 """
 
-from typing import Any, Optional, List
-from stats_utils import get_current_season
+from typing import Any, List, Optional
+
+from utils.stats import get_current_season
 
 
 def get_player_stats(
@@ -23,9 +24,7 @@ def get_player_stats(
     WHERE LOWER(p.full_name) LIKE LOWER(:name)
     LIMIT 1
     """
-    player_results = db.execute_query(
-        player_query, {"name": f"%{player_name}%"}
-    )
+    player_results = db.execute_query(player_query, {"name": f"%{player_name}%"})
 
     if not player_results:
         return {"error": f"Player '{player_name}' not found"}
@@ -92,9 +91,7 @@ def get_player_stats(
         FROM player_season_stats
         WHERE player_id = :player_id
         """
-        career = db.execute_query(
-            career_query, {"player_id": player["player_id"]}
-        )
+        career = db.execute_query(career_query, {"player_id": player["player_id"]})
 
         return {"player": player, "career_stats": career[0] if career else {}}
 
@@ -188,7 +185,7 @@ def compare_players(
     db,
     player_names: List[str],
     season: Optional[str] = None,
-    categories: Optional[List[str]] = None
+    categories: Optional[List[str]] = None,
 ) -> dict[str, Any]:
     """Compare multiple players."""
     if len(player_names) < 2 or len(player_names) > 5:
@@ -219,9 +216,7 @@ def compare_players(
         WHERE LOWER(p.full_name) LIKE LOWER(:name)
         LIMIT 1
         """
-        player_results = db.execute_query(
-            player_query, {"name": f"%{player_name}%"}
-        )
+        player_results = db.execute_query(player_query, {"name": f"%{player_name}%"})
 
         if player_results:
             player = player_results[0]
@@ -252,7 +247,7 @@ def search_players(
     db,
     search_term: Optional[str] = None,
     team_name: Optional[str] = None,
-    position: Optional[str] = None
+    position: Optional[str] = None,
 ) -> dict[str, Any]:
     """Search for players."""
     query = """

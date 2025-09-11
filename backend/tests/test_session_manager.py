@@ -10,7 +10,7 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from session_manager import Message, SessionManager
+from core.session_manager import Message, SessionManager
 
 
 class TestMessage:

@@ -20,8 +20,8 @@ import requests
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "backend"))
 
-from backend.sql_database import get_db
-from backend.stats_processor import StatsProcessor
+from backend.data.database import get_db
+from backend.data.processor import StatsProcessor
 
 
 def _import_game_stats_chunk(game_chunk_data: tuple[list[dict], int]) -> dict[str, int]:
@@ -130,7 +130,7 @@ def _import_game_stats_chunk(game_chunk_data: tuple[list[dict], int]) -> dict[st
             logger.warning(
                 f"[Chunk {chunk_num}] Failed to get player stats for game {game_id}: {e}"
             )
-        
+
         # Import game events for this game
         try:
             events_data = api_client.get_game_events(game_id)
@@ -138,11 +138,15 @@ def _import_game_stats_chunk(game_chunk_data: tuple[list[dict], int]) -> dict[st
                 # Create a temporary manager instance to use the helper method
                 temp_manager = UFADataManager()
                 temp_manager.db = db  # Use the same db connection
-                events_count = temp_manager._import_single_game_events(game_id, events_data)
-                
+                events_count = temp_manager._import_single_game_events(
+                    game_id, events_data
+                )
+
                 if events_count > 0:
-                    logger.info(f"[Chunk {chunk_num}] Imported {events_count} events for game {game_id}")
-                    
+                    logger.info(
+                        f"[Chunk {chunk_num}] Imported {events_count} events for game {game_id}"
+                    )
+
         except Exception as e:
             logger.warning(
                 f"[Chunk {chunk_num}] Failed to get events for game {game_id}: {e}"
@@ -408,21 +412,23 @@ class UFAAPIClient:
     def get_game_events(self, game_id: str) -> dict[str, Any]:
         """
         Get game events with field position data
-        
+
         Args:
             game_id: The game ID to query
-            
+
         Returns:
             Dictionary with homeEvents and awayEvents arrays
         """
         params = {"gameID": game_id}
         data = self._make_request("gameEvents", params)
-        
+
         if "data" in data:
             events = data["data"]
             home_count = len(events.get("homeEvents", []))
             away_count = len(events.get("awayEvents", []))
-            self.logger.info(f"Retrieved {home_count} home events and {away_count} away events for game {game_id}")
+            self.logger.info(
+                f"Retrieved {home_count} home events and {away_count} away events for game {game_id}"
+            )
             return events
         else:
             self.logger.warning(f"No event data found for game {game_id}")
@@ -931,9 +937,13 @@ class UFADataManager:
                 try:
                     events_data = self.api_client.get_game_events(game_id)
                     if events_data:
-                        events_count = self._import_single_game_events(game_id, events_data)
+                        events_count = self._import_single_game_events(
+                            game_id, events_data
+                        )
                         if events_count > 0:
-                            logger.info(f"  Imported {events_count} events for game {game_id}")
+                            logger.info(
+                                f"  Imported {events_count} events for game {game_id}"
+                            )
                 except Exception as e:
                     logger.warning(f"Failed to import events for game {game_id}: {e}")
 
@@ -1061,7 +1071,7 @@ class UFADataManager:
     def _import_single_game_events(self, game_id: str, events_data: dict) -> int:
         """Import game events for a single game (helper method to avoid duplication)."""
         count = 0
-        
+
         # Process home events
         for idx, event in enumerate(events_data.get("homeEvents", [])):
             try:
@@ -1084,9 +1094,11 @@ class UFADataManager:
                     "pull_x": event.get("pullX"),
                     "pull_y": event.get("pullY"),
                     "pull_ms": event.get("pullMs"),
-                    "line_players": json.dumps(event.get("line", [])) if event.get("line") else None,
+                    "line_players": (
+                        json.dumps(event.get("line", [])) if event.get("line") else None
+                    ),
                 }
-                
+
                 self.db.execute_query(
                     """
                     INSERT OR IGNORE INTO game_events (
@@ -1106,8 +1118,8 @@ class UFADataManager:
                 count += 1
             except Exception as e:
                 pass  # Silently skip individual event errors
-        
-        # Process away events  
+
+        # Process away events
         for idx, event in enumerate(events_data.get("awayEvents", [])):
             try:
                 event_record = {
@@ -1129,9 +1141,11 @@ class UFADataManager:
                     "pull_x": event.get("pullX"),
                     "pull_y": event.get("pullY"),
                     "pull_ms": event.get("pullMs"),
-                    "line_players": json.dumps(event.get("line", [])) if event.get("line") else None,
+                    "line_players": (
+                        json.dumps(event.get("line", [])) if event.get("line") else None
+                    ),
                 }
-                
+
                 self.db.execute_query(
                     """
                     INSERT OR IGNORE INTO game_events (
@@ -1151,7 +1165,7 @@ class UFADataManager:
                 count += 1
             except Exception as e:
                 pass  # Silently skip individual event errors
-                
+
         return count
 
     def _import_game_events_from_api(self, game_id: str) -> int:
@@ -1159,17 +1173,17 @@ class UFADataManager:
         try:
             # Get game events from API
             events_data = self.api_client.get_game_events(game_id)
-            
+
             if not events_data:
                 return 0
-            
+
             count = self._import_single_game_events(game_id, events_data)
-            
+
             if count > 0:
                 logger.info(f"  Imported {count} game events for {game_id}")
-            
+
             return count
-            
+
         except Exception as e:
             logger.warning(f"Failed to import game events for {game_id}: {e}")
             return 0

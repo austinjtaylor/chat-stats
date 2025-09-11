@@ -17,12 +17,12 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from ai_generator import AIGenerator
 from config import Config
-from session_manager import Message, SessionManager
-from sql_database import SQLDatabase
-from stats_processor import StatsProcessor
-from stats_tool_manager import StatsToolManager
+from core.ai_generator import AIGenerator
+from core.session_manager import Message, SessionManager
+from data.database import SQLDatabase
+from data.processor import StatsProcessor
+from tools.manager import StatsToolManager
 
 # ===== CONFIGURATION FIXTURES =====
 

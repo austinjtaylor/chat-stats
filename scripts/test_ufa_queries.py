@@ -11,7 +11,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", "backend"))
 
 import logging
 
-from backend.sql_database import SQLDatabase
+from backend.data.database import SQLDatabase
 
 # Setup logging
 logging.basicConfig(

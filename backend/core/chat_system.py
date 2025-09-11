@@ -5,13 +5,13 @@ Replaces the RAG system with direct SQL database queries for sports stats.
 
 from typing import Any
 
-from ai_generator import AIGenerator
-from cache_manager import get_cache, cache_key_for_endpoint
-from response_formatter import format_game_details_response, should_format_response
-from session_manager import SessionManager
-from sql_database import get_db
-from stats_processor import StatsProcessor
-from stats_tool_manager import StatsToolManager
+from core.ai_generator import AIGenerator
+from core.session_manager import SessionManager
+from data.cache import cache_key_for_endpoint, get_cache
+from data.database import get_db
+from data.processor import StatsProcessor
+from tools.manager import StatsToolManager
+from utils.response import format_game_details_response, should_format_response
 
 
 class StatsChatSystem:
@@ -89,16 +89,22 @@ class StatsChatSystem:
             if should_format_response(query) and sources:
                 # Try to enhance the response with complete statistics
                 enhanced_response = format_game_details_response(response, sources)
-                
+
                 # If enhancement didn't work and critical stats are still missing,
                 # make an additional tool call to format properly
                 if enhanced_response == response:
                     # Check if we're missing critical stats
-                    critical_stats = ["O-Line Conversion", "D-Line Conversion", "Red Zone Conversion"]
+                    critical_stats = [
+                        "O-Line Conversion",
+                        "D-Line Conversion",
+                        "Red Zone Conversion",
+                    ]
                     if any(stat not in response for stat in critical_stats):
                         # The data is available in sources, so format it properly
-                        enhanced_response = format_game_details_response(response, sources)
-                
+                        enhanced_response = format_game_details_response(
+                            response, sources
+                        )
+
                 response = enhanced_response
 
             # Update conversation history (always add to session, create default if needed)
@@ -132,12 +138,12 @@ class StatsChatSystem:
         # Check cache first if enabled
         cache = get_cache() if self.config.ENABLE_CACHE else None
         cache_key = cache_key_for_endpoint("stats_summary")
-        
+
         if cache:
             cached_result = cache.get(cache_key)
             if cached_result is not None:
                 return cached_result
-        
+
         summary = {
             "total_players": self.db.get_row_count("players"),
             "total_teams": self.db.get_row_count("teams"),
@@ -239,7 +245,7 @@ class StatsChatSystem:
         # Cache the result if caching is enabled
         if cache:
             cache.set(cache_key, summary, ttl=300)  # 5 minutes TTL
-            
+
         return summary
 
     def get_database_stats(self) -> dict[str, Any]:
@@ -252,12 +258,12 @@ class StatsChatSystem:
         # Check cache first if enabled
         cache = get_cache() if self.config.ENABLE_CACHE else None
         cache_key = cache_key_for_endpoint("database_stats")
-        
+
         if cache:
             cached_result = cache.get(cache_key)
             if cached_result is not None:
                 return cached_result
-                
+
         try:
             # Get basic counts
             total_players_query = "SELECT COUNT(*) as count FROM players"
@@ -286,11 +292,11 @@ class StatsChatSystem:
                 "total_games": games_result[0]["count"],
                 "top_scorers": top_scorers_result,
             }
-            
+
             # Cache the result if caching is enabled
             if cache:
                 cache.set(cache_key, result, ttl=300)  # 5 minutes TTL
-                
+
             return result
         except Exception as e:
             print(f"Error getting database stats: {e}")

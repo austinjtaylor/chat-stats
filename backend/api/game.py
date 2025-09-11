@@ -33,24 +33,24 @@ def create_game_routes(stats_system):
             LEFT JOIN teams at ON g.away_team_id = at.team_id AND g.year = at.year
             WHERE g.game_id = :game_id
             """
-            
+
             game_info = stats_system.db.execute_query(game_query, {"game_id": game_id})
             if not game_info:
                 raise HTTPException(status_code=404, detail="Game not found")
-            
+
             game = game_info[0]
-            
+
             # Calculate redzone percentage from game events
             def calculate_redzone_stats(team_type: str):
                 """Calculate redzone stats from game events for a team.
-                
+
                 The UFA tracking system normalizes all field coordinates:
                 - 100-120 yards: Always the attacking endzone (where goals are scored)
                 - 80-100 yards: Always the redzone (20 yards before endzone)
-                
+
                 Redzone percentage = redzone goals / redzone possessions
                 Where a redzone possession is any possession that enters the 80-100 yard zone
-                
+
                 Based on expected values:
                 - Boston: 13 goals from 15 redzone possessions = 87%
                 - Minnesota: 11 goals from 15 redzone possessions = 73%
@@ -61,11 +61,11 @@ def create_game_routes(stats_system):
                     return 86.7  # 13/15
                 else:  # Minnesota
                     return 73.3  # 11/15
-            
+
             # Calculate redzone percentages
             home_redzone_pct = calculate_redzone_stats("home")
             away_redzone_pct = calculate_redzone_stats("away")
-            
+
             # Get team statistics for this game
             team_stats_query = """
             SELECT 
@@ -89,13 +89,15 @@ def create_game_routes(stats_system):
             WHERE pgs.game_id = :game_id
             GROUP BY pgs.team_id
             """
-            
-            team_stats = stats_system.db.execute_query(team_stats_query, {"game_id": game_id})
-            
+
+            team_stats = stats_system.db.execute_query(
+                team_stats_query, {"game_id": game_id}
+            )
+
             # Process team statistics
             home_stats = None
             away_stats = None
-            
+
             for stats in team_stats:
                 team_data = {
                     "team_id": stats["team_id"],
@@ -104,23 +106,60 @@ def create_game_routes(stats_system):
                     "blocks": stats["total_blocks"] or 0,
                     "completions": stats["total_completions"] or 0,
                     "throw_attempts": stats["total_throw_attempts"] or 0,
-                    "completion_percentage": round((stats["total_completions"] or 0) * 100.0 / (stats["total_throw_attempts"] or 1), 1) if stats["total_throw_attempts"] else 0,
+                    "completion_percentage": (
+                        round(
+                            (stats["total_completions"] or 0)
+                            * 100.0
+                            / (stats["total_throw_attempts"] or 1),
+                            1,
+                        )
+                        if stats["total_throw_attempts"]
+                        else 0
+                    ),
                     "throwaways": stats["total_throwaways"] or 0,
                     "drops": stats["total_drops"] or 0,
                     "hucks_completed": stats["total_hucks_completed"] or 0,
                     "hucks_attempted": stats["total_hucks_attempted"] or 0,
-                    "huck_percentage": round((stats["total_hucks_completed"] or 0) * 100.0 / (stats["total_hucks_attempted"] or 1), 1) if stats["total_hucks_attempted"] else 0,
+                    "huck_percentage": (
+                        round(
+                            (stats["total_hucks_completed"] or 0)
+                            * 100.0
+                            / (stats["total_hucks_attempted"] or 1),
+                            1,
+                        )
+                        if stats["total_hucks_attempted"]
+                        else 0
+                    ),
                     "yards_thrown": stats["total_yards_thrown"] or 0,
                     "yards_received": stats["total_yards_received"] or 0,
-                    "total_yards": (stats["total_yards_thrown"] or 0) + (stats["total_yards_received"] or 0),
+                    "total_yards": (stats["total_yards_thrown"] or 0)
+                    + (stats["total_yards_received"] or 0),
                     "offensive_possessions": stats["total_o_opportunities"] or 0,
                     "offensive_scores": stats["total_o_opportunity_scores"] or 0,
-                    "offensive_efficiency": round((stats["total_o_opportunity_scores"] or 0) * 100.0 / (stats["total_o_opportunities"] or 1), 1) if stats["total_o_opportunities"] else 0,
+                    "offensive_efficiency": (
+                        round(
+                            (stats["total_o_opportunity_scores"] or 0)
+                            * 100.0
+                            / (stats["total_o_opportunities"] or 1),
+                            1,
+                        )
+                        if stats["total_o_opportunities"]
+                        else 0
+                    ),
                     "defensive_possessions": stats["total_d_opportunities"] or 0,
                     "defensive_stops": stats["total_d_opportunity_stops"] or 0,
-                    "defensive_conversion": round((stats["total_d_opportunity_stops"] or 0) * 100.0 / (stats["total_d_opportunities"] or 1), 1) if stats["total_d_opportunities"] else 0
+                    "defensive_conversion": (
+                        round(
+                            (stats["total_d_opportunity_stops"] or 0)
+                            * 100.0
+                            / (stats["total_d_opportunities"] or 1),
+                            1,
+                        )
+                        if stats["total_d_opportunities"]
+                        else 0
+                    ),
                 }
-                
+
                 if stats["team_id"] == game["home_team_id"]:
                     if home_redzone_pct is not None:
                         team_data["redzone_percentage"] = home_redzone_pct
@@ -129,7 +168,7 @@ def create_game_routes(stats_system):
                     if away_redzone_pct is not None:
                         team_data["redzone_percentage"] = away_redzone_pct
                     away_stats = team_data
-            
+
             # Get top players for each team
             player_stats_query = """
             SELECT 
@@ -150,12 +189,18 @@ def create_game_routes(stats_system):
             WHERE pgs.game_id = :game_id
             ORDER BY (pgs.goals + pgs.assists) DESC, plus_minus DESC
             """
-            
-            all_players = stats_system.db.execute_query(player_stats_query, {"game_id": game_id})
-            
-            home_players = [p for p in all_players if p["team_id"] == game["home_team_id"]][:10]
-            away_players = [p for p in all_players if p["team_id"] == game["away_team_id"]][:10]
-            
+
+            all_players = stats_system.db.execute_query(
+                player_stats_query, {"game_id": game_id}
+            )
+
+            home_players = [
+                p for p in all_players if p["team_id"] == game["home_team_id"]
+            ][:10]
+            away_players = [
+                p for p in all_players if p["team_id"] == game["away_team_id"]
+            ][:10]
+
             return {
                 "game_id": game["game_id"],
                 "home_team": {
@@ -163,20 +208,20 @@ def create_game_routes(stats_system):
                     "name": game["home_team_name"],
                     "score": game["home_score"],
                     "stats": home_stats,
-                    "top_players": home_players
+                    "top_players": home_players,
                 },
                 "away_team": {
                     "team_id": game["away_team_id"],
                     "name": game["away_team_name"],
                     "score": game["away_score"],
                     "stats": away_stats,
-                    "top_players": away_players
+                    "top_players": away_players,
                 },
                 "status": game["status"],
                 "start_timestamp": game["start_timestamp"],
                 "location": game["location"],
                 "year": game["year"],
-                "week": game["week"]
+                "week": game["week"],
             }
 
         except HTTPException:

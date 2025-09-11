@@ -4,16 +4,17 @@ Manages sequential tool execution and result aggregation.
 """
 
 from typing import Any, List, Tuple
+
 from config import config
 
 
 class ToolExecutor:
     """Handles tool execution for AI responses."""
-    
+
     def __init__(self, base_params: dict, make_api_call):
         """
         Initialize tool executor.
-        
+
         Args:
             base_params: Base parameters for API calls
             make_api_call: Function to make API calls
@@ -144,14 +145,16 @@ class ToolExecutor:
 
         return next_response, tool_result_contents
 
-    def _synthesize_results(self, all_tool_results: List[str], base_params: dict[str, Any]) -> str:
+    def _synthesize_results(
+        self, all_tool_results: List[str], base_params: dict[str, Any]
+    ) -> str:
         """
         Synthesize all tool results into a final response.
-        
+
         Args:
             all_tool_results: List of all tool result contents
             base_params: Base API parameters
-            
+
         Returns:
             Final synthesized response
         """
@@ -173,10 +176,14 @@ class ToolExecutor:
         # Make final synthesis call
         # Preserve the original system prompt (which may include conversation history)
         synthesis_system = "You are presenting UFA sports statistics query results. CRITICAL: The database queries have already been executed and the actual results are provided. Your ONLY job is to present these results clearly to the user. Show the actual player/team names and their statistics. Do NOT explain query steps or calculations - just present the data that was retrieved."
-        
-        if "system" in base_params and "Previous conversation:" in base_params["system"]:
+
+        if (
+            "system" in base_params
+            and "Previous conversation:" in base_params["system"]
+        ):
             # If there was conversation history, preserve it
             from prompts import SYSTEM_PROMPT
+
             synthesis_system = base_params["system"].replace(
                 SYSTEM_PROMPT, synthesis_system
             )
@@ -188,7 +195,7 @@ class ToolExecutor:
         }
 
         current_response = self.make_api_call(**synthesis_params)
-        
+
         # Extract text from response
         if not current_response.content:
             return ""

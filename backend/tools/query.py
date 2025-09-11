@@ -4,14 +4,15 @@ Handles query validation, execution, and result formatting.
 """
 
 from typing import Any, Optional
-from stats_utils import validate_query_safety, format_results
+
+from utils.stats import format_results, validate_query_safety
 
 
 def execute_custom_query(
     db,
     query: str,
     parameters: Optional[dict[str, Any]] = None,
-    explanation: Optional[str] = None
+    explanation: Optional[str] = None,
 ) -> dict[str, Any]:
     """
     Execute a custom SQL query with safety checks.
@@ -50,7 +51,7 @@ def execute_custom_query(
             "query": query,
             "parameters": parameters,
             "results": formatted_results,
-            **metadata
+            **metadata,
         }
 
     except Exception as e:

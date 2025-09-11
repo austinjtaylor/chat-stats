@@ -3,14 +3,18 @@ API routes for sports statistics endpoints.
 """
 
 from fastapi import APIRouter, HTTPException
-from api_models import (
-    QueryRequest, QueryResponse,
-    StatsResponse, PlayerSearchResponse, TeamSearchResponse
-)
-from cache_manager import get_cache
-from config import config
-from query_helpers import get_sort_column, convert_to_per_game_stats
 from sqlalchemy import text
+
+from config import config
+from data.cache import get_cache
+from models.api import (
+    PlayerSearchResponse,
+    QueryRequest,
+    QueryResponse,
+    StatsResponse,
+    TeamSearchResponse,
+)
+from utils.query import convert_to_per_game_stats, get_sort_column
 
 
 def create_basic_routes(stats_system):
@@ -76,11 +80,11 @@ def create_basic_routes(stats_system):
         """Get cache statistics including hit rate and memory usage"""
         cache = get_cache()
         stats = cache.get_stats()
-        
+
         # Add cache configuration
         stats["enabled"] = config.ENABLE_CACHE
         stats["default_ttl"] = config.CACHE_TTL
-        
+
         return stats
 
     @router.post("/api/cache/clear")
@@ -88,7 +92,7 @@ def create_basic_routes(stats_system):
         """Clear all cached entries"""
         if not config.ENABLE_CACHE:
             return {"message": "Cache is disabled"}
-        
+
         cache = get_cache()
         cache.clear()
         return {"message": "Cache cleared successfully"}
@@ -116,8 +120,11 @@ def create_basic_routes(stats_system):
         """Import sports data from file"""
         try:
             import os
+
             if not os.path.exists(file_path):
-                raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
+                raise HTTPException(
+                    status_code=404, detail=f"File not found: {file_path}"
+                )
 
             result = stats_system.import_data(file_path, data_type)
             return {"status": "success", "imported": result}
@@ -185,4 +192,7 @@ def create_basic_routes(stats_system):
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
-    return router, stats_system  # Return both router and stats_system for player stats endpoint
+    return (
+        router,
+        stats_system,
+    )  # Return both router and stats_system for player stats endpoint

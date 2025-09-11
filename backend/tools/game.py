@@ -7,7 +7,10 @@ from typing import Any, Optional
 
 
 def get_game_results(
-    db, date: Optional[str] = None, team_name: Optional[str] = None, include_stats: bool = False
+    db,
+    date: Optional[str] = None,
+    team_name: Optional[str] = None,
+    include_stats: bool = False,
 ) -> dict[str, Any]:
     """Get game results."""
     query = """
@@ -54,9 +57,7 @@ def get_game_results(
             ORDER BY pgs.goals DESC
             LIMIT 5
             """
-            top_performers = db.execute_query(
-                stats_query, {"game_id": game["game_id"]}
-            )
+            top_performers = db.execute_query(stats_query, {"game_id": game["game_id"]})
             game["top_performers"] = top_performers
 
     return result

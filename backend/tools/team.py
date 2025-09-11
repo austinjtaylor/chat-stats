@@ -4,7 +4,8 @@ Handles team stats, standings, rosters, and playoff history.
 """
 
 from typing import Any, Optional
-from stats_utils import get_current_season
+
+from utils.stats import get_current_season
 
 
 def get_team_stats(
@@ -56,9 +57,7 @@ def get_team_stats(
     GROUP BY year
     ORDER BY year DESC
     """
-    playoff_history = db.execute_query(
-        playoff_query, {"team_id": team["team_id"]}
-    )
+    playoff_history = db.execute_query(playoff_query, {"team_id": team["team_id"]})
 
     # Get specific season playoff record if requested
     season_playoff_record = None
@@ -112,7 +111,7 @@ def get_standings(
     db,
     season: Optional[str] = None,
     conference: Optional[str] = None,
-    division: Optional[str] = None
+    division: Optional[str] = None,
 ) -> dict[str, Any]:
     """Get league standings."""
     # Get season if not provided

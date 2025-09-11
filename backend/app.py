@@ -4,15 +4,14 @@ warnings.filterwarnings("ignore", message="resource_tracker: There appear to be.
 
 import os
 
-from config import config
-from fastapi import FastAPI
-from middleware import configure_cors, configure_trusted_host, DevStaticFiles
-from stats_chat_system import get_stats_system
-
 # Import route modules
-from api_routes import create_basic_routes
-from player_stats_api import create_player_stats_route
-from game_api import create_game_routes
+from api.routes import create_basic_routes
+from api.game import create_game_routes
+from api.player_stats import create_player_stats_route
+from config import config
+from core.chat_system import get_stats_system
+from fastapi import FastAPI
+from middleware import DevStaticFiles, configure_cors, configure_trusted_host
 
 # Initialize FastAPI app
 app = FastAPI(title="Sports Statistics Chat System", root_path="")

@@ -11,8 +11,8 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from sql_database import SQLDatabase
-from stats_processor import StatsProcessor
+from data.database import SQLDatabase
+from data.processor import StatsProcessor
 
 # ===== MODULE-LEVEL FIXTURES =====
 

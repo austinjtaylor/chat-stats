@@ -11,12 +11,12 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from ai_generator import AIGenerator
-from session_manager import SessionManager
-from sql_database import SQLDatabase
-from stats_chat_system import StatsChatSystem
-from stats_processor import StatsProcessor
-from stats_tool_manager import StatsToolManager
+from core.ai_generator import AIGenerator
+from core.chat_system import StatsChatSystem
+from core.session_manager import SessionManager
+from data.database import SQLDatabase
+from data.processor import StatsProcessor
+from tools.manager import StatsToolManager
 
 # ===== MODULE-LEVEL FIXTURES =====
 

@@ -156,5 +156,5 @@ def convert_to_per_game_stats(players):
             if player["calculated_plus_minus"] is not None:
                 value = player["calculated_plus_minus"] / games
                 player["calculated_plus_minus"] = float(format(value, ".1f"))
-    
+
     return players

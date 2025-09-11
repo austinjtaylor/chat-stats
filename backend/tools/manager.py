@@ -3,23 +3,21 @@ Sports statistics tools manager for Claude AI function calling.
 Main orchestrator that coordinates all stats tool modules.
 """
 
-from typing import Any
 import json
+from typing import Any
 
-from sql_database import SQLDatabase
-
-# Import all tool modules
-from query_tools import execute_custom_query
-from player_tools import (
-    get_player_stats,
-    get_league_leaders,
+from data.database import SQLDatabase
+from tools.game import get_game_results
+from tools.player import (
     compare_players,
+    get_league_leaders,
+    get_player_stats,
+    get_worst_performers,
     search_players,
-    get_worst_performers
 )
-from team_tools import get_team_stats, get_standings
-from game_tools import get_game_results
-from game_details import get_game_details
+from tools.query import execute_custom_query
+from tools.team import get_standings, get_team_stats
+from utils.game import get_game_details
 
 
 class StatsToolManager:
@@ -86,7 +84,7 @@ class StatsToolManager:
                     },
                     "required": [],
                 },
-            }
+            },
         ]
 
     def execute_tool(self, tool_name: str, **kwargs) -> str:
@@ -118,17 +116,13 @@ class StatsToolManager:
 
         try:
             result = tool_methods[tool_name](**kwargs)
-            
+
             # Store the actual result data for later retrieval
             if isinstance(result, dict):
                 # Create a source entry with the tool name, parameters, and results
-                source_entry = {
-                    "tool": tool_name,
-                    "parameters": kwargs,
-                    "data": result
-                }
+                source_entry = {"tool": tool_name, "parameters": kwargs, "data": result}
                 self.last_sources.append(source_entry)
-            
+
             # Convert result to string for Claude
             return json.dumps(result, indent=2, default=str)
         except Exception as e:
@@ -192,7 +186,9 @@ class StatsToolManager:
         """Get players with worst performance in a category."""
         return get_worst_performers(self.db, category, season, limit)
 
-    def _get_game_details(self, game_id: str = None, date: str = None, teams: str = None) -> dict[str, Any]:
+    def _get_game_details(
+        self, game_id: str = None, date: str = None, teams: str = None
+    ) -> dict[str, Any]:
         """Get comprehensive game details similar to UFA game summary page."""
         return get_game_details(self.db, game_id, date, teams)
 
