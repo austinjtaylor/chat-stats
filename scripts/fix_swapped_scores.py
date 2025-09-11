@@ -68,8 +68,8 @@ def fix_swapped_scores():
                ht.name as home_team_name, g.home_score,
                at.name as away_team_name, g.away_score
         FROM games g
-        JOIN teams ht ON LOWER(ht.abbrev) = g.home_team_id AND g.year = ht.year
-        JOIN teams at ON LOWER(at.abbrev) = g.away_team_id AND g.year = at.year
+        JOIN teams ht ON ht.team_id = g.home_team_id AND g.year = ht.year
+        JOIN teams at ON at.team_id = g.away_team_id AND g.year = at.year
         WHERE g.game_type <> 'allstar'
         ORDER BY g.start_timestamp DESC
         LIMIT 5

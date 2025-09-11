@@ -74,7 +74,7 @@ When asked about career statistics or stats "across all seasons":
      GROUP BY p.player_id, p.full_name
    ),
    game_counts AS (
-     SELECT player_id, COUNT(DISTINCT game_id) as games_played
+     SELECT player_id, COUNT(DISTINCT CASE WHEN (o_points_played > 0 OR d_points_played > 0 OR seconds_played > 0 OR goals > 0 OR assists > 0) THEN game_id ELSE NULL END) as games_played
      FROM player_game_stats
      GROUP BY player_id
    )
@@ -107,8 +107,8 @@ When asked about career statistics or stats "across all seasons":
   - "What happened in the Boston vs Minnesota game?"
 - For simple game scores only, you may use execute_custom_query
 - When showing game results, ALWAYS JOIN teams table to get team names
-- Use this pattern: JOIN teams ht ON LOWER(ht.abbrev) = g.home_team_id AND g.year = ht.year
-- Use this pattern: JOIN teams at ON LOWER(at.abbrev) = g.away_team_id AND g.year = at.year
+- Use this pattern: JOIN teams ht ON ht.team_id = g.home_team_id AND g.year = ht.year
+- Use this pattern: JOIN teams at ON at.team_id = g.away_team_id AND g.year = at.year
 - The games table stores team IDs as lowercase abbreviations (bos, min, slc)
 - The teams table has uppercase abbreviations in the abbrev column (BOS, MIN, SLC)
 - Display scores naturally: home_score for home team, away_score for away team
@@ -153,6 +153,10 @@ Database Schema (UFA API Compatible):
 - **team_season_stats**: team_id (UFA string), year (integer), wins, losses, ties, standing
 
 SQL Query Guidelines:
+- **CRITICAL: Database is SQLite - Use SQLite syntax, NOT PostgreSQL**:
+  - Date extraction: DATE(timestamp_column) NOT timestamp_column::date
+  - String functions: Use SQLite functions (SUBSTR, LENGTH, etc.)
+  - Case sensitivity: SQLite is case-insensitive for keywords but case-sensitive for identifiers
 - **CRITICAL DEFAULT BEHAVIOR**: When no season/year is specified, ALWAYS aggregate across ALL seasons for career/all-time totals
 - **TEMPORAL REFERENCES**:
   - "this season", "current season", "this year" → WHERE year = 2025 (latest season)
@@ -168,7 +172,7 @@ SQL Query Guidelines:
   - **For SINGLE SEASON queries**: JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
   - **For CAREER/ALL-TIME queries**: JOIN (SELECT DISTINCT player_id, full_name FROM players) p ON pss.player_id = p.player_id
   - Teams to Stats: JOIN teams t ON tss.team_id = t.team_id AND tss.year = t.year
-  - Games to Teams: JOIN teams t ON LOWER(t.abbrev) = g.home_team_id (or away_team_id) AND t.year = g.year
+  - Games to Teams: JOIN teams t ON t.team_id = g.home_team_id (or away_team_id) AND t.year = g.year
   - Games to Stats: JOIN games g ON pgs.game_id = g.game_id
 - **Field names**: Use correct UFA field names (NOT old schema):
   - Player names: p.full_name (NOT p.name)
@@ -185,12 +189,12 @@ SQL Query Guidelines:
   - Regular season stats: WHERE game_type = 'regular'
   - Playoff stats: WHERE game_type LIKE 'playoffs_%'
   - Championship games only: WHERE game_type = 'playoffs_championship'
-- **CRITICAL**: Use COUNT(DISTINCT game_id) when counting games to avoid duplicates from multi-year player records
-  - WRONG: COUNT(*) - this will multiply by number of player records
-  - CORRECT: COUNT(DISTINCT pgs.game_id) - this counts unique games only
-- **For per-game averages**: Count only games with actual statistical activity
-  - Use: COUNT(DISTINCT CASE WHEN pgs.yards_thrown > 0 OR pgs.yards_received > 0 THEN pgs.game_id END)
-  - This avoids counting games where player was on roster but didn't record stats
+- **CRITICAL**: Use proper games played counting that matches the frontend API logic:
+  - WRONG: COUNT(DISTINCT pgs.game_id) - counts all games where player appeared on roster
+  - CORRECT: COUNT(DISTINCT CASE WHEN (pgs.o_points_played > 0 OR pgs.d_points_played > 0 OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0) THEN pgs.game_id ELSE NULL END)
+  - This only counts games where the player actually participated with recorded statistics
+- **For per-game averages**: Always use the same games played logic as above for consistency
+  - This ensures per-game calculations match the frontend display exactly
 - **CRITICAL - Player table structure**: The players table has one record per player per year, so proper joining is essential:
   - For season queries: JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
   - For career queries: JOIN (SELECT DISTINCT player_id, full_name FROM players) p ON pss.player_id = p.player_id
