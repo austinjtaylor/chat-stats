@@ -20,7 +20,9 @@ def get_game_results(
     FROM games g
     LEFT JOIN teams ht ON ht.team_id = g.home_team_id AND g.year = ht.year
     LEFT JOIN teams at ON at.team_id = g.away_team_id AND g.year = at.year
-    WHERE 1=1
+    WHERE g.status = 'Final'
+      AND g.home_team_id NOT IN ('allstars1', 'allstars2')
+      AND g.away_team_id NOT IN ('allstars1', 'allstars2')
     """
     params = {}
 
