@@ -6,7 +6,6 @@ Test script to verify UFA data and plus/minus calculations are working correctly
 import os
 import sys
 
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "backend"))
 
 import logging

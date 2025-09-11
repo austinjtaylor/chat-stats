@@ -12,7 +12,6 @@ import sys
 from datetime import datetime, timedelta
 
 # Add backend to path
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "backend"))
 
 from config import config
