@@ -596,33 +596,122 @@ class StatsChatSystem:
         ORDER BY 
             CASE WHEN :order = 'desc' THEN
                 CASE :sort_col
+                    -- Basic stats
+                    WHEN 'name' THEN NULL  -- Handle name separately for proper string sorting
+                    WHEN 'games_played' THEN tgs.games_played
                     WHEN 'wins' THEN tgs.wins
                     WHEN 'losses' THEN tgs.losses
-                    WHEN 'games_played' THEN tgs.games_played
-                    WHEN 'scores' THEN tgs.scores
-                    WHEN 'scores_against' THEN tgs.scores_against
+                    WHEN 'scores' THEN 
+                        CASE WHEN :view = 'per-game' AND tgs.games_played > 0 
+                            THEN CAST(tgs.scores AS FLOAT) / tgs.games_played 
+                            ELSE tgs.scores 
+                        END
+                    WHEN 'scores_against' THEN 
+                        CASE WHEN :view = 'per-game' AND tgs.games_played > 0 
+                            THEN CAST(tgs.scores_against AS FLOAT) / tgs.games_played 
+                            ELSE tgs.scores_against 
+                        END
+                    -- Core stats
+                    WHEN 'completions' THEN 
+                        CASE WHEN :view = 'per-game' AND tgs.games_played > 0 
+                            THEN CAST(COALESCE(tps.total_completions, 0) AS FLOAT) / tgs.games_played 
+                            ELSE COALESCE(tps.total_completions, 0) 
+                        END
+                    WHEN 'turnovers' THEN 
+                        CASE WHEN :view = 'per-game' AND tgs.games_played > 0 
+                            THEN CAST(COALESCE(tps.total_turnovers, 0) AS FLOAT) / tgs.games_played 
+                            ELSE COALESCE(tps.total_turnovers, 0) 
+                        END
                     WHEN 'completion_percentage' THEN (CASE WHEN COALESCE(tps.total_attempts, 0) > 0 THEN (CAST(tps.total_completions AS FLOAT) / tps.total_attempts) * 100 ELSE 0 END)
+                    -- Advanced stats
+                    WHEN 'hucks_completed' THEN 
+                        CASE WHEN :view = 'per-game' AND tgs.games_played > 0 
+                            THEN CAST(COALESCE(tps.hucks_completed, 0) AS FLOAT) / tgs.games_played 
+                            ELSE COALESCE(tps.hucks_completed, 0) 
+                        END
+                    WHEN 'huck_percentage' THEN (CASE WHEN COALESCE(tps.hucks_attempted, 0) > 0 THEN (CAST(tps.hucks_completed AS FLOAT) / tps.hucks_attempted) * 100 ELSE 0 END)
+                    WHEN 'blocks' THEN 
+                        CASE WHEN :view = 'per-game' AND tgs.games_played > 0 
+                            THEN CAST(COALESCE(tps.total_blocks, 0) AS FLOAT) / tgs.games_played 
+                            ELSE COALESCE(tps.total_blocks, 0) 
+                        END
+                    -- Possession stats (placeholders for now, will be filled later)
+                    WHEN 'hold_percentage' THEN 0
+                    WHEN 'o_line_conversion' THEN 0
+                    WHEN 'break_percentage' THEN 0
+                    WHEN 'd_line_conversion' THEN 0
+                    WHEN 'red_zone_conversion' THEN 0
                     ELSE tgs.wins
                 END
             END DESC,
             CASE WHEN :order = 'asc' THEN
                 CASE :sort_col
+                    -- Basic stats
+                    WHEN 'name' THEN NULL  -- Handle name separately for proper string sorting
+                    WHEN 'games_played' THEN tgs.games_played
                     WHEN 'wins' THEN tgs.wins
                     WHEN 'losses' THEN tgs.losses
-                    WHEN 'games_played' THEN tgs.games_played
-                    WHEN 'scores' THEN tgs.scores
-                    WHEN 'scores_against' THEN tgs.scores_against
+                    WHEN 'scores' THEN 
+                        CASE WHEN :view = 'per-game' AND tgs.games_played > 0 
+                            THEN CAST(tgs.scores AS FLOAT) / tgs.games_played 
+                            ELSE tgs.scores 
+                        END
+                    WHEN 'scores_against' THEN 
+                        CASE WHEN :view = 'per-game' AND tgs.games_played > 0 
+                            THEN CAST(tgs.scores_against AS FLOAT) / tgs.games_played 
+                            ELSE tgs.scores_against 
+                        END
+                    -- Core stats
+                    WHEN 'completions' THEN 
+                        CASE WHEN :view = 'per-game' AND tgs.games_played > 0 
+                            THEN CAST(COALESCE(tps.total_completions, 0) AS FLOAT) / tgs.games_played 
+                            ELSE COALESCE(tps.total_completions, 0) 
+                        END
+                    WHEN 'turnovers' THEN 
+                        CASE WHEN :view = 'per-game' AND tgs.games_played > 0 
+                            THEN CAST(COALESCE(tps.total_turnovers, 0) AS FLOAT) / tgs.games_played 
+                            ELSE COALESCE(tps.total_turnovers, 0) 
+                        END
                     WHEN 'completion_percentage' THEN (CASE WHEN COALESCE(tps.total_attempts, 0) > 0 THEN (CAST(tps.total_completions AS FLOAT) / tps.total_attempts) * 100 ELSE 0 END)
+                    -- Advanced stats
+                    WHEN 'hucks_completed' THEN 
+                        CASE WHEN :view = 'per-game' AND tgs.games_played > 0 
+                            THEN CAST(COALESCE(tps.hucks_completed, 0) AS FLOAT) / tgs.games_played 
+                            ELSE COALESCE(tps.hucks_completed, 0) 
+                        END
+                    WHEN 'huck_percentage' THEN (CASE WHEN COALESCE(tps.hucks_attempted, 0) > 0 THEN (CAST(tps.hucks_completed AS FLOAT) / tps.hucks_attempted) * 100 ELSE 0 END)
+                    WHEN 'blocks' THEN 
+                        CASE WHEN :view = 'per-game' AND tgs.games_played > 0 
+                            THEN CAST(COALESCE(tps.total_blocks, 0) AS FLOAT) / tgs.games_played 
+                            ELSE COALESCE(tps.total_blocks, 0) 
+                        END
+                    -- Possession stats (placeholders for now, will be filled later)
+                    WHEN 'hold_percentage' THEN 0
+                    WHEN 'o_line_conversion' THEN 0
+                    WHEN 'break_percentage' THEN 0
+                    WHEN 'd_line_conversion' THEN 0
+                    WHEN 'red_zone_conversion' THEN 0
                     ELSE tgs.wins
                 END
             END ASC,
-            tgs.name ASC
+            -- Handle name sorting separately
+            CASE 
+                WHEN :sort_col = 'name' AND :order = 'asc' THEN tgs.name
+            END ASC,
+            CASE 
+                WHEN :sort_col = 'name' AND :order = 'desc' THEN tgs.name
+            END DESC,
+            -- Secondary sort by name if not primary sort
+            CASE 
+                WHEN :sort_col != 'name' THEN tgs.name
+            END ASC
         """
         
         params = {
             "season": season_param,
             "sort_col": sort,
-            "order": order
+            "order": order,
+            "view": view
         }
         
         teams = self.db.execute_query(query, params)
