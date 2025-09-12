@@ -1,67 +1,13 @@
 // Shared functionality for UFA Stats pages
 class UFAStats {
     constructor() {
-        this.apiBase = 'http://localhost:8000/api';
+        this.apiBase = '/api';  // Use relative path for API
         this.currentPage = this.getCurrentPage();
-        this.initTheme();
-        this.initNavigation();
+        // Theme is now handled by header.js
+        // Navigation highlighting is also handled by header.js
     }
 
-    // Initialize theme toggle functionality
-    initTheme() {
-        const themeToggle = document.getElementById('themeToggle');
-        const sunIcon = document.getElementById('sunIcon');
-        const moonIcon = document.getElementById('moonIcon');
-        
-        if (!themeToggle) return;
-        
-        // Get current theme from localStorage or default to light
-        const currentTheme = localStorage.getItem('theme') || 'light';
-        document.body.setAttribute('data-theme', currentTheme);
-        
-        if (currentTheme === 'dark') {
-            sunIcon.style.display = 'block';
-            moonIcon.style.display = 'none';
-        } else {
-            sunIcon.style.display = 'none';
-            moonIcon.style.display = 'block';
-        }
-        
-        themeToggle.addEventListener('click', () => {
-            const currentTheme = document.body.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            
-            document.body.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            
-            if (newTheme === 'dark') {
-                sunIcon.style.display = 'block';
-                moonIcon.style.display = 'none';
-            } else {
-                sunIcon.style.display = 'none';
-                moonIcon.style.display = 'block';
-            }
-        });
-    }
-
-    // Initialize navigation highlighting
-    initNavigation() {
-        const currentPath = window.location.pathname;
-        const navLinks = document.querySelectorAll('.stats-nav .nav-link');
-        
-        navLinks.forEach(link => {
-            link.classList.remove('active');
-            const href = link.getAttribute('href');
-            
-            if ((currentPath.includes('players') && href.includes('players')) ||
-                (currentPath.includes('teams') && href.includes('teams')) ||
-                (currentPath.includes('games') && href.includes('games'))) {
-                link.classList.add('active');
-            }
-        });
-    }
-
-    // Get current page identifier
+    // Get current page from URL (kept for compatibility)
     getCurrentPage() {
         const path = window.location.pathname;
         if (path.includes('players')) return 'players';

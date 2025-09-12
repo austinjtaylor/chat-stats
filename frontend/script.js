@@ -3,6 +3,8 @@ const API_URL = '/api';
 
 // Global state
 let currentSessionId = null;
+let queryHistory = [];
+let historyIndex = -1;
 
 // DOM elements
 let chatMessages, chatInput, sendButton, totalPlayers, totalTeams, totalGames, newChatButton, themeToggle;
@@ -20,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     themeToggle = document.getElementById('themeToggle');
     
     setupEventListeners();
-    initializeTheme();
+    // Theme initialization moved to nav.js
     createNewSession();
     loadSportsStats();
 });
@@ -33,17 +35,30 @@ function setupEventListeners() {
         if (e.key === 'Enter') sendMessage();
     });
     
+    // Query history navigation with arrow keys
+    chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (historyIndex < queryHistory.length - 1) {
+                historyIndex++;
+                chatInput.value = queryHistory[queryHistory.length - 1 - historyIndex];
+            }
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (historyIndex > 0) {
+                historyIndex--;
+                chatInput.value = queryHistory[queryHistory.length - 1 - historyIndex];
+            } else if (historyIndex === 0) {
+                historyIndex = -1;
+                chatInput.value = '';
+            }
+        }
+    });
+    
     // New chat button
     newChatButton.addEventListener('click', startNewChat);
     
-    // Theme toggle button
-    themeToggle.addEventListener('click', toggleTheme);
-    themeToggle.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            toggleTheme();
-        }
-    });
+    // Theme toggle handled by nav.js
     
     // Suggested questions
     document.querySelectorAll('.suggested-item').forEach(button => {
@@ -61,6 +76,10 @@ async function sendMessage() {
     const query = chatInput.value.trim();
     if (!query) return;
 
+    // Add to query history
+    queryHistory.push(query);
+    historyIndex = -1; // Reset history navigation
+    
     // Disable input
     chatInput.value = '';
     chatInput.disabled = true;
@@ -236,42 +255,4 @@ async function loadSportsStats() {
     }
 }
 
-// Theme Functions
-function initializeTheme() {
-    // Check for saved theme preference or default to dark
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    setTheme(savedTheme);
-}
-
-function toggleTheme() {
-    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-    
-    // Add rotation animation
-    themeToggle.classList.add('rotating');
-    setTimeout(() => {
-        themeToggle.classList.remove('rotating');
-    }, 500);
-}
-
-function setTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
-    updateThemeIcons(theme);
-}
-
-function updateThemeIcons(theme) {
-    const sunIcon = document.getElementById('sunIcon');
-    const moonIcon = document.getElementById('moonIcon');
-    
-    if (theme === 'light') {
-        sunIcon.style.display = 'block';
-        moonIcon.style.display = 'none';
-        themeToggle.setAttribute('aria-label', 'Switch to dark theme');
-    } else {
-        sunIcon.style.display = 'none';
-        moonIcon.style.display = 'block';
-        themeToggle.setAttribute('aria-label', 'Switch to light theme');
-    }
-}
+// Theme functions moved to nav.js to avoid conflicts

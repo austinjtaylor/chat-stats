@@ -6,92 +6,81 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>UFA Stats Assistant</title>
-    <link rel="stylesheet" href="style.css?v=10">
+    <title>Chat - UFA Statistics</title>
+    <link rel="stylesheet" href="style.css?v=11">
+    <link rel="stylesheet" href="components/header.css?v=1">
 </head>
 <body>
-    <!-- Theme Toggle Button -->
-    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
-        <svg id="sunIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
-            <circle cx="12" cy="12" r="5"></circle>
-            <line x1="12" y1="1" x2="12" y2="3"></line>
-            <line x1="12" y1="21" x2="12" y2="23"></line>
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-            <line x1="1" y1="12" x2="3" y2="12"></line>
-            <line x1="21" y1="12" x2="23" y2="12"></line>
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-        </svg>
-        <svg id="moonIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-        </svg>
-    </button>
+    <!-- Unified Header -->
+    <header class="app-header">
+        <div class="header-content">
+            <div class="header-left">
+                <h1 class="app-title">UFA STATISTICS</h1>
+                <nav class="app-nav">
+                    <a href="/index.html" class="nav-link" data-page="chat">CHAT</a>
+                    <a href="/stats/players.html" class="nav-link" data-page="players">PLAYER STATS</a>
+                    <a href="/stats/teams.html" class="nav-link" data-page="teams">TEAM STATS</a>
+                    <a href="/stats/games.html" class="nav-link" data-page="games">GAME SEARCH</a>
+                </nav>
+            </div>
+            <div class="header-right">
+                <!-- Theme Toggle Button -->
+                <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+                    <svg id="sunIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg id="moonIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
 
-    <div class="container">
-        <header>
-            <h1>UFA Stats Assistant</h1>
-            <p class="subtitle">Ultimate Frisbee Association - Player & Team Statistics</p>
-        </header>
-
-        <div class="main-content">
-            <!-- Left Sidebar -->
-            <aside class="sidebar">
-                <!-- New Chat Button -->
-                <div class="sidebar-section">
-                    <button class="new-chat-button" id="newChatButton">
-                        + NEW CHAT
-                    </button>
-                </div>
-
-                <!-- Dashboard Link -->
-                <div class="sidebar-section">
-                    <a href="stats/players.html" class="dashboard-link">
-                        📊 VIEW STATS
-                    </a>
-                </div>
-
-                <!-- Course Stats -->
-                <div class="sidebar-section">
-                    <details class="stats-collapsible" open>
-                        <summary class="stats-header">League Stats</summary>
-                        <div class="league-stats" id="leagueStats">
-                            <div class="stat-item">
-                                <span class="stat-label">Players:</span>
-                                <span class="stat-value" id="totalPlayers">-</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Teams:</span>
-                                <span class="stat-value" id="totalTeams">-</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Games:</span>
-                                <span class="stat-value" id="totalGames">-</span>
-                            </div>
-                        </div>
-                    </details>
-                </div>
-
-
-                <!-- Suggested Questions -->
-                <div class="sidebar-section">
-                    <details class="suggested-collapsible">
-                        <summary class="suggested-header">Try asking:</summary>
-                        <div class="suggested-items">
+    <div class="chat-page-container">
+        <!-- Main Chat Area -->
+        <main class="chat-main-full">
+            <div class="chat-container-full">
+                <!-- Suggestions Panel -->
+                <div class="suggestions-panel">
+                    <details class="suggestions-collapsible">
+                        <summary class="suggestions-header">
+                            <span>Try asking about UFA statistics</span>
+                            <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </summary>
+                        <div class="suggestions-content">
                             <button class="suggested-item" data-question="Who are the top goal scorers in the UFA?">Top goal scorers</button>
                             <button class="suggested-item" data-question="Which players have the most assists this season?">Assist leaders</button>
                             <button class="suggested-item" data-question="What teams are in the UFA?">UFA teams</button>
                             <button class="suggested-item" data-question="Who has the most blocks (Ds) this season?">Defensive leaders</button>
                             <button class="suggested-item" data-question="Show me the recent UFA game results">Recent games</button>
+                            <button class="suggested-item" data-question="Compare the top 5 players by plus/minus">Plus/minus leaders</button>
+                            <button class="suggested-item" data-question="Which team has the best record?">Team standings</button>
+                            <button class="suggested-item" data-question="Show me players with over 20 goals this season">20+ goal scorers</button>
                         </div>
                     </details>
                 </div>
-            </aside>
-
-            <!-- Main Chat Area -->
-            <main class="chat-main">
-                <div class="chat-container">
-                    <div id="chatMessages" class="chat-messages"></div>
+                
+                <!-- Chat Messages -->
+                <div id="chatMessages" class="chat-messages"></div>
+                
+                <!-- Input Area -->
+                <div class="chat-input-area">
+                    <button class="new-chat-button" id="newChatButton" title="New Chat">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 5v14M5 12h14"></path>
+                        </svg>
+                    </button>
                     <div class="chat-input-container">
                         <input 
                             type="text" 
@@ -107,12 +96,13 @@
                         </button>
                     </div>
                 </div>
-            </main>
-        </div>
+            </div>
+        </main>
     </div>
 
 
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="script.js?v=10"></script>
+    <script src="components/nav.js?v=1"></script>
+    <script src="script.js?v=11"></script>
 </body>
 </html>

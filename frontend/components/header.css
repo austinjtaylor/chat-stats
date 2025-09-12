@@ -1,0 +1,131 @@
+/* Unified Header Styles */
+
+.app-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border-color);
+    padding: 1rem 2rem;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    min-height: 60px;
+    display: block;
+}
+
+.app-header .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.app-header .header-left {
+    display: flex;
+    align-items: center;
+    gap: 3rem;
+}
+
+.app-header .app-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    letter-spacing: 0.5px;
+}
+
+.app-header .app-nav {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+.app-header .nav-link {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.875rem;
+    letter-spacing: 0.5px;
+    padding: 0.5rem 0;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.app-header .nav-link:hover {
+    color: var(--primary-color);
+}
+
+.app-header .nav-link.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+.app-header .header-right {
+    display: flex;
+    align-items: center;
+}
+
+/* Theme Toggle in Header */
+.app-header .theme-toggle {
+    background: var(--surface-hover);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    width: 40px;
+    height: 40px;
+}
+
+.app-header .theme-toggle:hover {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.app-header .theme-toggle svg {
+    width: 20px;
+    height: 20px;
+    color: var(--text-primary);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .app-header {
+        padding: 1rem;
+    }
+    
+    .app-header .header-content {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .app-header .header-left {
+        flex-direction: column;
+        gap: 1rem;
+        width: 100%;
+    }
+    
+    .app-header .app-nav {
+        width: 100%;
+        justify-content: space-around;
+        gap: 1rem;
+    }
+    
+    .app-header .nav-link {
+        font-size: 0.75rem;
+        padding: 0.25rem 0;
+    }
+    
+    .app-header .header-right {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+    }
+}

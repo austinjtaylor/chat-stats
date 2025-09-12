@@ -71,6 +71,17 @@ async def shutdown_event():
 # Serve static files for the frontend - MUST be after all route definitions
 frontend_path = os.path.join(os.path.dirname(__file__), "..", "frontend")
 if os.path.exists(frontend_path):
+    # Mount components directory first for header access
+    components_path = os.path.join(frontend_path, "components")
+    if os.path.exists(components_path):
+        app.mount("/components", DevStaticFiles(directory=components_path), name="components")
+    
+    # Mount stats directory
+    stats_path = os.path.join(frontend_path, "stats")
+    if os.path.exists(stats_path):
+        app.mount("/stats", DevStaticFiles(directory=stats_path, html=True), name="stats")
+    
+    # Mount main frontend last (catch-all)
     app.mount("/", DevStaticFiles(directory=frontend_path, html=True), name="static")
 else:
     print(f"Warning: Frontend directory not found at {frontend_path}")

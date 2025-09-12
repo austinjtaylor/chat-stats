@@ -7,87 +7,13 @@ body {
 }
 
 .stats-container {
-    min-height: 100vh;
+    min-height: calc(100vh - 60px); /* Account for header height */
+    padding-top: 60px; /* Space for fixed header */
     background: var(--background);
     color: var(--text-primary);
 }
 
-/* Header and Navigation */
-.stats-header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border-color);
-    padding: 1rem 2rem;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    box-shadow: var(--shadow);
-    display: block;
-    width: 100%;
-}
-
-.header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    max-width: 1400px;
-    margin: 0 auto;
-}
-
-.header-left {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.header-left h1 {
-    margin: 0;
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--primary-color);
-}
-
-.header-right {
-    display: flex;
-    align-items: center;
-    margin-right: 60px; /* Add space for the theme toggle button */
-}
-
-.stats-nav {
-    display: flex;
-    gap: 2rem;
-}
-
-.nav-link {
-    color: var(--text-secondary);
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 0.875rem;
-    letter-spacing: 0.5px;
-    padding: 0.5rem 0;
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s;
-}
-
-.nav-link:hover,
-.nav-link.active {
-    color: var(--primary-color);
-    border-bottom-color: var(--primary-color);
-}
-
-.chat-link {
-    color: var(--text-primary);
-    text-decoration: none;
-    padding: 0.5rem 1rem;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    transition: all 0.2s;
-    font-size: 0.875rem;
-}
-
-.chat-link:hover {
-    background: var(--surface-hover);
-    border-color: var(--primary-color);
-}
+/* Stats pages now use shared header from header.css */
 
 /* Main Content */
 .stats-main {
