@@ -551,12 +551,36 @@ class StatsChatSystem:
             SELECT 
                 t.team_id,
                 -- Aggregate player statistics for the team or opponents
-                SUM(CASE WHEN pgs.team_id {'!=' if is_opponent_view else '='} t.team_id THEN pgs.completions ELSE 0 END) as total_completions,
-                SUM(CASE WHEN pgs.team_id {'!=' if is_opponent_view else '='} t.team_id THEN pgs.throw_attempts ELSE 0 END) as total_attempts,
-                SUM(CASE WHEN pgs.team_id {'!=' if is_opponent_view else '='} t.team_id THEN pgs.throwaways + pgs.drops + pgs.stalls ELSE 0 END) as total_turnovers,
-                SUM(CASE WHEN pgs.team_id {'!=' if is_opponent_view else '='} t.team_id THEN pgs.hucks_completed ELSE 0 END) as hucks_completed,
-                SUM(CASE WHEN pgs.team_id {'!=' if is_opponent_view else '='} t.team_id THEN pgs.hucks_attempted ELSE 0 END) as hucks_attempted,
-                SUM(CASE WHEN pgs.team_id {'!=' if is_opponent_view else '='} t.team_id THEN pgs.blocks ELSE 0 END) as total_blocks
+                SUM(CASE 
+                    WHEN {'(' if is_opponent_view else ''} pgs.team_id {'!=' if is_opponent_view else '='} t.team_id 
+                    {' AND (pgs.team_id = g.home_team_id OR pgs.team_id = g.away_team_id))' if is_opponent_view else ''}
+                    THEN pgs.completions ELSE 0 
+                END) as total_completions,
+                SUM(CASE 
+                    WHEN {'(' if is_opponent_view else ''} pgs.team_id {'!=' if is_opponent_view else '='} t.team_id 
+                    {' AND (pgs.team_id = g.home_team_id OR pgs.team_id = g.away_team_id))' if is_opponent_view else ''}
+                    THEN pgs.throw_attempts ELSE 0 
+                END) as total_attempts,
+                SUM(CASE 
+                    WHEN {'(' if is_opponent_view else ''} pgs.team_id {'!=' if is_opponent_view else '='} t.team_id 
+                    {' AND (pgs.team_id = g.home_team_id OR pgs.team_id = g.away_team_id))' if is_opponent_view else ''}
+                    THEN pgs.throwaways + pgs.drops + pgs.stalls ELSE 0 
+                END) as total_turnovers,
+                SUM(CASE 
+                    WHEN {'(' if is_opponent_view else ''} pgs.team_id {'!=' if is_opponent_view else '='} t.team_id 
+                    {' AND (pgs.team_id = g.home_team_id OR pgs.team_id = g.away_team_id))' if is_opponent_view else ''}
+                    THEN pgs.hucks_completed ELSE 0 
+                END) as hucks_completed,
+                SUM(CASE 
+                    WHEN {'(' if is_opponent_view else ''} pgs.team_id {'!=' if is_opponent_view else '='} t.team_id 
+                    {' AND (pgs.team_id = g.home_team_id OR pgs.team_id = g.away_team_id))' if is_opponent_view else ''}
+                    THEN pgs.hucks_attempted ELSE 0 
+                END) as hucks_attempted,
+                SUM(CASE 
+                    WHEN {'(' if is_opponent_view else ''} pgs.team_id {'!=' if is_opponent_view else '='} t.team_id 
+                    {' AND (pgs.team_id = g.home_team_id OR pgs.team_id = g.away_team_id))' if is_opponent_view else ''}
+                    THEN pgs.blocks ELSE 0 
+                END) as total_blocks
             FROM distinct_teams t
             LEFT JOIN games g ON (g.home_team_id = t.team_id OR g.away_team_id = t.team_id)
             LEFT JOIN player_game_stats pgs ON pgs.game_id = g.game_id
@@ -723,6 +747,8 @@ class StatsChatSystem:
             # Get all games for this team in the season
             games_query = f"""
             SELECT g.game_id, 
+                   g.home_team_id, 
+                   g.away_team_id,
                    CASE WHEN g.home_team_id = :team_id THEN 1 ELSE 0 END as is_home
             FROM games g
             WHERE (g.home_team_id = :team_id OR g.away_team_id = :team_id)
@@ -745,22 +771,45 @@ class StatsChatSystem:
                 game_id = game["game_id"]
                 is_home = bool(game["is_home"])
                 
-                # Try to calculate possession stats for this game
-                poss_stats = calculate_possessions(self.db, game_id, team_id, is_home)
-                if poss_stats:
-                    games_with_events += 1
-                    total_o_line_points += poss_stats["o_line_points"]
-                    total_o_line_scores += poss_stats["o_line_scores"]
-                    total_o_line_possessions += poss_stats["o_line_possessions"]
-                    total_d_line_points += poss_stats["d_line_points"]
-                    total_d_line_scores += poss_stats["d_line_scores"]
-                    total_d_line_possessions += poss_stats["d_line_possessions"]
-                
-                # Try to calculate redzone stats for this game
-                rz_stats = calculate_redzone_stats_for_team(self.db, game_id, team_id, is_home)
-                if rz_stats:
-                    total_redzone_possessions += rz_stats["possessions"]
-                    total_redzone_goals += rz_stats["goals"]
+                # For opponent perspective, we want stats for the opposing team
+                if is_opponent_view:
+                    # Get the opponent's team_id
+                    opponent_team_id = game["away_team_id"] if is_home else game["home_team_id"]
+                    opponent_is_home = not is_home
+                    
+                    # Calculate possession stats for the opponent
+                    poss_stats = calculate_possessions(self.db, game_id, opponent_team_id, opponent_is_home)
+                    if poss_stats:
+                        games_with_events += 1
+                        total_o_line_points += poss_stats["o_line_points"]
+                        total_o_line_scores += poss_stats["o_line_scores"]
+                        total_o_line_possessions += poss_stats["o_line_possessions"]
+                        total_d_line_points += poss_stats["d_line_points"]
+                        total_d_line_scores += poss_stats["d_line_scores"]
+                        total_d_line_possessions += poss_stats["d_line_possessions"]
+                    
+                    # Calculate redzone stats for the opponent
+                    rz_stats = calculate_redzone_stats_for_team(self.db, game_id, opponent_team_id, opponent_is_home)
+                    if rz_stats:
+                        total_redzone_possessions += rz_stats["possessions"]
+                        total_redzone_goals += rz_stats["goals"]
+                else:
+                    # Try to calculate possession stats for this game
+                    poss_stats = calculate_possessions(self.db, game_id, team_id, is_home)
+                    if poss_stats:
+                        games_with_events += 1
+                        total_o_line_points += poss_stats["o_line_points"]
+                        total_o_line_scores += poss_stats["o_line_scores"]
+                        total_o_line_possessions += poss_stats["o_line_possessions"]
+                        total_d_line_points += poss_stats["d_line_points"]
+                        total_d_line_scores += poss_stats["d_line_scores"]
+                        total_d_line_possessions += poss_stats["d_line_possessions"]
+                    
+                    # Try to calculate redzone stats for this game
+                    rz_stats = calculate_redzone_stats_for_team(self.db, game_id, team_id, is_home)
+                    if rz_stats:
+                        total_redzone_possessions += rz_stats["possessions"]
+                        total_redzone_goals += rz_stats["goals"]
             
             # Calculate percentages
             if total_o_line_points > 0:

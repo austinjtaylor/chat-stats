@@ -27,13 +27,26 @@ class TeamStats {
         });
 
         // View toggle (Total/Per Game)
-        document.querySelectorAll('.tab-btn').forEach(btn => {
+        document.querySelectorAll('[data-view]').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                // Update active state
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                // Update active state within the view tabs only
+                e.target.parentElement.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 e.target.classList.add('active');
                 
                 this.filters.view = e.target.dataset.view;
+                this.loadTeamStats();
+            });
+        });
+
+        // Perspective toggle (Team/Opponent)
+        document.querySelectorAll('[data-perspective]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // Update active state within the perspective tabs only
+                e.target.parentElement.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                
+                this.filters.perspective = e.target.dataset.perspective;
+                this.renderTableHeaders(); // Re-render headers to show Opp prefix
                 this.loadTeamStats();
             });
         });
@@ -53,29 +66,32 @@ class TeamStats {
     }
 
     getColumnsForSeason(season) {
+        const isOpponent = this.filters.perspective === 'opponent';
+        const oppPrefix = isOpponent ? 'Opp ' : '';
+        
         // Base columns available for all years
         const baseColumns = [
             { key: 'name', label: 'Team', sortable: true },
             { key: 'games_played', label: 'G', sortable: true },
             { key: 'wins', label: 'W', sortable: true },
             { key: 'losses', label: 'L', sortable: true },
-            { key: 'scores', label: 'S', sortable: true },
-            { key: 'scores_against', label: 'SA', sortable: true },
-            { key: 'completions', label: 'C', sortable: true },
-            { key: 'turnovers', label: 'T', sortable: true },
-            { key: 'completion_percentage', label: 'CMP %', sortable: true }
+            { key: 'scores', label: isOpponent ? 'Opp S' : 'S', sortable: true },
+            { key: 'scores_against', label: isOpponent ? 'Opp SA' : 'SA', sortable: true },
+            { key: 'completions', label: `${oppPrefix}C`, sortable: true },
+            { key: 'turnovers', label: `${oppPrefix}T`, sortable: true },
+            { key: 'completion_percentage', label: `${oppPrefix}CMP %`, sortable: true }
         ];
 
         // Advanced stats columns
         const advancedColumns = [
-            { key: 'hucks_completed', label: 'H', sortable: true },
-            { key: 'huck_percentage', label: 'Huck %', sortable: true },
-            { key: 'hold_percentage', label: 'HLD %', sortable: true },
-            { key: 'o_line_conversion', label: 'OLC %', sortable: true },
-            { key: 'blocks', label: 'B', sortable: true },
-            { key: 'break_percentage', label: 'BRK %', sortable: true },
-            { key: 'd_line_conversion', label: 'DLC %', sortable: true },
-            { key: 'red_zone_conversion', label: 'RZC %', sortable: true }
+            { key: 'hucks_completed', label: `${oppPrefix}H`, sortable: true },
+            { key: 'huck_percentage', label: `${oppPrefix}Huck %`, sortable: true },
+            { key: 'hold_percentage', label: `${oppPrefix}HLD %`, sortable: true },
+            { key: 'o_line_conversion', label: `${oppPrefix}OLC %`, sortable: true },
+            { key: 'blocks', label: `${oppPrefix}B`, sortable: true },
+            { key: 'break_percentage', label: `${oppPrefix}BRK %`, sortable: true },
+            { key: 'd_line_conversion', label: `${oppPrefix}DLC %`, sortable: true },
+            { key: 'red_zone_conversion', label: `${oppPrefix}RZC %`, sortable: true }
         ];
 
         // For now, show all columns for all seasons
@@ -203,46 +219,17 @@ class TeamStats {
         }
     }
 
-    // Add method to toggle perspective (Team/Opponent)
-    addPerspectiveToggle() {
-        const filtersRow = document.querySelector('.filters-row');
-        if (filtersRow && !document.getElementById('perspectiveToggle')) {
-            const perspectiveGroup = document.createElement('div');
-            perspectiveGroup.className = 'filter-group';
-            perspectiveGroup.innerHTML = `
-                <label>Perspective</label>
-                <div class="view-tabs" id="perspectiveToggle">
-                    <button class="tab-btn active" data-perspective="team">Team</button>
-                    <button class="tab-btn" data-perspective="opponent">Opponent</button>
-                </div>
-            `;
-            filtersRow.appendChild(perspectiveGroup);
-
-            // Add event listeners for perspective toggle
-            perspectiveGroup.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    // Update active state
-                    perspectiveGroup.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                    e.target.classList.add('active');
-                    
-                    this.filters.perspective = e.target.dataset.perspective;
-                    this.loadTeamStats();
-                });
-            });
-        }
-    }
+    // Remove the addPerspectiveToggle method as it's no longer needed
 }
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
     if (window.ufaStats) {
         const teamStats = new TeamStats();
-        teamStats.addPerspectiveToggle(); // Add the perspective toggle
     } else {
         // Wait for shared.js to load
         setTimeout(() => {
             const teamStats = new TeamStats();
-            teamStats.addPerspectiveToggle(); // Add the perspective toggle
         }, 100);
     }
 });
