@@ -87,56 +87,40 @@ function setupEventListeners() {
 // Setup dropdown functionality
 function setupDropdowns() {
     // Menu dropdown
-    const menuIcon = document.getElementById('menuIcon');
+    const menuWrapper = document.querySelector('.menu-wrapper');
     const menuDropdown = document.getElementById('menuDropdown');
     
-    if (menuIcon && menuDropdown) {
+    if (menuWrapper && menuDropdown) {
         let menuTimeout;
         
-        menuIcon.addEventListener('mouseenter', () => {
+        menuWrapper.addEventListener('mouseenter', () => {
             clearTimeout(menuTimeout);
             menuDropdown.classList.add('active');
         });
         
-        menuIcon.addEventListener('mouseleave', () => {
+        menuWrapper.addEventListener('mouseleave', () => {
             menuTimeout = setTimeout(() => {
                 menuDropdown.classList.remove('active');
             }, 200);
         });
-        
-        menuDropdown.addEventListener('mouseenter', () => {
-            clearTimeout(menuTimeout);
-        });
-        
-        menuDropdown.addEventListener('mouseleave', () => {
-            menuDropdown.classList.remove('active');
-        });
     }
     
     // Settings dropdown
-    const settingsIcon = document.getElementById('settingsIcon');
+    const settingsWrapper = document.querySelector('.settings-wrapper');
     const settingsDropdown = document.getElementById('settingsDropdown');
     
-    if (settingsIcon && settingsDropdown) {
+    if (settingsWrapper && settingsDropdown) {
         let settingsTimeout;
         
-        settingsIcon.addEventListener('mouseenter', () => {
+        settingsWrapper.addEventListener('mouseenter', () => {
             clearTimeout(settingsTimeout);
             settingsDropdown.classList.add('active');
         });
         
-        settingsIcon.addEventListener('mouseleave', () => {
+        settingsWrapper.addEventListener('mouseleave', () => {
             settingsTimeout = setTimeout(() => {
                 settingsDropdown.classList.remove('active');
             }, 200);
-        });
-        
-        settingsDropdown.addEventListener('mouseenter', () => {
-            clearTimeout(settingsTimeout);
-        });
-        
-        settingsDropdown.addEventListener('mouseleave', () => {
-            settingsDropdown.classList.remove('active');
         });
     }
     

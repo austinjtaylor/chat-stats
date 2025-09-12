@@ -26,14 +26,13 @@
     text-align: center;
     letter-spacing: -0.5px;
     position: absolute;
-    top: 11vh;
+    top: 30vh;
     left: 50%;
     transform: translateX(-50%);
 }
 
 /* Icon Buttons Base Style */
 .icon-button {
-    position: fixed;
     width: 40px;
     height: 40px;
     background: var(--background);
@@ -44,7 +43,6 @@
     justify-content: center;
     cursor: pointer;
     transition: background 0.2s ease;
-    z-index: 1000;
     padding: 0;
 }
 
@@ -58,16 +56,30 @@
     color: var(--text-primary);
 }
 
-/* Menu Icon (Top Left) */
-.menu-icon {
+/* Menu Wrapper (Top Left) */
+.menu-wrapper {
+    position: fixed;
     top: 1rem;
     left: 1rem;
+    z-index: 1000;
 }
 
-/* Settings Icon (Top Right) */
-.settings-icon {
+/* Menu Icon */
+.menu-icon {
+    position: relative;
+}
+
+/* Settings Wrapper (Top Right) */
+.settings-wrapper {
+    position: fixed;
     top: 1rem;
     right: 1rem;
+    z-index: 1000;
+}
+
+/* Settings Icon */
+.settings-icon {
+    position: relative;
 }
 
 /* Dropdown Base Styles */
@@ -83,12 +95,15 @@
     transition: all 0.2s ease;
     min-width: 180px;
     padding: 0.5rem 0;
+    pointer-events: none; /* Prevent interaction when hidden */
+    z-index: 1001; /* Above the icon */
 }
 
 .dropdown.active {
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
+    pointer-events: auto; /* Allow interaction when visible */
 }
 
 /* Menu Dropdown */
@@ -144,7 +159,7 @@
     display: flex;
     justify-content: center;
     position: absolute;
-    top: 17vh;
+    top: 36vh;
     left: 50%;
     transform: translateX(-50%);
 }
