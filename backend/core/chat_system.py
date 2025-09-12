@@ -800,6 +800,15 @@ class StatsChatSystem:
                     team["hucks_completed"] = round(team["hucks_completed"] / games, 2)
                     team["blocks"] = round(team["blocks"] / games, 2)
         
+        # If sorting by possession stats, apply Python sorting after calculation
+        possession_stats = ['hold_percentage', 'o_line_conversion', 'break_percentage', 
+                          'd_line_conversion', 'red_zone_conversion']
+        
+        if sort in possession_stats:
+            # Sort by the calculated possession stat values
+            reverse = (order == 'desc')
+            teams.sort(key=lambda x: x.get(sort, 0), reverse=reverse)
+        
         return teams
 
     def close(self):
