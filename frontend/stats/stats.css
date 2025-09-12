@@ -49,6 +49,7 @@ body {
 .header-right {
     display: flex;
     align-items: center;
+    margin-right: 60px; /* Add space for the theme toggle button */
 }
 
 .stats-nav {
