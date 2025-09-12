@@ -53,14 +53,16 @@ def calculate_possessions(
     points = []
     current_point = None
     current_possession = None
+    point_had_action = False  # Track if point had actual game play
 
     for event in events:
         event_type = event["event_type"]
         
         # START_D_POINT (1) - This team pulls, opponent receives
         if event_type == 1:  # Team pulls (D-point for team)
-            # Save previous point if exists (even if no goal - e.g., end of quarter)
-            if current_point:
+            # Save previous point if exists and it had actual game action
+            # UFA doesn't count "empty" points (e.g., pull followed immediately by another pull)
+            if current_point and point_had_action:
                 points.append(current_point)
 
             # This team is pulling, opponent receives
@@ -72,11 +74,12 @@ def calculate_possessions(
                 "opponent_possessions": 1,  # Opponent starts with possession
             }
             current_possession = opponent_type
+            point_had_action = False  # Reset for new point
             
         # START_O_POINT (2) - This team receives, opponent pulls
         elif event_type == 2:  # Team receives (O-point for team)
-            # Save previous point if exists
-            if current_point:
+            # Save previous point if exists and it had actual game action
+            if current_point and point_had_action:
                 points.append(current_point)
 
             # This team receives, opponent pulls
@@ -88,19 +91,27 @@ def calculate_possessions(
                 "opponent_possessions": 0,
             }
             current_possession = team_type
+            point_had_action = False  # Reset for new point
 
         # Goal ends the current point
         elif event_type == 19 and current_point:  # Team goal
             current_point["scoring_team"] = team_type  # This team scored
+            point_had_action = True  # Goals count as game action
             # Don't append here, wait for next pull or end of events
             
         elif event_type == 15 and current_point:  # Opponent goal
             current_point["scoring_team"] = opponent_type  # Opponent scored
+            point_had_action = True  # Goals count as game action
             # Don't append here, wait for next pull or end of events
+        
+        # Pass events indicate actual game play
+        elif event_type == 18 and current_point:  # Pass
+            point_had_action = True
 
         # Turnovers change possession
         # Event types: 11=Block, 20=Drop, 22=Throwaway, 24=Stall
         elif event_type in [11, 20, 22, 24] and current_point:
+            point_had_action = True  # Turnovers count as game action
             # Determine who gets possession after turnover
             if event_type == 11:  # Block - this team blocks, gets possession
                 new_possession = team_type
@@ -117,6 +128,7 @@ def calculate_possessions(
                 
         # Opponent turnovers - Event type 13=Throwaway by opposing team
         elif event_type == 13 and current_point:
+            point_had_action = True  # Turnovers count as game action
             # Opponent throws it away, this team gets possession
             new_possession = team_type
             
@@ -127,8 +139,8 @@ def calculate_possessions(
                     current_point["opponent_possessions"] += 1
                 current_possession = new_possession
 
-    # Add final point if exists
-    if current_point:
+    # Add final point if exists and it had actual game action
+    if current_point and point_had_action:
         points.append(current_point)
 
     # Calculate statistics from points
