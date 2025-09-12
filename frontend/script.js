@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     themeToggle = document.getElementById('themeToggle');
     
     setupEventListeners();
+    setupDropdowns();
     // Theme initialization moved to nav.js
     createNewSession();
     loadSportsStats();
@@ -56,7 +57,15 @@ function setupEventListeners() {
     });
     
     // New chat button
-    newChatButton.addEventListener('click', startNewChat);
+    if (newChatButton) {
+        newChatButton.addEventListener('click', startNewChat);
+    }
+    
+    // New chat from menu
+    const newChatMenuItem = document.getElementById('newChatMenuItem');
+    if (newChatMenuItem) {
+        newChatMenuItem.addEventListener('click', startNewChat);
+    }
     
     // Theme toggle handled by nav.js
     
@@ -66,8 +75,123 @@ function setupEventListeners() {
             const question = e.target.getAttribute('data-question');
             chatInput.value = question;
             sendMessage();
+            // Close dropdown after selection
+            const suggestionsDropdown = document.getElementById('suggestionsDropdown');
+            if (suggestionsDropdown) {
+                suggestionsDropdown.classList.remove('active');
+            }
         });
     });
+}
+
+// Setup dropdown functionality
+function setupDropdowns() {
+    // Menu dropdown
+    const menuIcon = document.getElementById('menuIcon');
+    const menuDropdown = document.getElementById('menuDropdown');
+    
+    if (menuIcon && menuDropdown) {
+        let menuTimeout;
+        
+        menuIcon.addEventListener('mouseenter', () => {
+            clearTimeout(menuTimeout);
+            menuDropdown.classList.add('active');
+        });
+        
+        menuIcon.addEventListener('mouseleave', () => {
+            menuTimeout = setTimeout(() => {
+                menuDropdown.classList.remove('active');
+            }, 200);
+        });
+        
+        menuDropdown.addEventListener('mouseenter', () => {
+            clearTimeout(menuTimeout);
+        });
+        
+        menuDropdown.addEventListener('mouseleave', () => {
+            menuDropdown.classList.remove('active');
+        });
+    }
+    
+    // Settings dropdown
+    const settingsIcon = document.getElementById('settingsIcon');
+    const settingsDropdown = document.getElementById('settingsDropdown');
+    
+    if (settingsIcon && settingsDropdown) {
+        let settingsTimeout;
+        
+        settingsIcon.addEventListener('mouseenter', () => {
+            clearTimeout(settingsTimeout);
+            settingsDropdown.classList.add('active');
+        });
+        
+        settingsIcon.addEventListener('mouseleave', () => {
+            settingsTimeout = setTimeout(() => {
+                settingsDropdown.classList.remove('active');
+            }, 200);
+        });
+        
+        settingsDropdown.addEventListener('mouseenter', () => {
+            clearTimeout(settingsTimeout);
+        });
+        
+        settingsDropdown.addEventListener('mouseleave', () => {
+            settingsDropdown.classList.remove('active');
+        });
+    }
+    
+    // Try Asking suggestions dropdown
+    const tryAskingButton = document.getElementById('tryAskingButton');
+    const suggestionsDropdown = document.getElementById('suggestionsDropdown');
+    
+    if (tryAskingButton && suggestionsDropdown) {
+        let suggestionsTimeout;
+        
+        tryAskingButton.addEventListener('mouseenter', () => {
+            clearTimeout(suggestionsTimeout);
+            suggestionsDropdown.classList.add('active');
+        });
+        
+        tryAskingButton.addEventListener('mouseleave', () => {
+            suggestionsTimeout = setTimeout(() => {
+                suggestionsDropdown.classList.remove('active');
+            }, 200);
+        });
+        
+        suggestionsDropdown.addEventListener('mouseenter', () => {
+            clearTimeout(suggestionsTimeout);
+        });
+        
+        suggestionsDropdown.addEventListener('mouseleave', () => {
+            suggestionsDropdown.classList.remove('active');
+        });
+    }
+    
+    // Theme toggle functionality
+    const themeToggleItem = document.getElementById('themeToggleItem');
+    const themeSwitch = document.getElementById('themeSwitch');
+    
+    if (themeToggleItem && themeSwitch) {
+        // Check current theme
+        const currentTheme = localStorage.getItem('theme') || 'dark';
+        if (currentTheme === 'light') {
+            themeSwitch.classList.add('active');
+        }
+        
+        themeToggleItem.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            if (newTheme === 'light') {
+                themeSwitch.classList.add('active');
+            } else {
+                themeSwitch.classList.remove('active');
+            }
+        });
+    }
 }
 
 
