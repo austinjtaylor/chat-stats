@@ -579,7 +579,7 @@ header h1 {
     display: none;
 }
 
-.stats-header::before,
+details .stats-header::before,
 .suggested-header::before {
     content: '▶';
     display: inline-block;

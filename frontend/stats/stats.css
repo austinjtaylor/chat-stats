@@ -21,6 +21,8 @@ body {
     top: 0;
     z-index: 100;
     box-shadow: var(--shadow);
+    display: block;
+    width: 100%;
 }
 
 .header-content {
@@ -31,11 +33,22 @@ body {
     margin: 0 auto;
 }
 
+.header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
 .header-left h1 {
-    margin: 0 0 0.5rem 0;
+    margin: 0;
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--primary-color);
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
 }
 
 .stats-nav {
