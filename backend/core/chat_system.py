@@ -12,6 +12,7 @@ from core.ai_generator import AIGenerator
 from core.session_manager import SessionManager
 from data.cache import cache_key_for_endpoint, get_cache
 from data.database import get_db
+from data.possession import calculate_possessions, calculate_redzone_stats_for_team
 from data.processor import StatsProcessor
 
 
@@ -583,7 +584,7 @@ class StatsChatSystem:
                 ELSE 0 
             END as huck_percentage,
             COALESCE(tps.total_blocks, 0) as blocks,
-            -- Placeholder values for possession stats (would need game_events calculation)
+            -- Possession stats will be calculated separately
             0.0 as hold_percentage,
             0.0 as o_line_conversion,
             0.0 as break_percentage,
@@ -625,6 +626,78 @@ class StatsChatSystem:
         }
         
         teams = self.db.execute_query(query, params)
+        
+        # Calculate possession statistics for each team
+        for team in teams:
+            team_id = team["team_id"]
+            
+            # Get all games for this team in the season
+            games_query = f"""
+            SELECT g.game_id, 
+                   CASE WHEN g.home_team_id = :team_id THEN 1 ELSE 0 END as is_home
+            FROM games g
+            WHERE (g.home_team_id = :team_id OR g.away_team_id = :team_id)
+            {season_filter}
+            """
+            games = self.db.execute_query(games_query, {"team_id": team_id, "season": season_param})
+            
+            # Aggregate possession stats across all games
+            total_o_line_points = 0
+            total_o_line_scores = 0
+            total_o_line_possessions = 0
+            total_d_line_points = 0
+            total_d_line_scores = 0
+            total_d_line_possessions = 0
+            total_redzone_possessions = 0
+            total_redzone_goals = 0
+            games_with_events = 0
+            
+            for game in games:
+                game_id = game["game_id"]
+                is_home = bool(game["is_home"])
+                
+                # Try to calculate possession stats for this game
+                poss_stats = calculate_possessions(self.db, game_id, team_id, is_home)
+                if poss_stats:
+                    games_with_events += 1
+                    total_o_line_points += poss_stats["o_line_points"]
+                    total_o_line_scores += poss_stats["o_line_scores"]
+                    total_o_line_possessions += poss_stats["o_line_possessions"]
+                    total_d_line_points += poss_stats["d_line_points"]
+                    total_d_line_scores += poss_stats["d_line_scores"]
+                    total_d_line_possessions += poss_stats["d_line_possessions"]
+                
+                # Try to calculate redzone stats for this game
+                rz_stats = calculate_redzone_stats_for_team(self.db, game_id, team_id, is_home)
+                if rz_stats:
+                    total_redzone_possessions += rz_stats["possessions"]
+                    total_redzone_goals += rz_stats["goals"]
+            
+            # Calculate percentages
+            if total_o_line_points > 0:
+                team["hold_percentage"] = round((total_o_line_scores / total_o_line_points) * 100, 1)
+            else:
+                team["hold_percentage"] = 0.0
+                
+            if total_o_line_possessions > 0:
+                team["o_line_conversion"] = round((total_o_line_scores / total_o_line_possessions) * 100, 1)
+            else:
+                team["o_line_conversion"] = 0.0
+                
+            if total_d_line_points > 0:
+                team["break_percentage"] = round((total_d_line_scores / total_d_line_points) * 100, 1)
+            else:
+                team["break_percentage"] = 0.0
+                
+            if total_d_line_possessions > 0:
+                team["d_line_conversion"] = round((total_d_line_scores / total_d_line_possessions) * 100, 1)
+            else:
+                team["d_line_conversion"] = 0.0
+                
+            if total_redzone_possessions > 0:
+                team["red_zone_conversion"] = round((total_redzone_goals / total_redzone_possessions) * 100, 1)
+            else:
+                team["red_zone_conversion"] = 0.0
         
         # Apply per-game calculations if requested
         if view == "per-game":
