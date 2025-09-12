@@ -332,16 +332,12 @@ function escapeHtml(text) {
 async function createNewSession() {
     currentSessionId = null;
     chatMessages.innerHTML = '';
-    addMessage('Welcome to the UFA Stats Assistant! I can help you with questions about player stats, team performance, and game results. What would you like to know?', 'assistant', null, true);
 }
 
 function startNewChat() {
     // Reset session and clear chat
     currentSessionId = null;
     chatMessages.innerHTML = '';
-    
-    // Add welcome message
-    addMessage('Welcome to the UFA Stats Assistant! I can help you with questions about player stats, team performance, and game results. What would you like to know?', 'assistant', null, true);
     
     // Focus on chat input for immediate use
     if (chatInput) {
