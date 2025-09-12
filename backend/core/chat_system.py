@@ -512,7 +512,12 @@ class StatsChatSystem:
         is_opponent_view = perspective == "opponent"
         
         query = f"""
-        WITH team_game_stats AS (
+        WITH distinct_teams AS (
+            SELECT DISTINCT team_id, MIN(name) as name, MIN(full_name) as full_name
+            FROM teams
+            GROUP BY team_id
+        ),
+        team_game_stats AS (
             SELECT 
                 t.team_id,
                 t.name,
@@ -536,7 +541,7 @@ class StatsChatSystem:
                     THEN {'g.home_score' if is_opponent_view else 'g.away_score'}
                     ELSE {'g.away_score' if is_opponent_view else 'g.home_score'} 
                 END) as scores_against
-            FROM teams t
+            FROM distinct_teams t
             LEFT JOIN games g ON (g.home_team_id = t.team_id OR g.away_team_id = t.team_id)
             WHERE 1=1 {season_filter}
             GROUP BY t.team_id, t.name, t.full_name
@@ -551,7 +556,7 @@ class StatsChatSystem:
                 SUM(CASE WHEN pgs.team_id {'!=' if is_opponent_view else '='} t.team_id THEN pgs.hucks_completed ELSE 0 END) as hucks_completed,
                 SUM(CASE WHEN pgs.team_id {'!=' if is_opponent_view else '='} t.team_id THEN pgs.hucks_attempted ELSE 0 END) as hucks_attempted,
                 SUM(CASE WHEN pgs.team_id {'!=' if is_opponent_view else '='} t.team_id THEN pgs.blocks ELSE 0 END) as total_blocks
-            FROM teams t
+            FROM distinct_teams t
             LEFT JOIN games g ON (g.home_team_id = t.team_id OR g.away_team_id = t.team_id)
             LEFT JOIN player_game_stats pgs ON pgs.game_id = g.game_id
             WHERE 1=1 {season_filter}
