@@ -124,30 +124,22 @@ function setupDropdowns() {
         });
     }
     
-    // Try Asking suggestions dropdown
-    const tryAskingButton = document.getElementById('tryAskingButton');
+    // Try Asking suggestions dropdown - simple hover
+    const tryAskingContainer = document.querySelector('.try-asking-container');
     const suggestionsDropdown = document.getElementById('suggestionsDropdown');
     
-    if (tryAskingButton && suggestionsDropdown) {
+    if (tryAskingContainer && suggestionsDropdown) {
         let suggestionsTimeout;
         
-        tryAskingButton.addEventListener('mouseenter', () => {
+        tryAskingContainer.addEventListener('mouseenter', () => {
             clearTimeout(suggestionsTimeout);
             suggestionsDropdown.classList.add('active');
         });
         
-        tryAskingButton.addEventListener('mouseleave', () => {
+        tryAskingContainer.addEventListener('mouseleave', () => {
             suggestionsTimeout = setTimeout(() => {
                 suggestionsDropdown.classList.remove('active');
             }, 200);
-        });
-        
-        suggestionsDropdown.addEventListener('mouseenter', () => {
-            clearTimeout(suggestionsTimeout);
-        });
-        
-        suggestionsDropdown.addEventListener('mouseleave', () => {
-            suggestionsDropdown.classList.remove('active');
         });
     }
     
