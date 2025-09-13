@@ -180,10 +180,11 @@ body {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    padding: 0 1rem 300px 1rem;
+    padding: 0 1rem 20px 1rem;
     gap: 0.5rem;
     position: relative;
     overflow: visible;
+    padding-bottom: 400px; /* Space for dropdown */
 }
 
 /* Chat Messages Area */

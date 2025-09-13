@@ -124,19 +124,34 @@ function setupDropdowns() {
         });
     }
     
-    // Try Asking suggestions dropdown - simple hover
+    // Try Asking suggestions dropdown - hover on button only
+    const tryAskingButton = document.getElementById('tryAskingButton');
     const tryAskingContainer = document.querySelector('.try-asking-container');
     const suggestionsDropdown = document.getElementById('suggestionsDropdown');
-    
-    if (tryAskingContainer && suggestionsDropdown) {
+
+    if (tryAskingButton && suggestionsDropdown && tryAskingContainer) {
         let suggestionsTimeout;
-        
-        tryAskingContainer.addEventListener('mouseenter', () => {
+
+        // Show dropdown when hovering button
+        tryAskingButton.addEventListener('mouseenter', () => {
             clearTimeout(suggestionsTimeout);
             suggestionsDropdown.classList.add('active');
         });
-        
-        tryAskingContainer.addEventListener('mouseleave', () => {
+
+        // Hide dropdown when leaving button (with delay)
+        tryAskingButton.addEventListener('mouseleave', () => {
+            suggestionsTimeout = setTimeout(() => {
+                suggestionsDropdown.classList.remove('active');
+            }, 200);
+        });
+
+        // Keep dropdown open when hovering over it
+        suggestionsDropdown.addEventListener('mouseenter', () => {
+            clearTimeout(suggestionsTimeout);
+        });
+
+        // Hide dropdown when leaving dropdown
+        suggestionsDropdown.addEventListener('mouseleave', () => {
             suggestionsTimeout = setTimeout(() => {
                 suggestionsDropdown.classList.remove('active');
             }, 200);
