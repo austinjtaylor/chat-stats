@@ -194,7 +194,13 @@ async function sendMessage() {
     // Add to query history
     queryHistory.push(query);
     historyIndex = -1; // Reset history navigation
-    
+
+    // Hide the "Try Asking" container after sending a message
+    const tryAskingContainer = document.querySelector('.try-asking-container');
+    if (tryAskingContainer) {
+        tryAskingContainer.style.display = 'none';
+    }
+
     // Disable input
     chatInput.value = '';
     chatInput.disabled = true;
@@ -323,13 +329,25 @@ function escapeHtml(text) {
 async function createNewSession() {
     currentSessionId = null;
     chatMessages.innerHTML = '';
+
+    // Ensure \"Try Asking\" container is visible for new session
+    const tryAskingContainer = document.querySelector('.try-asking-container');
+    if (tryAskingContainer) {
+        tryAskingContainer.style.display = 'flex';
+    }
 }
 
 function startNewChat() {
     // Reset session and clear chat
     currentSessionId = null;
     chatMessages.innerHTML = '';
-    
+
+    // Show the "Try Asking" container again for new chat
+    const tryAskingContainer = document.querySelector('.try-asking-container');
+    if (tryAskingContainer) {
+        tryAskingContainer.style.display = 'flex';
+    }
+
     // Focus on chat input for immediate use
     if (chatInput) {
         chatInput.focus();
