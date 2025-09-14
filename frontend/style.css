@@ -217,13 +217,13 @@ header h1 {
 }
 
 .message.user .message-content {
-    background: var(--user-message);
-    color: white;
+    background: var(--surface);
+    color: var(--text-primary);
     border-bottom-right-radius: 4px;
 }
 
 .message.assistant .message-content {
-    background: var(--surface);
+    background: var(--background);
     color: var(--text-primary);
     border-bottom-left-radius: 4px;
 }
