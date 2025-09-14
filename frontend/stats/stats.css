@@ -209,6 +209,12 @@ body {
     min-width: 100px;
 }
 
+/* Team selector specific width */
+#teamFilter {
+    max-width: 150px;
+    width: 150px;
+}
+
 .filter-select.compact:focus {
     outline: none;
     border-color: var(--primary-color);
