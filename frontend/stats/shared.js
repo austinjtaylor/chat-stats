@@ -19,7 +19,7 @@ class UFAStats {
     // API helper methods
     async fetchData(endpoint, params = {}) {
         try {
-            const url = new URL(`${this.apiBase}${endpoint}`);
+            const url = new URL(`${this.apiBase}${endpoint}`, window.location.origin);
             Object.keys(params).forEach(key => {
                 if (params[key] !== null && params[key] !== undefined) {
                     url.searchParams.append(key, params[key]);
