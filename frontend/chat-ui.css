@@ -29,7 +29,7 @@ body {
     font-size: 2.5rem;
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 2rem;
+    margin-bottom: -1rem;
     text-align: center;
     letter-spacing: -0.5px;
     position: relative;
@@ -166,7 +166,7 @@ body {
     align-items: center;
     justify-content: center;
     position: fixed;
-    top: 45%;
+    top: 55%;
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 2;
