@@ -21,8 +21,7 @@ body {
     justify-content: center;
     background: var(--background);
     position: relative;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: visible;
 }
 
 /* Chat Stats Title */
@@ -33,10 +32,7 @@ body {
     margin-bottom: 2rem;
     text-align: center;
     letter-spacing: -0.5px;
-    position: fixed;
-    top: 8vh;
-    left: 50%;
-    transform: translateX(-50%);
+    position: relative;
     z-index: 1;
 }
 
@@ -166,11 +162,13 @@ body {
 .chat-main-full {
     width: 100%;
     display: flex;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
     position: fixed;
-    top: 15vh;
+    top: 45%;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translate(-50%, -50%);
     z-index: 2;
 }
 
@@ -180,11 +178,10 @@ body {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    padding: 0 1rem 20px 1rem;
+    padding: 0 1rem;
     gap: 0.5rem;
     position: relative;
     overflow: visible;
-    padding-bottom: 400px; /* Space for dropdown */
 }
 
 /* Chat Messages Area */
@@ -278,7 +275,7 @@ body {
     z-index: 100;
     overflow: visible;
     min-height: 40px;
-    margin-bottom: 20px;
+    margin-bottom: 200px; /* Extra space for dropdown */
 }
 
 .try-asking-button {
@@ -324,7 +321,7 @@ body {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: all 0.2s ease;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
 }
 
 /* Show dropdown when active */
@@ -416,6 +413,58 @@ body {
 
 .theme-toggle-switch.active .theme-toggle-slider {
     transform: translateX(20px);
+}
+
+/* Chat Active State - Transform layout when conversation starts */
+.chat-active .chat-title {
+    display: none;
+}
+
+.chat-active .chat-main-full {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    transform: none;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    padding: 0;
+}
+
+.chat-active .chat-container-full {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+}
+
+.chat-active .chat-messages {
+    flex: 1;
+    max-height: none;
+    height: 100%;
+    overflow-y: auto;
+    padding: 2rem 1rem;
+}
+
+.chat-active .chat-input-area {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 768px;
+    padding: 1rem;
+    background: var(--background);
+    border-top: 1px solid var(--border-color);
+}
+
+.chat-active .try-asking-container {
+    display: none !important;
 }
 
 /* Responsive Design */

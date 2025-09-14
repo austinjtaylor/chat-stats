@@ -195,7 +195,10 @@ async function sendMessage() {
     queryHistory.push(query);
     historyIndex = -1; // Reset history navigation
 
-    // Hide the "Try Asking" container after sending a message
+    // Add chat-active class to transform the layout
+    document.body.classList.add('chat-active');
+
+    // Hide the "Try Asking" container after sending a message (redundant with CSS but kept for compatibility)
     const tryAskingContainer = document.querySelector('.try-asking-container');
     if (tryAskingContainer) {
         tryAskingContainer.style.display = 'none';
@@ -342,15 +345,22 @@ function startNewChat() {
     currentSessionId = null;
     chatMessages.innerHTML = '';
 
+    // Remove chat-active class to restore centered layout
+    document.body.classList.remove('chat-active');
+
     // Show the "Try Asking" container again for new chat
     const tryAskingContainer = document.querySelector('.try-asking-container');
     if (tryAskingContainer) {
         tryAskingContainer.style.display = 'flex';
     }
 
-    // Focus on chat input for immediate use
+    // Re-enable input and focus
     if (chatInput) {
+        chatInput.disabled = false;
         chatInput.focus();
+    }
+    if (sendButton) {
+        sendButton.disabled = false;
     }
 }
 
