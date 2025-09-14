@@ -1,0 +1,51 @@
+/* Stats Pages Navigation Styling */
+
+/* Page Title Style - Similar to Chat Stats title */
+.stats-page-title {
+    font-size: 2.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 2rem;
+    text-align: center;
+    letter-spacing: -0.5px;
+}
+
+/* Override chat-ui.css styles that hide the header */
+.app-header {
+    display: none !important;
+}
+
+/* Ensure stats container doesn't have header padding */
+.stats-container {
+    min-height: 100vh;
+    padding-top: 0;
+}
+
+/* Adjust main content area */
+.stats-main {
+    padding-top: 4rem; /* Space for fixed menu/settings icons */
+}
+
+/* Menu and Settings dropdowns already styled in chat-ui.css */
+/* Just ensure they work on stats pages */
+
+/* Add visual indicator for current page in menu dropdown */
+.menu-dropdown .dropdown-item[href*="players"] {
+    position: relative;
+}
+
+.menu-dropdown .dropdown-item[href*="teams"] {
+    position: relative;
+}
+
+.menu-dropdown .dropdown-item[href*="games"] {
+    position: relative;
+}
+
+/* Highlight current page in dropdown when on that page */
+body[data-page="players"] .menu-dropdown .dropdown-item[href*="players"],
+body[data-page="teams"] .menu-dropdown .dropdown-item[href*="teams"],
+body[data-page="games"] .menu-dropdown .dropdown-item[href*="games"] {
+    background: var(--surface-hover);
+    font-weight: 600;
+}

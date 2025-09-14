@@ -7,20 +7,18 @@ body {
 }
 
 .stats-container {
-    min-height: calc(100vh - 60px); /* Account for header height */
-    padding-top: 60px; /* Space for fixed header */
+    min-height: 100vh;
+    padding-top: 0;
     background: var(--background);
     color: var(--text-primary);
 }
-
-/* Stats pages now use shared header from header.css */
 
 /* Main Content */
 .stats-main {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 2rem;
-    min-height: calc(100vh - 120px);
+    padding: 4rem 2rem 2rem 2rem; /* Extra top padding for menu/settings icons */
+    min-height: 100vh;
 }
 
 /* Welcome Section */

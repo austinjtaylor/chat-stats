@@ -92,12 +92,17 @@ function setupDropdowns() {
     
     if (menuWrapper && menuDropdown) {
         let menuTimeout;
-        
+
         menuWrapper.addEventListener('mouseenter', () => {
             clearTimeout(menuTimeout);
             menuDropdown.classList.add('active');
+            // Close settings dropdown if open
+            const settingsDropdown = document.getElementById('settingsDropdown');
+            if (settingsDropdown) {
+                settingsDropdown.classList.remove('active');
+            }
         });
-        
+
         menuWrapper.addEventListener('mouseleave', () => {
             menuTimeout = setTimeout(() => {
                 menuDropdown.classList.remove('active');
@@ -111,12 +116,16 @@ function setupDropdowns() {
     
     if (settingsWrapper && settingsDropdown) {
         let settingsTimeout;
-        
+
         settingsWrapper.addEventListener('mouseenter', () => {
             clearTimeout(settingsTimeout);
             settingsDropdown.classList.add('active');
+            // Close menu dropdown if open
+            if (menuDropdown) {
+                menuDropdown.classList.remove('active');
+            }
         });
-        
+
         settingsWrapper.addEventListener('mouseleave', () => {
             settingsTimeout = setTimeout(() => {
                 settingsDropdown.classList.remove('active');
