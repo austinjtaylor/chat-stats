@@ -84,14 +84,15 @@
 
         <!-- Main Content -->
         <main class="stats-main">
-            <h1 class="stats-page-title">Game Search</h1>
+            <!-- Game Search with Integrated Filters -->
+            <div class="game-search-header">
+                <h2 class="game-search-title">Game Search</h2>
 
-            <!-- Filters -->
-            <div class="filters-section">
-                <div class="filters-row">
-                    <div class="filter-group">
+                <!-- Integrated Filters -->
+                <div class="table-filters">
+                    <div class="filter-group compact">
                         <label for="yearFilter">Years</label>
-                        <select id="yearFilter" class="filter-select">
+                        <select id="yearFilter" class="filter-select compact">
                             <option value="all" selected>All</option>
                             <option value="2025">2025</option>
                             <option value="2024">2024</option>
@@ -100,9 +101,9 @@
                             <option value="2021">2021</option>
                         </select>
                     </div>
-                    <div class="filter-group">
+                    <div class="filter-group compact">
                         <label for="teamFilter">Team</label>
-                        <select id="teamFilter" class="filter-select">
+                        <select id="teamFilter" class="filter-select compact">
                             <option value="all" selected>All</option>
                         </select>
                     </div>
