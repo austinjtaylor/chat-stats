@@ -402,8 +402,9 @@ header h1 {
 
 #chatInput:focus {
     outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px var(--focus-ring);
+    /* Remove blue border and focus ring */
+    /* border-color: var(--primary-color); */
+    /* box-shadow: 0 0 0 3px var(--focus-ring); */
 }
 
 #chatInput::placeholder {
