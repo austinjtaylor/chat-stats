@@ -181,10 +181,7 @@ class TeamStats {
                     case 'red_zone_conversion':
                         return `<td class="numeric">${this.formatPercentage(team[col.key])}</td>`;
                     case 'wins':
-                        // Add trophy icon for best record
-                        const isLeader = index === 0 && this.currentSort.key === 'wins' && this.currentSort.direction === 'desc';
-                        const trophy = isLeader ? '🏆 ' : '';
-                        return `<td class="numeric">${trophy}${this.formatValue(team[col.key] || 0)}</td>`;
+                        return `<td class="numeric">${this.formatValue(team[col.key] || 0)}</td>`;
                     default:
                         return `<td class="numeric">${this.formatValue(team[col.key] || 0)}</td>`;
                 }
