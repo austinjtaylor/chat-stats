@@ -273,7 +273,6 @@ body {
     margin-top: 1rem;
     position: relative;
     z-index: 100;
-    overflow: visible;
     min-height: 40px;
     margin-bottom: 200px; /* Extra space for dropdown */
 }
@@ -306,12 +305,14 @@ body {
 /* Suggestions Dropdown - positioned below the button */
 .suggestions-dropdown {
     position: absolute;
-    top: 100%;
+    top: calc(100% + 0.5rem);
     left: 50%;
-    transform: translateX(-50%);
-    margin-top: 0.5rem;
+    margin-left: -160px; /* Half of width to center */
     width: 320px;
     max-width: 90vw;
+    max-height: 172px; /* Approximately 4 items at ~43px each */
+    overflow-y: auto; /* Auto scrollbar */
+    overflow-x: hidden; /* Prevent horizontal overflow */
     background: var(--surface);
     border: 1px solid var(--border-color);
     border-radius: 8px;
@@ -321,7 +322,8 @@ body {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: opacity 0.2s ease, visibility 0.2s ease;
+    transition: opacity 0.2s ease;
+    scroll-behavior: smooth; /* Smooth scrolling */
 }
 
 /* Show dropdown when active */
