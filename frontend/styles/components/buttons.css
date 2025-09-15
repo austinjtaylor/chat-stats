@@ -135,6 +135,31 @@
     border-bottom-right-radius: var(--radius);
 }
 
+/* Filter Reset Button */
+.filter-reset-btn {
+    padding: 0.375rem 0.75rem;
+    background: var(--surface);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition);
+    margin-left: 0.5rem;
+}
+
+.filter-reset-btn:hover {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+    transform: translateY(-1px);
+}
+
+.filter-reset-btn:active {
+    transform: translateY(0);
+}
+
 /* Loading State */
 .btn-loading {
     color: transparent;

@@ -2,16 +2,16 @@
 // This file imports and initializes all necessary modules for the main chat interface
 
 // Import utilities - these are loaded as global scripts
-import './js/api/client.js';
-import './js/utils/dom.js';
-import './js/utils/format.js';
-import './js/components/dropdown.js';
+import './js/api/client';
+import './js/utils/dom';
+import './js/utils/format';
+import './js/components/dropdown.js';  // Still JS, needs conversion
 
 // Import main application script
-import './script.js';
+import './script.js';  // Still JS, needs conversion
 
 // Import navigation components
-import './components/nav.js';
+import './js/components/nav.js';  // Still JS, needs conversion
 
 // Initialize the application when DOM is ready
 if (document.readyState === 'loading') {
