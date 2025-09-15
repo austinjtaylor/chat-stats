@@ -1,0 +1,207 @@
+/**
+ * Dropdown Component Styles
+ * Reusable dropdown styles for menus and suggestions
+ */
+
+/* Dropdown Base Styles */
+.dropdown {
+    position: absolute;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s ease;
+    min-width: 180px;
+    padding: 0.5rem 0;
+    pointer-events: none;
+    z-index: 1001;
+}
+
+.dropdown.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+/* Dropdown Items */
+.dropdown-item {
+    padding: 0.75rem 1rem;
+    color: var(--text-primary);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: background 0.2s ease;
+    cursor: pointer;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    font-size: 0.875rem;
+}
+
+.dropdown-item:hover {
+    background: var(--surface-hover);
+}
+
+.dropdown-item svg {
+    width: 16px;
+    height: 16px;
+    color: var(--text-secondary);
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 0.5rem 0;
+}
+
+/* Try Asking Button */
+.try-asking-button {
+    background: var(--background);
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.try-asking-button:hover {
+    background: var(--surface);
+    color: var(--text-primary);
+}
+
+.try-asking-button svg {
+    width: 12px;
+    height: 12px;
+    transition: transform 0.2s ease;
+}
+
+/* Suggestions Dropdown */
+.suggestions-dropdown {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 50%;
+    margin-left: -160px;
+    width: 320px;
+    max-width: 90vw;
+    max-height: 172px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 0.5rem 0;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    scroll-behavior: smooth;
+}
+
+.suggestions-dropdown.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.suggestions-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.suggested-item {
+    padding: 0.75rem 1rem;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+}
+
+.suggested-item:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+    border-color: transparent;
+    transform: none;
+}
+
+/* Theme Toggle in Settings Dropdown */
+.theme-toggle-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.theme-toggle-item:hover {
+    background: var(--surface-hover);
+}
+
+.theme-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+.theme-toggle-switch {
+    position: relative;
+    width: 40px;
+    height: 20px;
+    background: var(--border-color);
+    border-radius: 10px;
+    transition: background 0.3s ease;
+}
+
+.theme-toggle-switch.active {
+    background: var(--primary-color);
+}
+
+.theme-toggle-slider {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+}
+
+.theme-toggle-switch.active .theme-toggle-slider {
+    transform: translateX(20px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .suggestions-dropdown {
+        width: 95vw;
+    }
+
+    .suggestions-grid {
+        grid-template-columns: 1fr;
+    }
+}

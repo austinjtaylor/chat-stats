@@ -9,11 +9,19 @@
 /* Theme Variables */
 @import url('theme.css');
 
+/* Layout Styles */
+@import url('layout/chat.css');
+@import url('layout/stats.css');
+
 /* Components */
 @import url('components/buttons.css');
 @import url('components/tables.css');
 @import url('components/cards.css');
 @import url('components/forms.css');
+@import url('components/dropdown.css');
+@import url('components/menu.css');
+@import url('components/modal.css');
+@import url('components/header.css');
 
 /* Additional utility classes not in base.css */
 .text-left { text-align: left; }
@@ -260,6 +268,75 @@
 .opacity-50 { opacity: 0.5; }
 .opacity-75 { opacity: 0.75; }
 .opacity-100 { opacity: 1; }
+
+/* Stats Table Styles */
+.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.stats-table th {
+    background: var(--surface-hover);
+    padding: 0.75rem 0.5rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    white-space: nowrap;
+    color: var(--text-primary);
+}
+
+.stats-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+}
+
+.stats-table th.sortable:hover {
+    background: var(--border-color);
+}
+
+.stats-table th.sortable.asc::after {
+    content: " ▲";
+    color: var(--primary-color);
+}
+
+.stats-table th.sortable.desc::after {
+    content: " ▼";
+    color: var(--primary-color);
+}
+
+.stats-table td {
+    padding: 0.75rem 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+
+.stats-table tr:hover {
+    background: var(--surface-hover);
+}
+
+.stats-table .player-name {
+    font-weight: 600;
+    color: var(--primary-color);
+    min-width: 150px;
+}
+
+.stats-table .team-name {
+    font-weight: 600;
+    color: var(--primary-color);
+    min-width: 120px;
+}
+
+.stats-table .numeric {
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
 
 /* Loading Spinner */
 .spinner {
