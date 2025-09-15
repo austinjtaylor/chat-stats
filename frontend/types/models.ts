@@ -86,6 +86,8 @@ export interface PlayerSeasonStats {
   id?: number;
   player_id: number;
   player_name?: string;
+  first_name?: string;
+  last_name?: string;
   season: number;
   team: string;
   team_id?: number;
@@ -143,6 +145,8 @@ export interface TeamSeasonStats {
   hucks_completed?: number;
   huck_percentage?: number;
   completion_percentage?: number;
+  is_current?: boolean;
+  last_year?: number | string;
 }
 
 export interface StatsFilter {

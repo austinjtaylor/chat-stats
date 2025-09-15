@@ -1,44 +1,14 @@
 // Global type declarations for existing JavaScript utilities
 
 declare global {
-  // DOM utility
-  const DOM: {
-    $(selector: string): HTMLElement | null;
-    $$(selector: string): NodeListOf<HTMLElement>;
-    create(tag: string, className?: string, text?: string): HTMLElement;
-    show(element: HTMLElement): void;
-    hide(element: HTMLElement): void;
-    toggle(element: HTMLElement): void;
-    addClass(element: HTMLElement, className: string): void;
-    removeClass(element: HTMLElement, className: string): void;
-    hasClass(element: HTMLElement, className: string): boolean;
-    on(element: HTMLElement, event: string, handler: EventListener): void;
-    off(element: HTMLElement, event: string, handler: EventListener): void;
-  };
+  // DOM utility (simplified interface for compatibility)
+  const DOM: any;
 
-  // Format utility
-  const Format: {
-    number(value: number | null | undefined): string;
-    percentage(value: number | null | undefined, decimals?: number): string;
-    date(dateString: string): string;
-    time(minutes: number, seconds?: number): string;
-    playerName(name: string): string;
-    teamName(name: string): string;
-    statValue(value: number | null | undefined, isPercentage?: boolean): string;
-  };
+  // Format utility (simplified interface for compatibility)
+  const Format: any;
 
-  // Stats API client
-  const statsAPI: {
-    query(queryText: string, sessionId?: string): Promise<any>;
-    getStats(): Promise<any>;
-    searchPlayers(params: any): Promise<any>;
-    searchTeams(params: any): Promise<any>;
-    getPlayerStats(params: any): Promise<any>;
-    getTeamStats(params: any): Promise<any>;
-    getGameStats(params: any): Promise<any>;
-    getGameDetails(gameId: string): Promise<any>;
-    getDatabaseInfo(): Promise<any>;
-  };
+  // Stats API client (simplified interface for compatibility)
+  const statsAPI: any;
 
   // API Error class
   class APIError extends Error {
@@ -49,10 +19,23 @@ declare global {
 
   // UFA Stats utility
   const ufaStats: {
-    fetchData(endpoint: string): Promise<any>;
-    handleTableSort(table: HTMLElement, sortKey: string, currentSort: any): any;
-    renderSortIndicator(key: string, currentSort: any): string;
+    apiBase: string;
+    currentPage: 'players' | 'teams' | 'games' | 'index';
+    api: typeof statsAPI | null;
+    format: typeof Format | null;
+    dom: typeof DOM | null;
+    fetchData<T = any>(endpoint: string, params?: Record<string, any>): Promise<T>;
+    showError(message: string): void;
+    showLoading(element: string | HTMLElement | null, message?: string): void;
+    formatNumber(num: number | null | undefined): string;
+    formatPercentage(value: number | null | undefined, decimals?: number): string;
+    formatDecimal(value: number | null | undefined, decimals?: number): string;
     formatStatValue(value: any, key: string): string;
+    createSortableHeader(text: string, sortKey: string, currentSort?: any): HTMLTableCellElement;
+    renderSortIndicator(key: string, currentSort: any): string;
+    handleTableSort(table: HTMLElement, sortKey: string, currentSort: any): any;
+    createPagination(options: { currentPage: number; totalPages: number; onPageChange: (page: number) => void }): HTMLElement;
+    getCurrentPage(): 'players' | 'teams' | 'games' | 'index';
   };
 
   // External libraries
