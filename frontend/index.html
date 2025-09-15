@@ -135,13 +135,15 @@
     </div>
 
 
+    <!-- External dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="components/nav.js?v=1"></script>
-    <!-- New modular JavaScript utilities -->
-    <script src="js/api/client.js"></script>
-    <script src="js/utils/dom.js"></script>
-    <script src="js/utils/format.js"></script>
-    <!-- Main script -->
-    <script src="script.js?v=11"></script>
+
+    <!-- Vite entry point -->
+    <script type="module" src="/main.js"></script>
+
+    <!-- Legacy fallback for non-module browsers -->
+    <script nomodule>
+        console.warn('Your browser does not support ES modules. Some features may not work correctly.');
+    </script>
 </body>
 </html>

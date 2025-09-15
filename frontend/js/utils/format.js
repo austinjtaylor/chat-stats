@@ -231,7 +231,14 @@ const Format = {
     }
 };
 
-// Export for use in other modules
+// ES Module exports
+export { Format };
+export default Format;
+
+// Also export individual functions for convenience
+export const { number, percentage, currency, date, relativeTime, playerName, teamName, position, gameScore, statValue, duration, fileSize, pluralize, truncate, ordinal, record, plusMinus } = Format;
+
+// For backward compatibility with script tags
 if (typeof window !== 'undefined') {
     window.Format = Format;
 }

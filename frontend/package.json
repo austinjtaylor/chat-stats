@@ -22,6 +22,7 @@
     "prettier": "^3.2.4",
     "stylelint": "^16.2.0",
     "stylelint-config-standard": "^36.0.0",
+    "terser": "^5.44.0",
     "vite": "^5.0.11"
   },
   "browserslist": [
@@ -69,7 +70,9 @@
       "at-rule-no-unknown": [
         true,
         {
-          "ignoreAtRules": ["import"]
+          "ignoreAtRules": [
+            "import"
+          ]
         }
       ]
     }

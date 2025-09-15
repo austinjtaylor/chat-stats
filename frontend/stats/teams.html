@@ -138,12 +138,12 @@
         </main>
     </div>
 
-    <script src="shared.js?v=3"></script>
-    <!-- New modular JavaScript utilities -->
-    <script src="../js/api/client.js"></script>
-    <script src="../js/utils/dom.js"></script>
-    <script src="../js/utils/format.js"></script>
-    <!-- Main teams script -->
-    <script src="teams.js?v=3"></script>
+    <!-- Vite entry point -->
+    <script type="module" src="/stats/teams.entry.js"></script>
+
+    <!-- Legacy fallback for non-module browsers -->
+    <script nomodule>
+        console.warn('Your browser does not support ES modules. Some features may not work correctly.');
+    </script>
 </body>
 </html>

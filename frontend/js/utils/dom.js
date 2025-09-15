@@ -236,7 +236,14 @@ const DOM = {
     }
 };
 
-// Export for use in other modules
+// ES Module exports
+export { DOM };
+export default DOM;
+
+// Also export individual functions for convenience
+export const { $, $$, createElement, on, empty, toggleClass, show, hide, isVisible, scrollIntoView, setStyles, animate, ready, debounce, throttle, parseHTML, escapeHTML, getFormData, copyToClipboard, measure } = DOM;
+
+// For backward compatibility with script tags
 if (typeof window !== 'undefined') {
     window.DOM = DOM;
 }

@@ -281,10 +281,14 @@ class StatsAPI extends APIClient {
     }
 }
 
-// Export for use in other modules
+// Create singleton instance
 const statsAPI = new StatsAPI();
 
-// Make available globally for non-module scripts
+// ES Module exports
+export { APIClient, APIError, StatsAPI, statsAPI };
+export default statsAPI;
+
+// For backward compatibility with script tags
 if (typeof window !== 'undefined') {
     window.StatsAPI = StatsAPI;
     window.statsAPI = statsAPI;
