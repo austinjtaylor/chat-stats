@@ -6,6 +6,7 @@ import './styles/main.css';
 import { DOM, $, $$, debounce, scrollIntoView } from './js/utils/dom.js';
 import { Format } from './js/utils/format.js';
 import statsAPI from './js/api/client.js';
+import { initDropdowns } from './js/components/dropdown.js';
 
 // Make utilities available globally for legacy code
 window.DOM = DOM;
@@ -166,6 +167,15 @@ function clearChat() {
     }
 }
 
+// Make clearChat available globally for dropdown module
+window.createNewSession = () => {
+    sessionId = generateSessionId();
+    const messagesContainer = $('#messages');
+    if (messagesContainer) {
+        DOM.empty(messagesContainer);
+    }
+};
+
 async function updateStats(stats) {
     // Update stats display if provided
     if (stats) {
@@ -269,6 +279,7 @@ function setupEventListeners() {
 // Initialize when DOM is ready
 DOM.ready(() => {
     setupEventListeners();
+    initDropdowns();
     loadInitialStats();
 
     // Focus on input
