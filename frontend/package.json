@@ -5,15 +5,20 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "serve": "python3 -m http.server 8080",
+    "typecheck": "tsc --noEmit",
     "lint:css": "stylelint \"styles/**/*.css\"",
-    "lint:js": "eslint \"js/**/*.js\" \"*.js\"",
-    "format": "prettier --write \"**/*.{js,css,html,json}\"",
-    "format:check": "prettier --check \"**/*.{js,css,html,json}\""
+    "lint:js": "eslint \"js/**/*.{js,ts}\" \"*.{js,ts}\" \"stats/**/*.{js,ts}\" \"types/**/*.ts\"",
+    "lint": "npm run lint:js && npm run lint:css",
+    "format": "prettier --write \"**/*.{js,ts,css,html,json}\"",
+    "format:check": "prettier --check \"**/*.{js,ts,css,html,json}\""
   },
   "devDependencies": {
+    "@types/node": "^24.4.0",
+    "@typescript-eslint/eslint-plugin": "^8.43.0",
+    "@typescript-eslint/parser": "^8.43.0",
     "autoprefixer": "^10.4.16",
     "eslint": "^8.56.0",
     "postcss": "^8.4.33",
@@ -23,6 +28,7 @@
     "stylelint": "^16.2.0",
     "stylelint-config-standard": "^36.0.0",
     "terser": "^5.44.0",
+    "typescript": "^5.9.2",
     "vite": "^5.0.11"
   },
   "browserslist": [

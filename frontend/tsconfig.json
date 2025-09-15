@@ -1,0 +1,53 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+
+    // Type checking
+    "strict": false,  // We'll enable this gradually
+    "noImplicitAny": false,  // Start permissive, tighten later
+    "strictNullChecks": false,  // Enable after initial migration
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+
+    // Output
+    "noEmit": true,  // Vite handles transpilation
+    "declaration": false,
+    "sourceMap": true,
+
+    // Paths
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["js/*"],
+      "@types/*": ["types/*"],
+      "@stats/*": ["stats/*"],
+      "@utils/*": ["js/utils/*"],
+      "@api/*": ["js/api/*"]
+    },
+
+    // JavaScript support
+    "allowJs": true,
+    "checkJs": false  // Don't type-check JS files yet
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.js",
+    "types/**/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".vite"
+  ]
+}
