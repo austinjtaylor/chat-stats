@@ -169,7 +169,9 @@ body.stats-page {
     border-radius: 8px;
     padding: 0;
     position: relative;
-    overflow: hidden;
+    overflow: visible; /* Changed from hidden to allow pagination to show */
+    display: flex;
+    flex-direction: column;
 }
 
 .table-header {
@@ -279,7 +281,8 @@ body.stats-page {
     /* No borders needed, parent handles them */
     border-radius: 0;
     position: relative;
-    margin: 0 -1px -1px -1px; /* Compensate for parent border */
+    margin: 0 -1px 0 -1px; /* Updated margin to not overlap bottom border */
+    flex: 1;
 }
 
 
@@ -419,14 +422,21 @@ body.stats-page {
 }
 
 /* Pagination */
+#paginationContainer {
+    background: var(--surface);
+    border-top: 1px solid var(--border-color);
+    border-radius: 0 0 7px 7px; /* Match parent border radius */
+    margin: 0 -1px -1px -1px; /* Align with parent borders */
+    min-height: 60px; /* Ensure minimum height even when empty */
+}
+
 .pagination {
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 0.25rem;
-    padding: 1.5rem;
-    background: var(--surface);
-    border-top: 1px solid var(--border-color);
+    padding: 1rem 1.5rem;
+    background: transparent;
     margin-top: 0;
 }
 

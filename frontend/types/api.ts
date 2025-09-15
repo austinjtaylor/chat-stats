@@ -21,7 +21,9 @@ export interface PlayerStatsResponse {
   players: PlayerSeasonStats[];
   total: number;
   page: number;
-  pages: number;
+  per_page: number;
+  total_pages: number;
+  pages?: number;  // For backward compatibility
 }
 
 export interface TeamStatsResponse {

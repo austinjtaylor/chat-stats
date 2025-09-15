@@ -287,7 +287,21 @@ class PlayerStats {
             if (response) {
                 this.players = response.players || [];
                 this.totalPlayers = response.total || 0;
-                this.totalPages = response.pages || 0;
+                // Fix: API returns 'total_pages' not 'pages'
+                this.totalPages = response.total_pages || response.pages || 0;
+
+                // Fallback: calculate totalPages if not provided
+                if (!this.totalPages && this.totalPlayers > 0) {
+                    this.totalPages = Math.ceil(this.totalPlayers / this.pageSize);
+                }
+
+                console.log('API Response:', {
+                    playersCount: this.players.length,
+                    total: this.totalPlayers,
+                    pages: this.totalPages,
+                    calculatedPages: Math.ceil(this.totalPlayers / this.pageSize),
+                    response: response
+                });
             } else {
                 this.players = [];
                 this.totalPlayers = 0;
@@ -388,7 +402,16 @@ class PlayerStats {
 
     renderPagination(): void {
         const container = document.getElementById('paginationContainer');
-        if (!container) return;
+        if (!container) {
+            console.error('Pagination container not found');
+            return;
+        }
+
+        console.log('Rendering pagination:', {
+            totalPages: this.totalPages,
+            currentPage: this.currentPage,
+            totalPlayers: this.totalPlayers
+        });
 
         if (this.totalPages <= 1) {
             container.innerHTML = '';
