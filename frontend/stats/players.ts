@@ -340,9 +340,13 @@ class PlayerStats {
                     case 'calculated_plus_minus':
                         return `<td class="numeric">${this.formatValue(player[col.key as keyof PlayerSeasonStats] || 0, true)}</td>`;
                     case 'completion_percentage':
-                        return `<td class="numeric">${this.formatPercentage(player[col.key as keyof PlayerSeasonStats] as number)}</td>`;
+                        // Backend already returns this as a percentage value (e.g., 95.79)
+                        const compPct = player[col.key as keyof PlayerSeasonStats] as number;
+                        return `<td class="numeric">${compPct ? `${compPct.toFixed(1)}%` : '-'}</td>`;
                     case 'huck_percentage':
-                        return `<td class="numeric">${this.formatPercentage(this.calculateHuckPercentage(player))}</td>`;
+                        // Backend calculates this, but we may need to calculate for older data
+                        const huckPct = player.huck_percentage || this.calculateHuckPercentage(player);
+                        return `<td class="numeric">${huckPct ? `${huckPct.toFixed(1)}%` : '-'}</td>`;
                     default:
                         const fieldValue = player[col.key as keyof PlayerSeasonStats];
                         return `<td class="numeric">${this.formatValue(fieldValue || 0)}</td>`;
@@ -354,8 +358,12 @@ class PlayerStats {
     }
 
     calculateHuckPercentage(player: PlayerSeasonStats): number {
-        if (!player.hucks_attempted || player.hucks_attempted === 0) return 0;
-        return ((player.hucks_completed || 0) / player.hucks_attempted) * 100;
+        // Use the correct field names from the API response
+        const attempted = player.total_hucks_attempted || player.hucks_attempted || 0;
+        const completed = player.total_hucks_completed || player.hucks_completed || 0;
+
+        if (!attempted || attempted === 0) return 0;
+        return (completed / attempted) * 100;
     }
 
     formatValue(value: any, showSign: boolean = false): string {
