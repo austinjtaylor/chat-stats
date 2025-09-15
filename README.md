@@ -48,24 +48,52 @@ This application is a full-stack web application that enables users to ask natur
 
 ## Running the Application
 
-### Quick Start
+### Frontend Setup (First Time)
 
-Use the provided shell script:
+```bash
+cd frontend
+npm install  # Install frontend dependencies
+```
+
+### Development Mode (Recommended)
+
+Run both backend and frontend with hot reloading:
+```bash
+chmod +x run-dev.sh
+./run-dev.sh
+```
+
+This starts:
+- **Backend API**: `http://localhost:8000` (with auto-reload)
+- **Frontend**: `http://localhost:3000` (Vite dev server with TypeScript support)
+- **API Documentation**: `http://localhost:8000/docs`
+
+### Production Build
+
+Build the frontend for production:
+```bash
+cd frontend
+npm run build  # Creates optimized build in dist/
+npm run preview  # Preview at http://localhost:4173
+```
+
+### Backend Only
+
+Run just the API server:
 ```bash
 chmod +x run.sh
 ./run.sh
+# Or manually:
+cd backend && uv run uvicorn app:app --reload --port 8000
 ```
 
-### Manual Start
+### Port Reference
 
-```bash
-cd backend
-uv run uvicorn app:app --reload --port 8000
-```
-
-The application will be available at:
-- Web Interface: `http://localhost:8000`
-- API Documentation: `http://localhost:8000/docs`
+| Service | Development | Production |
+|---------|------------|------------|
+| Backend API | 8000 | 8000 |
+| Frontend | 3000 (Vite) | 4173 (preview) or any static server |
+| API Docs | 8000/docs | 8000/docs |
 
 ## Usage Examples
 

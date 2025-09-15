@@ -38,13 +38,42 @@ When the user says "commit" or "add and commit", automatically:
 ## Development Commands
 
 ### Running the Application
-```bash
-# Quick start (recommended)
-./run.sh
 
-# Manual start
+#### Development Mode (with hot reloading)
+```bash
+# Run both backend and frontend with Vite dev server
+./run-dev.sh
+
+# This starts:
+# - Backend API on http://localhost:8000
+# - Frontend with Vite on http://localhost:3000 (with TypeScript compilation)
+```
+
+#### Production Mode
+```bash
+# Backend only (API server)
+./run.sh
+# Runs on http://localhost:8000
+
+# Build frontend for production
+cd frontend
+npm install  # First time only
+npm run build  # Creates optimized build in dist/
+
+# Preview production build
+npm run preview  # Serves on http://localhost:4173
+```
+
+#### Manual Start (backend only)
+```bash
 cd backend && uv run uvicorn app:app --reload --port 8000
 ```
+
+#### Port Summary
+- **Backend API**: Port 8000 (all modes)
+- **Frontend Development**: Port 3000 (Vite dev server with TypeScript/hot reload)
+- **Frontend Production Preview**: Port 4173 (built files from dist/)
+- **Frontend Production**: Can be served from any static file server
 
 ### Database Setup
 ```bash

@@ -35,18 +35,16 @@ trap cleanup INT TERM EXIT
 
 # Start the backend server in background
 echo "Starting backend server on port 8000..."
-cd backend && uv run uvicorn app:app --reload --port 8000 &
+(cd backend && uv run uvicorn app:app --reload --port 8000) &
 BACKEND_PID=$!
-cd ..
 
 # Give backend a moment to start
 sleep 2
 
 # Start the Vite dev server in background
 echo "Starting Vite dev server on port 3000..."
-cd frontend && npm run dev &
+(cd frontend && npm run dev) &
 FRONTEND_PID=$!
-cd ..
 
 echo ""
 echo "=================================="
