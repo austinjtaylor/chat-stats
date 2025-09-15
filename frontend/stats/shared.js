@@ -5,6 +5,11 @@ class UFAStats {
         this.currentPage = this.getCurrentPage();
         // Theme is now handled by header.js
         // Navigation highlighting is also handled by header.js
+
+        // Use global utilities if available
+        this.api = window.statsAPI || null;
+        this.format = window.Format || null;
+        this.dom = window.DOM || null;
     }
 
     // Get current page from URL (kept for compatibility)
@@ -19,6 +24,15 @@ class UFAStats {
     // API helper methods
     async fetchData(endpoint, params = {}) {
         try {
+            // Use statsAPI if available, otherwise fall back to fetch
+            if (this.api && this.api.request) {
+                return await this.api.request(endpoint, {
+                    method: 'GET',
+                    params
+                });
+            }
+
+            // Fallback to direct fetch
             const url = new URL(`${this.apiBase}${endpoint}`, window.location.origin);
             Object.keys(params).forEach(key => {
                 if (params[key] !== null && params[key] !== undefined) {
@@ -69,12 +83,20 @@ class UFAStats {
 
     // Format numbers with commas
     formatNumber(num) {
+        // Use Format utility if available
+        if (this.format && this.format.number) {
+            return this.format.number(num);
+        }
         if (num === null || num === undefined) return '-';
         return num.toLocaleString();
     }
 
     // Format percentage
     formatPercentage(value, decimals = 1) {
+        // Use Format utility if available
+        if (this.format && this.format.percentage) {
+            return this.format.percentage(value, decimals);
+        }
         if (value === null || value === undefined) return '-';
         return `${parseFloat(value).toFixed(decimals)}%`;
     }

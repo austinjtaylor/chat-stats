@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         gamesContainer.innerHTML = games.map(game => `
             <div class="game-card">
-                <div class="game-date">${new Date(game.date).toLocaleDateString()}</div>
+                <div class="game-date">${window.Format ? window.Format.date(game.date) : new Date(game.date).toLocaleDateString()}</div>
                 <div class="game-teams">
                     <span class="team-name">${game.home_team}</span>
                     <span class="score">${game.home_score || 0}</span>

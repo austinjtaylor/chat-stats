@@ -24,7 +24,7 @@ class HeaderComponent {
         try {
             const response = await fetch('/components/header.html');
             const headerHtml = await response.text();
-            
+
             // Insert header at the beginning of body
             const headerContainer = document.createElement('div');
             headerContainer.innerHTML = headerHtml;

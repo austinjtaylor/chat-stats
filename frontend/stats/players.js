@@ -368,6 +368,10 @@ class PlayerStats {
     }
 
     formatPercentage(value) {
+        // Use Format utility if available
+        if (window.Format && window.Format.percentage) {
+            return window.Format.percentage(value, 1);
+        }
         if (value === null || value === undefined || isNaN(value)) return '-';
         return `${parseFloat(value).toFixed(1)}%`;
     }
@@ -396,7 +400,7 @@ class PlayerStats {
     updatePlayerCount() {
         const countElement = document.getElementById('playerCount');
         if (countElement) {
-            countElement.textContent = this.totalPlayers.toLocaleString();
+            countElement.textContent = window.Format ? window.Format.number(this.totalPlayers) : this.totalPlayers.toLocaleString();
         }
     }
 }
