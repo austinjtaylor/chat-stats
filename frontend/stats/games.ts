@@ -69,12 +69,13 @@ class GamesPage {
 
             if (this.teamFilter) {
                 this.teamFilter.innerHTML = '<option value="all">All</option>';
+                const filter = this.teamFilter; // Capture in const for type narrowing
 
                 this.teams.forEach(team => {
                     const option = document.createElement('option');
                     option.value = String(team.id || '');
                     option.textContent = `${team.city || ''} ${team.name || ''}`.trim();
-                    this.teamFilter.appendChild(option);
+                    filter.appendChild(option);
                 });
             }
         } catch (error) {

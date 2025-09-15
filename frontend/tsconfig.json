@@ -12,9 +12,15 @@
     "isolatedModules": true,
 
     // Type checking
-    "strict": false,  // We'll enable this gradually
-    "noImplicitAny": false,  // Start permissive, tighten later
-    "strictNullChecks": false,  // Enable after initial migration
+    "strict": true,  // Phase 4: Full strict mode enabled!
+    // Individual strict options now included in "strict: true"
+    // Kept for documentation purposes:
+    // - noImplicitAny
+    // - strictNullChecks
+    // - strictFunctionTypes
+    // - strictBindCallApply
+    // - strictPropertyInitialization
+    "useUnknownInCatchVariables": true,  // Additional: Catch variables are 'unknown' instead of 'any'
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
