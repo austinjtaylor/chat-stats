@@ -1,5 +1,5 @@
-// API base URL - use relative path to work from any host
-const API_URL = '/api';
+// API client is loaded from js/api/client.js
+// const API_URL = '/api'; - No longer needed, using statsAPI
 
 // Global state
 let currentSessionId = null;
@@ -11,15 +11,15 @@ let chatMessages, chatInput, sendButton, totalPlayers, totalTeams, totalGames, n
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
-    // Get DOM elements after page loads
-    chatMessages = document.getElementById('chatMessages');
-    chatInput = document.getElementById('chatInput');
-    sendButton = document.getElementById('sendButton');
-    totalPlayers = document.getElementById('totalPlayers');
-    totalTeams = document.getElementById('totalTeams');
-    totalGames = document.getElementById('totalGames');
-    newChatButton = document.getElementById('newChatButton');
-    themeToggle = document.getElementById('themeToggle');
+    // Get DOM elements using DOM utility
+    chatMessages = DOM.$('#chatMessages');
+    chatInput = DOM.$('#chatInput');
+    sendButton = DOM.$('#sendButton');
+    totalPlayers = DOM.$('#totalPlayers');
+    totalTeams = DOM.$('#totalTeams');
+    totalGames = DOM.$('#totalGames');
+    newChatButton = DOM.$('#newChatButton');
+    themeToggle = DOM.$('#themeToggle');
     
     setupEventListeners();
     setupDropdowns();
@@ -227,20 +227,8 @@ async function sendMessage() {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
     try {
-        const response = await fetch(`${API_URL}/query`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                query: query,
-                session_id: currentSessionId
-            })
-        });
-
-        if (!response.ok) throw new Error('Query failed');
-
-        const data = await response.json();
+        // Use the centralized API client
+        const data = await statsAPI.query(query, currentSessionId);
         
         // Update session ID if new
         if (!currentSessionId) {
@@ -254,7 +242,11 @@ async function sendMessage() {
     } catch (error) {
         // Replace loading message with error
         loadingMessage.remove();
-        addMessage(`Error: ${error.message}`, 'assistant');
+        // Better error message handling with APIError
+        const errorMessage = error instanceof APIError
+            ? `Error: ${error.message}`
+            : `Error: Unable to process your request. Please try again.`;
+        addMessage(errorMessage, 'assistant');
     } finally {
         chatInput.disabled = false;
         sendButton.disabled = false;
@@ -377,10 +369,8 @@ function startNewChat() {
 async function loadSportsStats() {
     try {
         console.log('Loading sports stats...');
-        const response = await fetch(`${API_URL}/stats`);
-        if (!response.ok) throw new Error('Failed to load sports stats');
-        
-        const data = await response.json();
+        // Use the centralized API client
+        const data = await statsAPI.getStats();
         console.log('Sports data received:', data);
         
         // Update stats in UI

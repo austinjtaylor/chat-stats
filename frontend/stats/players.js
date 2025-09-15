@@ -63,7 +63,7 @@ class PlayerStats {
         if (historicalTeams.length > 0 && currentTeams.length > 0) {
             const separator = document.createElement('option');
             separator.disabled = true;
-            separator.textContent = '──────── Historical Teams ────────';
+            separator.textContent = '── Historical Teams ──';
             teamFilter.appendChild(separator);
         }
         

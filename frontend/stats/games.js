@@ -7,17 +7,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Load teams for filter
     async function loadTeams() {
         try {
-            const response = await fetch('/api/teams');
-            if (response.ok) {
-                const teams = await response.json();
-                teamFilter.innerHTML = '<option value="all">All</option>';
-                teams.forEach(team => {
-                    const option = document.createElement('option');
-                    option.value = team.id;
-                    option.textContent = `${team.city} ${team.name}`;
-                    teamFilter.appendChild(option);
-                });
-            }
+            // Use API client for teams
+            const teams = await statsAPI.getTeams();
+            teamFilter.innerHTML = '<option value="all">All</option>';
+            teams.forEach(team => {
+                const option = document.createElement('option');
+                option.value = team.id;
+                option.textContent = `${team.city} ${team.name}`;
+                teamFilter.appendChild(option);
+            });
         } catch (error) {
             console.error('Failed to load teams:', error);
         }
@@ -28,21 +26,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             window.ufaStats.showLoading(gamesContainer, 'Loading games...');
 
-            const params = new URLSearchParams();
+            const filters = {};
             if (yearFilter.value !== 'all') {
-                params.append('year', yearFilter.value);
+                filters.year = yearFilter.value;
             }
             if (teamFilter.value !== 'all') {
-                params.append('team_id', teamFilter.value);
+                filters.team_id = teamFilter.value;
             }
 
-            const response = await fetch(`/api/games?${params}`);
-            if (response.ok) {
-                const games = await response.json();
-                displayGames(games);
-            } else {
-                gamesContainer.innerHTML = '<div class="error-message">Failed to load games</div>';
-            }
+            // Use API client for games
+            const games = await statsAPI.getGames(filters);
+            displayGames(games);
         } catch (error) {
             console.error('Failed to load games:', error);
             gamesContainer.innerHTML = '<div class="error-message">Failed to load games. Please make sure the backend is running.</div>';

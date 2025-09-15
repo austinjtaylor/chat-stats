@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Game Search - UFA Statistics</title>
-    <link rel="stylesheet" href="../style.css?v=11">
+    <!-- New modular CSS structure -->
+    <link rel="stylesheet" href="../styles/main.css">
     <link rel="stylesheet" href="../chat-ui.css?v=8">
     <link rel="stylesheet" href="stats.css?v=3">
     <link rel="stylesheet" href="stats-nav.css?v=1">
@@ -118,7 +119,7 @@
     </div>
 
     <!-- Game Detail Modal -->
-    <div id="gameDetailModal" class="modal" style="display: none;">
+    <div id="gameDetailModal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="gameDetailTitle">Game Details</h2>
@@ -133,6 +134,11 @@
     </div>
 
     <script src="shared.js?v=3"></script>
+    <!-- New modular JavaScript utilities -->
+    <script src="../js/api/client.js"></script>
+    <script src="../js/utils/dom.js"></script>
+    <script src="../js/utils/format.js"></script>
+    <!-- Main games script -->
     <script src="games.js?v=3"></script>
 </body>
 </html>
