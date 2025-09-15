@@ -22,6 +22,7 @@
 @import url('components/menu.css');
 @import url('components/modal.css');
 @import url('components/header.css');
+@import url('components/messages.css');
 
 /* Additional utility classes not in base.css */
 .text-left { text-align: left; }

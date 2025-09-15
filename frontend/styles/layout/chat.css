@@ -113,9 +113,18 @@ body.chat-page {
 
 #chatInput::placeholder {
     color: var(--text-secondary);
+    opacity: 0.6;
 }
 
-#sendButton {
+/* Ensure placeholder shows even when input might be disabled or focused */
+#chatInput:disabled::placeholder,
+#chatInput:focus::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+
+#sendButton,
+#cancelButton {
     padding: 0.5rem;
     background: transparent;
     color: var(--text-primary);
@@ -130,13 +139,18 @@ body.chat-page {
     height: 32px;
 }
 
-#sendButton:hover:not(:disabled) {
+#sendButton:hover:not(:disabled),
+#cancelButton:hover {
     background: var(--surface-hover);
 }
 
 #sendButton:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+#cancelButton {
+    color: var(--error);
 }
 
 /* Try Asking Suggestions Container */

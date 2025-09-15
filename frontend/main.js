@@ -39,19 +39,46 @@ function generateSessionId() {
 }
 
 async function sendMessage(retry = false) {
-    const input = $('#messageInput');
+    const input = $('#chatInput');
     const message = input.value.trim();
 
     if (!message || isLoading) return;
 
+    // Activate chat mode on first message
+    if (!document.body.classList.contains('chat-active')) {
+        document.body.classList.add('chat-active');
+    }
+
     // Clear input immediately for better UX
     if (!retry) {
-        input.value = '';
         addMessage(message, 'user');
     }
 
+    // Clear and reset input - do this for both retry and non-retry
+    input.value = '';
+    input.removeAttribute('value'); // Remove any HTML value attribute
+    input.setAttribute('placeholder', 'Ask about players, teams, or games');
+
+    // Force browser to recognize the empty value
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+
     isLoading = true;
-    updateButtonState();
+
+    // Use requestAnimationFrame to ensure DOM updates
+    requestAnimationFrame(() => {
+        if (input.value !== '') {
+            input.value = '';
+            input.removeAttribute('value');
+        }
+        updateButtonState();
+
+        // Final check after everything
+        setTimeout(() => {
+            if (input.value !== '') {
+                input.value = '';
+            }
+        }, 0);
+    });
 
     // Show thinking message
     const thinkingMessage = addThinkingMessage();
@@ -63,8 +90,8 @@ async function sendMessage(retry = false) {
         // Remove thinking message
         thinkingMessage.remove();
 
-        // Add bot response
-        addMessage(response.response, 'bot');
+        // Add bot response - backend returns 'answer' not 'response'
+        addMessage(response.answer || response.response, 'bot');
 
         // Update stats if available
         if (response.stats) {
@@ -84,6 +111,9 @@ async function sendMessage(retry = false) {
         isLoading = false;
         currentController = null;
         updateButtonState();
+        // Ensure input is clear and placeholder is visible
+        input.value = '';
+        input.setAttribute('placeholder', 'Ask about players, teams, or games');
         input.focus();
     }
 }
@@ -96,7 +126,7 @@ function cancelQuery() {
 }
 
 function addMessage(content, type = 'user') {
-    const messagesContainer = $('#messages');
+    const messagesContainer = $('#chatMessages');
     const messageDiv = DOM.createElement('div', {
         className: `message ${type}-message`
     });
@@ -121,7 +151,7 @@ function addMessage(content, type = 'user') {
 }
 
 function addThinkingMessage() {
-    const messagesContainer = $('#messages');
+    const messagesContainer = $('#chatMessages');
     const thinkingDiv = DOM.createElement('div', {
         className: 'message bot-message thinking-message'
     });
@@ -145,32 +175,32 @@ function addThinkingMessage() {
 function updateButtonState() {
     const sendButton = $('#sendButton');
     const cancelButton = $('#cancelButton');
-    const input = $('#messageInput');
+    const input = $('#chatInput');
 
     if (isLoading) {
         DOM.hide(sendButton);
         DOM.show(cancelButton, 'flex');
-        input.disabled = true;
+        // Don't disable input - just rely on isLoading check to prevent submission
+        // This allows placeholder to display properly
     } else {
         DOM.show(sendButton, 'flex');
         DOM.hide(cancelButton);
-        input.disabled = false;
     }
 }
 
 function clearChat() {
     if (confirm('Are you sure you want to start a new chat? This will clear the current conversation.')) {
         sessionId = generateSessionId();
-        const messagesContainer = $('#messages');
+        const messagesContainer = $('#chatMessages');
         DOM.empty(messagesContainer);
-        $('#messageInput').focus();
+        $('#chatInput').focus();
     }
 }
 
 // Make clearChat available globally for dropdown module
 window.createNewSession = () => {
     sessionId = generateSessionId();
-    const messagesContainer = $('#messages');
+    const messagesContainer = $('#chatMessages');
     if (messagesContainer) {
         DOM.empty(messagesContainer);
     }
@@ -239,7 +269,7 @@ function setupEventListeners() {
     }
 
     // Input field
-    const input = $('#messageInput');
+    const input = $('#chatInput');
     if (input) {
         DOM.on(input, 'keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -256,17 +286,17 @@ function setupEventListeners() {
     }
 
     // Try Asking button
-    const tryAskingBtn = $('#tryAskingBtn');
-    const suggestedQuestions = $('#suggestedQuestions');
+    const tryAskingBtn = $('#tryAskingButton');
+    const suggestedQuestions = $('#suggestionsDropdown');
     if (tryAskingBtn && suggestedQuestions) {
         DOM.on(tryAskingBtn, 'click', () => {
             DOM.toggle(suggestedQuestions);
         });
 
         // Handle suggested question clicks
-        DOM.on(suggestedQuestions, 'click', '.question-item', function() {
-            const question = this.textContent.trim();
-            const input = $('#messageInput');
+        DOM.on(suggestedQuestions, 'click', '.suggested-item', function() {
+            const question = this.dataset.question || this.textContent.trim();
+            const input = $('#chatInput');
             if (input) {
                 input.value = question;
                 DOM.hide(suggestedQuestions);
@@ -283,7 +313,7 @@ DOM.ready(() => {
     loadInitialStats();
 
     // Focus on input
-    const input = $('#messageInput');
+    const input = $('#chatInput');
     if (input) {
         input.focus();
     }

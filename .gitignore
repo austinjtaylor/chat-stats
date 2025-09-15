@@ -36,3 +36,6 @@ docs/
 ._*
 .Spotlight-V100
 .Trashes
+
+# Vite cache
+.vite/
