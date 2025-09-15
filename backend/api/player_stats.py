@@ -13,7 +13,7 @@ def create_player_stats_route(stats_system):
 
     @router.get("/api/players/stats")
     async def get_player_stats(
-        season: str = "2025",
+        season: str = "career",
         team: str = "all",
         page: int = 1,
         per_page: int = 20,
@@ -30,23 +30,23 @@ def create_player_stats_route(stats_system):
             if season == "career":
                 # Career stats - aggregate across all years
                 query = f"""
-                SELECT 
+                SELECT
                     p.full_name,
                     p.first_name,
                     p.last_name,
-                    p.team_id,
-                    p.max_year as year,
+                    p.most_recent_team_id as team_id,
+                    NULL as year,
                     SUM(pss.total_goals) as total_goals,
                     SUM(pss.total_assists) as total_assists,
                     SUM(pss.total_hockey_assists) as total_hockey_assists,
                     SUM(pss.total_blocks) as total_blocks,
-                    (SUM(pss.total_goals) + SUM(pss.total_assists) + SUM(pss.total_blocks) - 
+                    (SUM(pss.total_goals) + SUM(pss.total_assists) + SUM(pss.total_blocks) -
                      SUM(pss.total_throwaways) - SUM(pss.total_drops)) as calculated_plus_minus,
                     SUM(pss.total_completions) as total_completions,
-                    CASE 
-                        WHEN SUM(pss.total_throw_attempts) > 0 
+                    CASE
+                        WHEN SUM(pss.total_throw_attempts) > 0
                         THEN ROUND(SUM(pss.total_completions) * 100.0 / SUM(pss.total_throw_attempts), 1)
-                        ELSE 0 
+                        ELSE 0
                     END as completion_percentage,
                     SUM(pss.total_yards_thrown) as total_yards_thrown,
                     SUM(pss.total_yards_received) as total_yards_received,
@@ -63,12 +63,12 @@ def create_player_stats_route(stats_system):
                     SUM(pss.total_o_opportunities) as total_o_opportunities,
                     SUM(pss.total_d_opportunities) as total_d_opportunities,
                     SUM(pss.total_o_opportunity_scores) as total_o_opportunity_scores,
-                    MAX(t.name) as team_name,
-                    MAX(t.full_name) as team_full_name,
-                    (SELECT COUNT(DISTINCT pgs_sub.game_id) 
-                     FROM player_game_stats pgs_sub 
+                    p.most_recent_team_name as team_name,
+                    p.most_recent_team_full_name as team_full_name,
+                    (SELECT COUNT(DISTINCT pgs_sub.game_id)
+                     FROM player_game_stats pgs_sub
                      JOIN games g_sub ON pgs_sub.game_id = g_sub.game_id
-                     WHERE pgs_sub.player_id = pss.player_id 
+                     WHERE pgs_sub.player_id = pss.player_id
                      AND (pgs_sub.o_points_played > 0 OR pgs_sub.d_points_played > 0 OR pgs_sub.seconds_played > 0 OR pgs_sub.goals > 0 OR pgs_sub.assists > 0)
                      {team_filter.replace('pss.', 'pgs_sub.')}
                     ) as games_played,
@@ -77,29 +77,29 @@ def create_player_stats_route(stats_system):
                     (SUM(pss.total_o_points_played) + SUM(pss.total_d_points_played)) as total_points_played,
                     (SUM(pss.total_yards_thrown) + SUM(pss.total_yards_received)) as total_yards,
                     ROUND(SUM(pss.total_seconds_played) / 60.0, 0) as minutes_played,
-                    CASE 
-                        WHEN SUM(pss.total_hucks_attempted) > 0 
-                        THEN ROUND(SUM(pss.total_hucks_completed) * 100.0 / SUM(pss.total_hucks_attempted), 1) 
-                        ELSE 0 
+                    CASE
+                        WHEN SUM(pss.total_hucks_attempted) > 0
+                        THEN ROUND(SUM(pss.total_hucks_completed) * 100.0 / SUM(pss.total_hucks_attempted), 1)
+                        ELSE 0
                     END as huck_percentage,
-                    CASE 
-                        WHEN SUM(pss.total_o_opportunities) >= 20 
+                    CASE
+                        WHEN SUM(pss.total_o_opportunities) >= 20
                         THEN ROUND(SUM(pss.total_o_opportunity_scores) * 100.0 / SUM(pss.total_o_opportunities), 1)
-                        ELSE NULL 
+                        ELSE NULL
                     END as offensive_efficiency
                 FROM player_season_stats pss
-                JOIN (SELECT pss2.player_id,
-                             MAX(pss2.year) as max_year,
-                             MAX(p.full_name) as full_name,
-                             MAX(p.first_name) as first_name,
-                             MAX(p.last_name) as last_name,
-                             MAX(p.team_id) as team_id
+                JOIN (SELECT DISTINCT pss2.player_id,
+                             FIRST_VALUE(pl.full_name) OVER (PARTITION BY pss2.player_id ORDER BY pss2.year DESC) as full_name,
+                             FIRST_VALUE(pl.first_name) OVER (PARTITION BY pss2.player_id ORDER BY pss2.year DESC) as first_name,
+                             FIRST_VALUE(pl.last_name) OVER (PARTITION BY pss2.player_id ORDER BY pss2.year DESC) as last_name,
+                             FIRST_VALUE(pss2.team_id) OVER (PARTITION BY pss2.player_id ORDER BY pss2.year DESC) as most_recent_team_id,
+                             FIRST_VALUE(t2.name) OVER (PARTITION BY pss2.player_id ORDER BY pss2.year DESC) as most_recent_team_name,
+                             FIRST_VALUE(t2.full_name) OVER (PARTITION BY pss2.player_id ORDER BY pss2.year DESC) as most_recent_team_full_name
                       FROM player_season_stats pss2
-                      JOIN players p ON pss2.player_id = p.player_id AND pss2.year = p.year
-                      GROUP BY pss2.player_id) p ON pss.player_id = p.player_id
-                LEFT JOIN teams t ON pss.team_id = t.team_id AND pss.year = t.year
+                      JOIN players pl ON pss2.player_id = pl.player_id AND pss2.year = pl.year
+                      LEFT JOIN teams t2 ON pss2.team_id = t2.team_id AND pss2.year = t2.year) p ON pss.player_id = p.player_id
                 WHERE 1=1{team_filter}
-                GROUP BY pss.player_id
+                GROUP BY pss.player_id, p.full_name, p.first_name, p.last_name, p.most_recent_team_id, p.most_recent_team_name, p.most_recent_team_full_name
                 ORDER BY {get_sort_column(sort, is_career=True, per_game=(per == "game"), team=team)} {order.upper()}
                 LIMIT {per_page} OFFSET {(page-1) * per_page}
                 """
