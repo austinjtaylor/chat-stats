@@ -61,8 +61,8 @@ class PlayerStats {
             const data = await window.ufaStats.fetchData<StatsResponse>('/stats');
             if (data.team_standings) {
                 this.teams = data.team_standings.map(team => ({
-                    id: team.team_id || team.team_name || '',
-                    name: team.team_name || '',
+                    id: team.team_id,
+                    name: team.name || '',
                     is_current: team.is_current,
                     last_year: team.last_year
                 }));
