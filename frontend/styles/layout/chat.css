@@ -87,10 +87,11 @@ body.chat-page {
     border-radius: 0;
     border: none;
     position: relative;
+    justify-content: center;
+    width: 100%;
 }
 
 .chat-input-container {
-    flex: 1;
     display: flex;
     gap: 0.5rem;
     align-items: center;
@@ -99,6 +100,8 @@ body.chat-page {
     border-radius: 24px;
     padding: 0.5rem 0.75rem 0.5rem 1rem;
     transition: border-color 0.2s ease;
+    width: 768px;
+    max-width: 768px;
 }
 
 #chatInput {
@@ -153,8 +156,8 @@ body.chat-page {
     color: var(--error);
 }
 
-/* Try Asking Suggestions Container */
-.try-asking-container {
+/* Try Asking Suggestions Container - Centered version */
+.try-asking-container.try-asking-centered {
     display: flex;
     justify-content: center;
     margin-top: 1rem;
@@ -162,6 +165,14 @@ body.chat-page {
     z-index: 100;
     min-height: 40px;
     margin-bottom: 200px; /* Extra space for dropdown */
+}
+
+/* Try Asking Suggestions Container - Inline version (right side) */
+.try-asking-container.try-asking-inline {
+    display: none; /* Hidden by default */
+    position: relative;
+    z-index: 100;
+    margin-left: 0.5rem;
 }
 
 /* Chat Active State - Transform layout when conversation starts */
@@ -205,14 +216,22 @@ body.chat-page {
     bottom: 0;
     left: 50%;
     transform: translateX(-50%);
-    width: 100%;
-    max-width: 768px;
+    width: auto;
+    max-width: calc(768px + 150px); /* Chat bar width + space for button */
     padding: 1rem;
     background: transparent;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-.chat-active .try-asking-container {
+/* When chat is active, hide centered and show inline */
+.chat-active .try-asking-container.try-asking-centered {
     display: none !important;
+}
+
+.chat-active .try-asking-container.try-asking-inline {
+    display: flex;
 }
 
 /* Hide new chat button in input area (it's in the menu) */

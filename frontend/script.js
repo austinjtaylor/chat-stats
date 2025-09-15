@@ -69,17 +69,16 @@ function setupEventListeners() {
     
     // Theme toggle handled by nav.js
     
-    // Suggested questions
+    // Suggested questions - handle all suggested items
     document.querySelectorAll('.suggested-item').forEach(button => {
         button.addEventListener('click', (e) => {
             const question = e.target.getAttribute('data-question');
             chatInput.value = question;
             sendMessage();
-            // Close dropdown after selection
-            const suggestionsDropdown = document.getElementById('suggestionsDropdown');
-            if (suggestionsDropdown) {
-                suggestionsDropdown.classList.remove('active');
-            }
+            // Close all dropdowns after selection
+            document.querySelectorAll('.suggestions-dropdown').forEach(dropdown => {
+                dropdown.classList.remove('active');
+            });
         });
     });
 }
@@ -133,36 +132,41 @@ function setupDropdowns() {
         });
     }
     
-    // Try Asking suggestions dropdown - hover on button only
-    const tryAskingButton = document.getElementById('tryAskingButton');
-    const tryAskingContainer = document.querySelector('.try-asking-container');
-    const suggestionsDropdown = document.getElementById('suggestionsDropdown');
+    // Try Asking suggestions dropdown - setup for both buttons
+    setupTryAskingDropdown('tryAskingButton', 'suggestionsDropdown');
+    setupTryAskingDropdown('tryAskingButtonCentered', 'suggestionsDropdownCentered');
+}
 
-    if (tryAskingButton && suggestionsDropdown && tryAskingContainer) {
-        let suggestionsTimeout;
+// Helper function to setup try asking dropdown behavior
+function setupTryAskingDropdown(buttonId, dropdownId) {
+    const button = document.getElementById(buttonId);
+    const dropdown = document.getElementById(dropdownId);
+
+    if (button && dropdown) {
+        let timeout;
 
         // Show dropdown when hovering button
-        tryAskingButton.addEventListener('mouseenter', () => {
-            clearTimeout(suggestionsTimeout);
-            suggestionsDropdown.classList.add('active');
+        button.addEventListener('mouseenter', () => {
+            clearTimeout(timeout);
+            dropdown.classList.add('active');
         });
 
         // Hide dropdown when leaving button (with delay)
-        tryAskingButton.addEventListener('mouseleave', () => {
-            suggestionsTimeout = setTimeout(() => {
-                suggestionsDropdown.classList.remove('active');
+        button.addEventListener('mouseleave', () => {
+            timeout = setTimeout(() => {
+                dropdown.classList.remove('active');
             }, 200);
         });
 
         // Keep dropdown open when hovering over it
-        suggestionsDropdown.addEventListener('mouseenter', () => {
-            clearTimeout(suggestionsTimeout);
+        dropdown.addEventListener('mouseenter', () => {
+            clearTimeout(timeout);
         });
 
         // Hide dropdown when leaving dropdown
-        suggestionsDropdown.addEventListener('mouseleave', () => {
-            suggestionsTimeout = setTimeout(() => {
-                suggestionsDropdown.classList.remove('active');
+        dropdown.addEventListener('mouseleave', () => {
+            timeout = setTimeout(() => {
+                dropdown.classList.remove('active');
             }, 200);
         });
     }
@@ -206,12 +210,6 @@ async function sendMessage() {
 
     // Add chat-active class to transform the layout
     document.body.classList.add('chat-active');
-
-    // Hide the "Try Asking" container after sending a message (redundant with CSS but kept for compatibility)
-    const tryAskingContainer = document.querySelector('.try-asking-container');
-    if (tryAskingContainer) {
-        tryAskingContainer.style.display = 'none';
-    }
 
     // Disable input
     chatInput.value = '';
@@ -274,22 +272,23 @@ function addMessage(content, type, sources = null, isWelcome = false) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${type}${isWelcome ? ' welcome-message' : ''}`;
     messageDiv.id = `message-${messageId}`;
-    
+
     // Convert markdown to HTML for assistant messages
     const displayContent = type === 'assistant' ? marked.parse(content) : escapeHtml(content);
-    
-    let html = `<div class="message-content">${displayContent}</div>`;
-    
-    if (sources && sources.length > 0) {
+
+    let html = `<div class="message-content">${displayContent}`;
+
+    // Add sources inside the message-content div for assistant messages
+    if (type === 'assistant' && sources && sources.length > 0) {
         // Force sources to be treated as objects by parsing if needed
         let processedSources = sources;
-        
+
         // If sources are somehow strings, try to parse them
         if (typeof sources[0] === 'string' && sources[0].includes('[object Object]')) {
             // This shouldn't happen, but let's handle it
             processedSources = [];
         }
-        
+
         const sourcesHtml = processedSources.map(source => {
             // Ensure we have an object
             if (typeof source === 'object' && source !== null && source.text) {
@@ -305,7 +304,7 @@ function addMessage(content, type, sources = null, isWelcome = false) {
                 return `<div class="source-item">DEBUG: ${JSON.stringify(source)}</div>`;
             }
         }).join('');
-        
+
         html += `
             <details class="sources-collapsible">
                 <summary class="sources-header">Sources</summary>
@@ -313,11 +312,13 @@ function addMessage(content, type, sources = null, isWelcome = false) {
             </details>
         `;
     }
-    
+
+    html += `</div>`;  // Close message-content div
+
     messageDiv.innerHTML = html;
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
-    
+
     return messageId;
 }
 
@@ -334,11 +335,7 @@ async function createNewSession() {
     currentSessionId = null;
     chatMessages.innerHTML = '';
 
-    // Ensure \"Try Asking\" container is visible for new session
-    const tryAskingContainer = document.querySelector('.try-asking-container');
-    if (tryAskingContainer) {
-        tryAskingContainer.style.display = 'flex';
-    }
+    // Try Asking container now always visible in the input area
 }
 
 function startNewChat() {
@@ -349,11 +346,7 @@ function startNewChat() {
     // Remove chat-active class to restore centered layout
     document.body.classList.remove('chat-active');
 
-    // Show the "Try Asking" container again for new chat
-    const tryAskingContainer = document.querySelector('.try-asking-container');
-    if (tryAskingContainer) {
-        tryAskingContainer.style.display = 'flex';
-    }
+    // Try Asking container now always visible in the input area
 
     // Re-enable input and focus
     if (chatInput) {

@@ -73,6 +73,7 @@
     align-items: center;
     gap: 0.5rem;
     transition: all 0.2s ease;
+    white-space: nowrap;
 }
 
 .try-asking-button:hover {
@@ -91,9 +92,9 @@
     position: absolute;
     top: calc(100% + 0.5rem);
     left: 50%;
-    margin-left: -160px;
+    transform: translateX(-50%);
     width: 320px;
-    max-width: 90vw;
+    max-width: calc(100vw - 2rem);
     max-height: 172px;
     overflow-y: auto;
     overflow-x: hidden;
@@ -110,10 +111,21 @@
     scroll-behavior: smooth;
 }
 
+/* Upward dropdown variant */
+.suggestions-dropdown-upward {
+    bottom: calc(100% + 0.5rem);
+    top: auto;
+    transform-origin: bottom center;
+}
+
 .suggestions-dropdown.active {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
+}
+
+.suggestions-dropdown-upward.active {
+    transform: translateX(-50%) translateY(0);
 }
 
 .suggestions-grid {
@@ -198,7 +210,8 @@
 /* Responsive */
 @media (max-width: 768px) {
     .suggestions-dropdown {
-        width: 95vw;
+        width: calc(100vw - 2rem);
+        max-width: 320px;
     }
 
     .suggestions-grid {

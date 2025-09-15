@@ -97,9 +97,9 @@
                         </svg>
                     </button>
                     <div class="chat-input-container">
-                        <input 
-                            type="text" 
-                            id="chatInput" 
+                        <input
+                            type="text"
+                            id="chatInput"
                             placeholder="Ask about players, teams, or games"
                             autocomplete="off"
                         >
@@ -115,14 +115,32 @@
                             </svg>
                         </button>
                     </div>
+                    <!-- Try Asking Suggestions - moves to side when chat is active -->
+                    <div class="try-asking-container try-asking-inline">
+                        <button class="try-asking-button" id="tryAskingButton">
+                            Try asking...
+                        </button>
+                        <div class="dropdown suggestions-dropdown suggestions-dropdown-upward" id="suggestionsDropdown">
+                            <div class="suggestions-grid">
+                                <button class="suggested-item" data-question="Who are the top goal scorers in the UFA?">Top goal scorers</button>
+                                <button class="suggested-item" data-question="Which players have the most assists this season?">Assist leaders</button>
+                                <button class="suggested-item" data-question="What teams are in the UFA?">UFA teams</button>
+                                <button class="suggested-item" data-question="Who has the most blocks (Ds) this season?">Defensive leaders</button>
+                                <button class="suggested-item" data-question="Show me the recent UFA game results">Recent games</button>
+                                <button class="suggested-item" data-question="Compare the top 5 players by plus/minus">Plus/minus leaders</button>
+                                <button class="suggested-item" data-question="Which team has the best record?">Team standings</button>
+                                <button class="suggested-item" data-question="Show me players with over 20 goals this season">20+ goal scorers</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                
-                <!-- Try Asking Suggestions -->
-                <div class="try-asking-container">
-                    <button class="try-asking-button" id="tryAskingButton">
+
+                <!-- Try Asking Suggestions - centered below chat bar initially -->
+                <div class="try-asking-container try-asking-centered">
+                    <button class="try-asking-button" id="tryAskingButtonCentered">
                         Try asking...
                     </button>
-                    <div class="dropdown suggestions-dropdown" id="suggestionsDropdown">
+                    <div class="dropdown suggestions-dropdown" id="suggestionsDropdownCentered">
                         <div class="suggestions-grid">
                             <button class="suggested-item" data-question="Who are the top goal scorers in the UFA?">Top goal scorers</button>
                             <button class="suggested-item" data-question="Which players have the most assists this season?">Assist leaders</button>

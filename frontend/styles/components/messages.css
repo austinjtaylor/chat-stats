@@ -12,56 +12,103 @@
 }
 
 /* User Message (Right-aligned) */
-.user-message {
+.message.user {
     justify-content: flex-end;
 }
 
-.user-message .message-content {
-    background: var(--primary-color);
-    color: white;
+.message.user .message-content {
+    background: var(--surface);
+    color: var(--text-primary);
     padding: 0.75rem 1rem;
     border-radius: 18px 18px 4px 18px;
     max-width: 70%;
     word-wrap: break-word;
     box-shadow: var(--shadow-sm);
-}
-
-/* Bot Message (Left-aligned) */
-.bot-message {
-    justify-content: flex-start;
-}
-
-.bot-message .message-content {
-    background: var(--surface);
-    color: var(--text-primary);
-    padding: 0.75rem 1rem;
-    border-radius: 18px 18px 18px 4px;
-    max-width: 80%;
-    word-wrap: break-word;
-    box-shadow: var(--shadow-sm);
     border: 1px solid var(--border-color);
 }
 
-/* Bot message typography */
-.bot-message .message-content p {
+/* Assistant Message (Left-aligned) */
+.message.assistant {
+    justify-content: flex-start;
+}
+
+.message.assistant .message-content {
+    background: transparent;
+    color: var(--text-primary);
+    padding: 0.75rem 1rem;
+    border-radius: 0;
+    max-width: 80%;
+    word-wrap: break-word;
+    box-shadow: none;
+    border: none;
+}
+
+/* Assistant message typography */
+.message.assistant .message-content p {
     margin: 0 0 0.5rem 0;
 }
 
-.bot-message .message-content p:last-child {
+.message.assistant .message-content p:last-of-type {
     margin-bottom: 0;
 }
 
-.bot-message .message-content ul,
-.bot-message .message-content ol {
+/* Sources styling within assistant message */
+.message.assistant .sources-collapsible {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.message.assistant .sources-header {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    user-select: none;
+    padding: 0.25rem 0;
+    list-style: none;
+}
+
+.message.assistant .sources-header::before {
+    content: "▶ ";
+    display: inline-block;
+    transition: transform 0.2s;
+}
+
+.message.assistant details[open] .sources-header::before {
+    transform: rotate(90deg);
+}
+
+.message.assistant .sources-content {
+    margin-top: 0.5rem;
+    padding-left: 1rem;
+}
+
+.message.assistant .source-item {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin: 0.25rem 0;
+}
+
+.message.assistant .source-item a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.message.assistant .source-item a:hover {
+    text-decoration: underline;
+}
+
+.message.assistant .message-content ul,
+.message.assistant .message-content ol {
     margin: 0.5rem 0;
     padding-left: 1.5rem;
 }
 
-.bot-message .message-content li {
+.message.assistant .message-content li {
     margin: 0.25rem 0;
 }
 
-.bot-message .message-content code {
+.message.assistant .message-content code {
     background: var(--background);
     padding: 0.125rem 0.375rem;
     border-radius: 4px;
@@ -69,7 +116,7 @@
     font-size: 0.9em;
 }
 
-.bot-message .message-content pre {
+.message.assistant .message-content pre {
     background: var(--background);
     padding: 0.75rem;
     border-radius: 8px;
@@ -77,26 +124,26 @@
     margin: 0.5rem 0;
 }
 
-.bot-message .message-content pre code {
+.message.assistant .message-content pre code {
     background: transparent;
     padding: 0;
     font-size: 0.875rem;
 }
 
-.bot-message .message-content table {
+.message.assistant .message-content table {
     width: 100%;
     border-collapse: collapse;
     margin: 0.5rem 0;
 }
 
-.bot-message .message-content th,
-.bot-message .message-content td {
+.message.assistant .message-content th,
+.message.assistant .message-content td {
     padding: 0.5rem;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
 }
 
-.bot-message .message-content th {
+.message.assistant .message-content th {
     font-weight: 600;
     background: var(--background);
 }
@@ -179,11 +226,11 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    .user-message .message-content {
+    .message.user .message-content {
         max-width: 85%;
     }
 
-    .bot-message .message-content,
+    .message.assistant .message-content,
     .error-message .message-content {
         max-width: 90%;
     }
