@@ -14,21 +14,43 @@
     width: 100%;
     overflow-x: auto;
     background: var(--surface);
-    border-radius: var(--radius);
-    border: 1px solid var(--border-color);
+    /* Remove border-radius and border to prevent conflicts with parent styling */
+    border: none;
 }
 
 .table-container::-webkit-scrollbar {
     height: 8px;
+    width: 8px;
 }
 
 .table-container::-webkit-scrollbar-track {
     background: var(--surface);
+    /* Ensure track doesn't show through rounded corners */
+    border-radius: 0;
 }
 
 .table-container::-webkit-scrollbar-thumb {
     background: var(--border-color);
     border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-corner {
+    background: var(--surface);
+    border-radius: 0;
+}
+
+/* Special handling for stats table container */
+.table-section .table-container::-webkit-scrollbar {
+    background: transparent;
+}
+
+.table-section .table-container::-webkit-scrollbar-track {
+    background: var(--surface);
+    border-radius: 0;
+}
+
+.table-section .table-container::-webkit-scrollbar-corner {
+    background: var(--surface);
 }
 
 /* Table Header */

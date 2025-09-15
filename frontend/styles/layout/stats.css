@@ -162,11 +162,13 @@ body.stats-page {
     box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
-/* Table Section */
+/* Table Section - Wrapper for visual border */
 .table-section {
-    background: var(--surface);
+    background: transparent;
     border: 1px solid var(--border-color);
     border-radius: 8px;
+    padding: 0;
+    position: relative;
     overflow: hidden;
 }
 
@@ -179,6 +181,11 @@ body.stats-page {
     align-items: center;
     flex-wrap: wrap;
     gap: 1rem;
+    /* No border radius needed, parent handles it */
+    position: relative;
+    z-index: 1;
+    margin: -1px -1px 0 -1px; /* Compensate for parent border */
+    border-radius: 7px 7px 0 0; /* Slightly smaller radius to fit inside parent */
 }
 
 .table-title {
@@ -268,7 +275,13 @@ body.stats-page {
     overflow-x: auto;
     max-height: 60vh;
     overflow-y: auto;
+    background: var(--surface);
+    /* No borders needed, parent handles them */
+    border-radius: 0;
+    position: relative;
+    margin: 0 -1px -1px -1px; /* Compensate for parent border */
 }
+
 
 /* Game Cards */
 .games-container {

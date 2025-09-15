@@ -290,6 +290,19 @@
     top: 0;
     white-space: nowrap;
     color: var(--text-primary);
+    /* Ensure the sticky header covers properly */
+    z-index: 10;
+    /* Add a box-shadow to cover any gaps */
+    box-shadow: 0 1px 0 var(--border-color);
+}
+
+/* Ensure first and last header cells don't show gaps */
+.stats-table th:first-child {
+    padding-left: 1rem;
+}
+
+.stats-table th:last-child {
+    padding-right: 1rem;
 }
 
 .stats-table th.sortable {
