@@ -13,10 +13,12 @@ This application is a full-stack web application that enables users to ask natur
 - Real-time player stats, team performance, and game results
 - Web-based chat interface with conversation history
 - Comprehensive sports database with players, teams, games, and statistics
+- **TypeScript frontend** with strict type checking for reliability
 
 ## Prerequisites
 
 - Python 3.13 or higher
+- Node.js 18+ and npm (for frontend)
 - uv (Python package manager)
 - An Anthropic API key (for Claude AI)
 - **For Windows**: Use Git Bash to run the application commands - [Download Git for Windows](https://git-scm.com/downloads/win)
@@ -65,7 +67,7 @@ chmod +x run-dev.sh
 
 This starts:
 - **Backend API**: `http://localhost:8000` (with auto-reload)
-- **Frontend**: `http://localhost:3000` (Vite dev server with TypeScript support)
+- **Frontend**: `http://localhost:3000` (Vite dev server with TypeScript and HMR)
 - **API Documentation**: `http://localhost:8000/docs`
 
 ### Production Build
@@ -134,5 +136,43 @@ Ask natural language questions about sports statistics:
 - `GET /api/games/recent` - Get recent game results
 
 ## Development
+
+### Frontend TypeScript Setup
+
+The frontend is built with **TypeScript** for type safety and better developer experience:
+
+- **Source Code**: All frontend code is in `frontend/src/` (TypeScript)
+- **Type Definitions**: Shared types in `frontend/types/`
+- **Strict Mode**: TypeScript strict mode is enabled for maximum type safety
+- **Path Aliases**: Configured aliases for cleaner imports:
+  - `@/*` → `src/*`
+  - `@utils/*` → `src/utils/*`
+  - `@api/*` → `src/api/*`
+  - `@components/*` → `src/components/*`
+
+#### TypeScript Commands
+
+```bash
+cd frontend
+npm run typecheck  # Run TypeScript compiler checks
+npm run dev        # Development with type checking
+npm run build      # Production build with type checking
+```
+
+#### Frontend Architecture
+
+```
+frontend/
+├── src/              # TypeScript source files
+│   ├── api/          # API client and services
+│   ├── components/   # UI components
+│   └── utils/        # Utility functions
+├── stats/            # Statistics pages
+├── types/            # TypeScript type definitions
+├── styles/           # CSS stylesheets
+└── tsconfig.json     # TypeScript configuration
+```
+
+### Backend Development
 
 See `CLAUDE.md` for detailed development commands including testing, code quality checks, and database management.

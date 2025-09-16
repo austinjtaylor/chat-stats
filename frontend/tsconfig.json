@@ -34,11 +34,12 @@
     // Paths
     "baseUrl": ".",
     "paths": {
-      "@/*": ["js/*"],
+      "@/*": ["src/*"],
       "@types/*": ["types/*"],
       "@stats/*": ["stats/*"],
-      "@utils/*": ["js/utils/*"],
-      "@api/*": ["js/api/*"]
+      "@utils/*": ["src/utils/*"],
+      "@api/*": ["src/api/*"],
+      "@components/*": ["src/components/*"]
     },
 
     // JavaScript support

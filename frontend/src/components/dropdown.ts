@@ -3,19 +3,22 @@
  * Handles all dropdown interactions including menu, settings, and suggestions
  */
 
-export function initDropdowns() {
+// Type for timeout handles
+type TimeoutHandle = ReturnType<typeof setTimeout>;
+
+export function initDropdowns(): void {
     setupMenuDropdown();
     setupSettingsDropdown();
     setupTryAskingDropdown();
     setupThemeToggle();
 }
 
-function setupMenuDropdown() {
+function setupMenuDropdown(): void {
     const menuWrapper = document.querySelector('.menu-wrapper');
     const menuDropdown = document.getElementById('menuDropdown');
 
     if (menuWrapper && menuDropdown) {
-        let menuTimeout;
+        let menuTimeout: TimeoutHandle | undefined;
 
         menuWrapper.addEventListener('mouseenter', () => {
             clearTimeout(menuTimeout);
@@ -41,12 +44,12 @@ function setupMenuDropdown() {
     }
 }
 
-function setupSettingsDropdown() {
+function setupSettingsDropdown(): void {
     const settingsWrapper = document.querySelector('.settings-wrapper');
     const settingsDropdown = document.getElementById('settingsDropdown');
 
     if (settingsWrapper && settingsDropdown) {
-        let settingsTimeout;
+        let settingsTimeout: TimeoutHandle | undefined;
 
         settingsWrapper.addEventListener('mouseenter', () => {
             clearTimeout(settingsTimeout);
@@ -63,13 +66,13 @@ function setupSettingsDropdown() {
     }
 }
 
-function setupTryAskingDropdown() {
+function setupTryAskingDropdown(): void {
     const tryAskingButton = document.getElementById('tryAskingButton');
     const tryAskingContainer = document.querySelector('.try-asking-container');
     const suggestionsDropdown = document.getElementById('suggestionsDropdown');
 
     if (tryAskingButton && suggestionsDropdown && tryAskingContainer) {
-        let suggestionsTimeout;
+        let suggestionsTimeout: TimeoutHandle | undefined;
 
         // Show dropdown when hovering button
         tryAskingButton.addEventListener('mouseenter', () => {
@@ -97,14 +100,15 @@ function setupTryAskingDropdown() {
         });
 
         // Handle suggested question clicks
-        document.querySelectorAll('.suggested-item').forEach(button => {
+        document.querySelectorAll<HTMLElement>('.suggested-item').forEach(button => {
             button.addEventListener('click', (e) => {
-                const question = e.target.getAttribute('data-question');
-                const chatInput = document.getElementById('chatInput');
+                const target = e.target as HTMLElement;
+                const question = target.getAttribute('data-question');
+                const chatInput = document.getElementById('chatInput') as HTMLInputElement | null;
                 if (chatInput && question) {
                     chatInput.value = question;
                     // Trigger send message if sendButton exists
-                    const sendButton = document.getElementById('sendButton');
+                    const sendButton = document.getElementById('sendButton') as HTMLButtonElement | null;
                     if (sendButton) {
                         sendButton.click();
                     }
@@ -116,7 +120,7 @@ function setupTryAskingDropdown() {
     }
 }
 
-function setupThemeToggle() {
+function setupThemeToggle(): void {
     const themeToggleItem = document.getElementById('themeToggleItem');
     const themeSwitch = document.getElementById('themeSwitch');
 
@@ -150,7 +154,7 @@ function setupThemeToggle() {
     }
 }
 
-function closeOtherDropdowns(exceptDropdownId) {
+function closeOtherDropdowns(exceptDropdownId: string): void {
     const dropdownIds = ['menuDropdown', 'settingsDropdown', 'suggestionsDropdown'];
     dropdownIds.forEach(id => {
         if (id !== exceptDropdownId) {
@@ -162,7 +166,7 @@ function closeOtherDropdowns(exceptDropdownId) {
     });
 }
 
-function startNewChat() {
+function startNewChat(): void {
     // Clear chat messages
     const chatMessages = document.getElementById('chatMessages');
     if (chatMessages) {
@@ -170,12 +174,12 @@ function startNewChat() {
     }
 
     // Generate new session ID if needed
-    if (window.createNewSession && typeof window.createNewSession === 'function') {
-        window.createNewSession();
+    if ((window as any).createNewSession && typeof (window as any).createNewSession === 'function') {
+        (window as any).createNewSession();
     }
 
     // Focus on input
-    const chatInput = document.getElementById('chatInput');
+    const chatInput = document.getElementById('chatInput') as HTMLInputElement | null;
     if (chatInput) {
         chatInput.focus();
     }

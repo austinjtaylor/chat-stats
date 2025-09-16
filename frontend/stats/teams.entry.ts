@@ -3,9 +3,9 @@
  */
 
 import '../styles/main.css';
-import { DOM } from '../js/utils/dom';
-import { Format } from '../js/utils/format';
-import statsAPI from '../js/api/client';
+import { DOM } from '../src/utils/dom';
+import { Format } from '../src/utils/format';
+import statsAPI from '../src/api/client';
 
 // Make utilities available globally for existing code
 window.DOM = DOM;

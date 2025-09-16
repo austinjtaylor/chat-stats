@@ -44,7 +44,7 @@ export interface QueryRequest {
 }
 
 export interface QueryResponse {
-  response: string;
+  answer: string;  // Backend uses 'answer' not 'response'
   data?: any;
   session_id: string;
   error?: string;

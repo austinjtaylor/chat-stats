@@ -1,104 +1,157 @@
-# UFA Statistics Frontend
+# Chat with Stats - Frontend Documentation
 
 ## Overview
-Modern, modular frontend for the UFA Statistics application with refactored architecture for better maintainability and performance.
+Modern TypeScript-based frontend for the Chat with Stats application, featuring a modular architecture with strict type safety for better maintainability, reliability, and developer experience.
 
-## New Architecture (v2.0)
+## TypeScript Architecture (v3.0)
 
 ### Directory Structure
 ```
 frontend/
+├── src/                    # TypeScript source files
+│   ├── api/
+│   │   └── client.ts       # Centralized API client with types
+│   ├── components/
+│   │   ├── nav.ts          # Navigation component
+│   │   └── dropdown.ts     # Dropdown component
+│   └── utils/
+│       ├── dom.ts          # DOM utilities with type safety
+│       └── format.ts       # Formatting utilities
+├── stats/                  # Statistics pages (TypeScript)
+│   ├── players.ts
+│   ├── teams.ts
+│   └── games.ts
+├── types/                  # TypeScript type definitions
+│   ├── api.ts              # API response types
+│   └── models.ts           # Data model types
 ├── styles/                 # Modular CSS architecture
 │   ├── base.css           # Reset and base styles
 │   ├── theme.css          # Theme variables
-│   ├── main.css           # Main entry point (imports all)
-│   └── components/        # Reusable components
-│       ├── buttons.css
-│       ├── tables.css
-│       ├── cards.css
-│       └── forms.css
-├── js/                    # Modular JavaScript
-│   ├── api/
-│   │   └── client.js      # Centralized API client
-│   └── utils/
-│       ├── dom.js         # DOM utilities
-│       └── format.js      # Formatting utilities
-├── stats/                 # Statistics pages
-│   ├── players.html
-│   ├── teams.html
-│   └── games.html
+│   ├── main.css           # Main entry point
+│   └── components/        # Component styles
 ├── index.html             # Chat interface
-├── dashboard.html         # Main dashboard
+├── tsconfig.json          # TypeScript configuration
 └── package.json           # Build configuration
 ```
 
 ## Quick Start
 
-### Development (without build tools)
-```bash
-# Serve files directly
-python3 -m http.server 8080
-# or
-npx serve .
-```
-
-### Development (with Vite)
+### Development with TypeScript
 ```bash
 # Install dependencies
 npm install
 
-# Start dev server with hot reload
+# Start dev server with TypeScript compilation and hot reload
 npm run dev
 
-# Build for production
+# Run TypeScript type checking
+npm run typecheck
+
+# Build for production (with type checking)
 npm run build
 
 # Preview production build
 npm run preview
 ```
 
+## TypeScript Features
+
+### Strict Type Safety
+The project uses TypeScript with **strict mode enabled** for maximum type safety:
+- No implicit `any` types
+- Strict null checks
+- Strict function types
+- No unused locals or parameters
+
+### Path Aliases
+Configured aliases for cleaner imports:
+```typescript
+import { StatsAPI } from '@api/client';
+import { DOM } from '@utils/dom';
+import { Format } from '@utils/format';
+import type { QueryResponse } from '@types/api';
+```
+
+### Type Definitions
+All API responses and data models are fully typed:
+```typescript
+interface QueryResponse {
+  answer: string;
+  data?: any;
+  session_id: string;
+  error?: string;
+}
+
+interface Player {
+  player_id: number;
+  first_name: string;
+  last_name: string;
+  team_id?: number;
+  position?: string;
+  // ... more fields
+}
+```
+
 ## Key Features
 
-### Modular CSS
-- **50% smaller** than original monolithic CSS
-- **Component-based** architecture
-- **Theme support** with CSS variables
-- **Utility classes** for rapid development
+### Modular Architecture
+- **Component-based** structure with TypeScript modules
+- **Type-safe** API client and utilities
+- **Reusable** typed components
+- **50% smaller CSS** with modular architecture
 
-### JavaScript Utilities
+### TypeScript API Client
+```typescript
+import statsAPI from '@api/client';
+import type { Player, Team, Game } from '@types/models';
 
-#### API Client
-```javascript
-// Before: Manual fetch
-fetch('/api/players')
-  .then(res => res.json())
-  .then(data => console.log(data));
+// Type-safe API calls
+const players: Player[] = await statsAPI.getPlayers();
+const team: Team = await statsAPI.getTeam(teamId);
+const games: Game[] = await statsAPI.getRecentGames();
 
-// After: Clean API client
-statsAPI.getPlayers()
-  .then(data => console.log(data));
+// Query with type safety
+const response = await statsAPI.query('Who are the top scorers?', sessionId);
+console.log(response.answer); // TypeScript knows this is a string
 ```
 
-#### DOM Utilities
-```javascript
-// Query elements
-DOM.$('#element');
-DOM.$$('.elements');
+### DOM Utilities with Type Safety
+```typescript
+import { DOM } from '@utils/dom';
 
-// Create elements
-DOM.createElement('div', { className: 'card' }, ['Content']);
+// Type-safe element queries
+const button = DOM.$<HTMLButtonElement>('#sendButton');
+const inputs = DOM.$$<HTMLInputElement>('.form-input');
 
-// Event handling
-DOM.on(element, 'click', handler);
-DOM.debounce(func, 300);
+// Create elements with proper types
+const div = DOM.createElement('div',
+  { className: 'card', dataset: { id: '123' } },
+  ['Content']
+);
+
+// Type-safe event handling
+DOM.on(button, 'click', (e: MouseEvent) => {
+  console.log('Clicked!');
+});
+
+// Utility functions with proper types
+const debounced = DOM.debounce((value: string) => {
+  console.log(value);
+}, 300);
 ```
 
-#### Format Utilities
-```javascript
-Format.number(1234);          // "1,234"
-Format.percentage(0.75);      // "75.0%"
-Format.date('2025-01-15');    // "Jan 15, 2025"
-Format.playerName('John', 'Doe'); // "John Doe"
+### Format Utilities with Type Safety
+```typescript
+import { Format } from '@utils/format';
+
+// All methods are properly typed
+const formatted = Format.number(1234);          // "1,234"
+const percent = Format.percentage(0.75);        // "75.0%"
+const date = Format.date('2025-01-15');        // "Jan 15, 2025"
+const name = Format.playerName('John', 'Doe'); // "John Doe"
+
+// Type checking prevents errors
+Format.percentage('not a number'); // TypeScript error!
 ```
 
 ## CSS Components
@@ -176,25 +229,37 @@ Format.playerName('John', 'Doe'); // "John Doe"
 
 ## Theme Support
 
-The application supports dark and light themes:
+The application supports dark and light themes with TypeScript:
 
-```javascript
-// Toggle theme
-document.documentElement.setAttribute('data-theme', 'light');
-// or
-document.documentElement.setAttribute('data-theme', 'dark');
+```typescript
+// Toggle theme with type safety
+type Theme = 'light' | 'dark';
+
+function setTheme(theme: Theme): void {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('theme', theme);
+}
+
+// Get current theme
+function getTheme(): Theme {
+  return (localStorage.getItem('theme') as Theme) || 'dark';
+}
 ```
 
-## API Endpoints
+## API Integration
 
-The frontend connects to these backend endpoints:
+The frontend connects to these typed backend endpoints:
 
-- `POST /api/query` - Natural language queries
-- `GET /api/stats` - Summary statistics
-- `GET /api/players` - Player data
-- `GET /api/teams` - Team data
-- `GET /api/games` - Game data
-- `GET /api/standings` - League standings
+```typescript
+interface APIEndpoints {
+  query: 'POST /api/query';           // Natural language queries
+  stats: 'GET /api/stats';           // Summary statistics
+  players: 'GET /api/players';       // Player data
+  teams: 'GET /api/teams';           // Team data
+  games: 'GET /api/games';           // Game data
+  standings: 'GET /api/standings';   // League standings
+}
+```
 
 ## Browser Support
 
@@ -205,49 +270,99 @@ The frontend connects to these backend endpoints:
 
 ## Performance Optimizations
 
-1. **Modular CSS** - Load only what's needed
-2. **Code splitting** - Separate vendor and app code
-3. **Lazy loading** - Load components on demand
+1. **TypeScript Tree-shaking** - Remove unused code at build time
+2. **Type-safe code splitting** - Separate vendor and app code
+3. **Lazy loading** - Load components on demand with proper types
 4. **Minification** - Reduce file sizes
-5. **Caching** - Leverage browser cache
+5. **Type caching** - Faster subsequent builds
 
 ## Development Tools
 
+### TypeScript Commands
+```bash
+# Type checking
+npm run typecheck
+
+# Build with type checking
+npm run build
+
+# Development with type checking
+npm run dev
+```
+
 ### Linting
 ```bash
+# Lint TypeScript and JavaScript
+npm run lint:js
+
 # Lint CSS
 npm run lint:css
 
-# Lint JavaScript
-npm run lint:js
+# Lint everything
+npm run lint
 ```
 
 ### Formatting
 ```bash
-# Format all files
+# Format all files (including TypeScript)
 npm run format
 
 # Check formatting
 npm run format:check
 ```
 
-## Migration from v1
+## Migration from JavaScript (v2 → v3)
 
-If you're updating from the old structure:
+If you're updating from the JavaScript version:
 
-1. Replace `style.css` references with `styles/main.css`
-2. Add utility scripts before main scripts
-3. Update API calls to use `statsAPI` client
-4. Replace inline styles with utility classes
-5. Update component markup to use new CSS classes
+1. **Update imports**: Change `js/` to `src/` in all imports
+2. **Add type annotations**: Gradually add types to existing code
+3. **Use type definitions**: Import types from `@types/*`
+4. **Enable strict mode**: Start with loose config, then enable strict
+5. **Update build scripts**: Use TypeScript compiler in build process
+
+### Example Migration
+```javascript
+// Before (JavaScript)
+import { DOM } from '../js/utils/dom';
+const element = DOM.$('#myElement');
+
+// After (TypeScript)
+import { DOM } from '@utils/dom';
+const element = DOM.$<HTMLDivElement>('#myElement');
+```
+
+## TypeScript Best Practices
+
+1. **Always use strict mode** for maximum type safety
+2. **Define interfaces** for all data structures
+3. **Use type guards** for runtime type checking
+4. **Avoid `any`** - use `unknown` if type is truly unknown
+5. **Export types separately** from implementations
+6. **Use const assertions** for literal types
+7. **Leverage discriminated unions** for complex state
 
 ## Contributing
 
-1. Follow the modular structure
-2. Use utility classes over inline styles
-3. Keep components small and reusable
-4. Test in multiple browsers
-5. Run linting before committing
+1. **Write TypeScript** - All new code must be TypeScript
+2. **Add types** - No implicit `any` types allowed
+3. **Run type checking** - `npm run typecheck` before committing
+4. **Follow conventions** - Use existing patterns and styles
+5. **Test types** - Ensure types match runtime behavior
+6. **Document types** - Add JSDoc comments for complex types
+
+## Troubleshooting
+
+### Common TypeScript Issues
+
+**Issue**: "Cannot find module '@utils/dom'"
+**Solution**: Check `tsconfig.json` paths configuration
+
+**Issue**: "Type 'X' is not assignable to type 'Y'"
+**Solution**: Verify your types match the expected interface
+
+**Issue**: "Object is possibly 'null'"
+**Solution**: Add null checks or use optional chaining (`?.`)
 
 ## License
 
