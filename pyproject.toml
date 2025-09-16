@@ -38,6 +38,7 @@ markers = [
 [dependency-groups]
 dev = [
     "black>=25.1.0",
+    "datamodel-code-generator>=0.33.0",
     "mypy>=1.17.1",
     "ruff>=0.12.9",
 ]
