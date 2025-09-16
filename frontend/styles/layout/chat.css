@@ -100,8 +100,9 @@ body.chat-page {
     border-radius: 24px;
     padding: 0.5rem 0.75rem 0.5rem 1rem;
     transition: border-color 0.2s ease;
-    width: 768px;
-    max-width: 768px;
+    width: 725px;
+    max-width: 725px;
+    flex-shrink: 0; /* Prevent shrinking */
 }
 
 #chatInput {
@@ -170,9 +171,11 @@ body.chat-page {
 /* Try Asking Suggestions Container - Inline version (right side) */
 .try-asking-container.try-asking-inline {
     display: none; /* Hidden by default */
-    position: relative;
+    position: absolute;
+    right: calc(50% - 480px); /* Position to the right of the 650px chat bar */
+    top: 50%;
+    transform: translateY(-50%);
     z-index: 100;
-    margin-left: 0.5rem;
 }
 
 /* Chat Active State - Transform layout when conversation starts */
@@ -214,10 +217,9 @@ body.chat-page {
 .chat-active .chat-input-area {
     position: fixed;
     bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: auto;
-    max-width: calc(768px + 150px); /* Chat bar width + space for button */
+    left: 0;
+    right: 0;
+    width: 100%;
     padding: 1rem;
     background: transparent;
     display: flex;
@@ -232,6 +234,13 @@ body.chat-page {
 
 .chat-active .try-asking-container.try-asking-inline {
     display: flex;
+}
+
+/* Ensure chat input container stays consistent in chat-active state */
+.chat-active .chat-input-container {
+    width: 725px;
+    max-width: 725px;
+    flex-shrink: 0;
 }
 
 /* Hide new chat button in input area (it's in the menu) */
