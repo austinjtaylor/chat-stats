@@ -2,25 +2,49 @@
  * DOM Manipulation Utilities - TypeScript version
  */
 
+/**
+ * Attributes for creating or modifying DOM elements
+ */
 interface DOMAttributes {
+    /** CSS class name(s) to apply */
     className?: string;
+    /** Data attributes (data-*) as key-value pairs */
     dataset?: Record<string, string>;
+    /** Additional element properties */
     [key: string]: any;
 }
 
+/**
+ * Options for element animations
+ * Extends standard KeyframeAnimationOptions
+ */
 interface AnimateOptions extends KeyframeAnimationOptions {
+    /** Animation duration in milliseconds */
     duration?: number;
+    /** CSS easing function */
     easing?: string;
 }
 
+/**
+ * Element position and size information
+ * Matches DOMRect interface structure
+ */
 interface ElementDimensions {
+    /** Element width in pixels */
     width: number;
+    /** Element height in pixels */
     height: number;
+    /** Distance from top of viewport */
     top: number;
+    /** Distance from left of viewport */
     left: number;
+    /** Distance from bottom of viewport */
     bottom: number;
+    /** Distance from right of viewport */
     right: number;
+    /** Horizontal position (same as left) */
     x: number;
+    /** Vertical position (same as top) */
     y: number;
 }
 

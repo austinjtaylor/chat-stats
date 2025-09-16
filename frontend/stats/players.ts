@@ -62,7 +62,7 @@ class PlayerStats {
             if (data.team_standings) {
                 this.teams = data.team_standings.map(team => ({
                     id: team.team_id,
-                    name: team.name || '',
+                    name: team.team_name || '',
                     is_current: team.is_current,
                     last_year: team.last_year
                 }));
@@ -373,8 +373,8 @@ class PlayerStats {
 
     calculateHuckPercentage(player: PlayerSeasonStats): number {
         // Use the correct field names from the API response
-        const attempted = player.total_hucks_attempted || player.hucks_attempted || 0;
-        const completed = player.total_hucks_completed || player.hucks_completed || 0;
+        const attempted = player.hucks_attempted || 0;
+        const completed = player.hucks_completed || 0;
 
         if (!attempted || attempted === 0) return 0;
         return (completed / attempted) * 100;
