@@ -172,7 +172,7 @@ body.chat-page {
 .try-asking-container.try-asking-inline {
     display: none; /* Hidden by default */
     position: absolute;
-    right: calc(50% - 480px); /* Position to the right of the 650px chat bar */
+    right: calc(50% - 494px); /* Position to the right of the 650px chat bar */
     top: 50%;
     transform: translateY(-50%);
     z-index: 100;
@@ -204,15 +204,22 @@ body.chat-page {
     display: flex;
     flex-direction: column;
     padding: 0;
+    width: 100%; /* Full width to extend scrollbar to edge */
+    max-width: 100%; /* Override the max-width constraint */
 }
 
 .chat-active .chat-messages {
     flex: 1;
-    max-height: none;
-    height: 100%;
+    max-height: calc(100vh - 74px); /* Subtract space for input area */
+    height: calc(100vh - 74px);
     overflow-y: auto;
-    padding: 2rem 1rem;
+    padding: 2rem calc(50vw - 384px); /* Center content with dynamic padding */
+    padding-bottom: 2rem; /* Normal bottom padding */
+    position: relative;
+    width: 100vw; /* Full viewport width for scrollbar positioning */
+    margin-left: calc(50% - 50vw); /* Offset to extend to edges */
 }
+
 
 .chat-active .chat-input-area {
     position: fixed;
