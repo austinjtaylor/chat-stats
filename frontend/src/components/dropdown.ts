@@ -208,8 +208,8 @@ function setupDropdownPair(buttonId: string, dropdownId: string): void {
             }, 200);
         });
 
-        // Handle suggested question clicks
-        document.querySelectorAll<HTMLElement>('.suggested-item').forEach(button => {
+        // Handle suggested question clicks for this specific dropdown
+        suggestionsDropdown.querySelectorAll<HTMLElement>('.suggested-item').forEach(button => {
             button.addEventListener('click', (e) => {
                 const target = e.target as HTMLElement;
                 const question = target.getAttribute('data-question');

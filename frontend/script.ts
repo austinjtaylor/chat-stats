@@ -99,21 +99,7 @@ function setupEventListeners(): void {
 
     // Theme toggle handled by nav.js
 
-    // Suggested questions - handle all suggested items
-    document.querySelectorAll<HTMLElement>('.suggested-item').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const target = e.target as HTMLElement;
-            const question = target.getAttribute('data-question');
-            if (question && chatInput) {
-                chatInput.value = question;
-                sendMessage();
-                // Close all dropdowns after selection
-                document.querySelectorAll('.suggestions-dropdown').forEach(dropdown => {
-                    dropdown.classList.remove('active');
-                });
-            }
-        });
-    });
+    // Note: Suggested item clicks are now handled in dropdown.ts to avoid duplicate event listeners
 }
 
 // Setup dropdown functionality
