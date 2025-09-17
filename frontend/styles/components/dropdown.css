@@ -90,12 +90,13 @@
 /* Suggestions Dropdown */
 .suggestions-dropdown {
     position: absolute;
-    top: calc(100% + 0.5rem);
+    top: calc(100% + 0.5rem);  /* Position below button with gap */
     left: 50%;
     transform: translateX(-50%);
     width: 320px;
-    max-width: calc(100vw - 2rem);
-    max-height: 172px;
+    min-width: 320px;
+    min-height: 172px;
+    max-height: 300px;
     overflow-y: auto;
     overflow-x: hidden;
     background: var(--surface);
@@ -109,23 +110,31 @@
     pointer-events: none;
     transition: opacity 0.2s ease;
     scroll-behavior: smooth;
+    box-sizing: border-box;
 }
 
 /* Upward dropdown variant */
 .suggestions-dropdown-upward {
     bottom: calc(100% + 0.5rem);
     top: auto;
-    transform-origin: bottom center;
+}
+
+/* ID-specific positioning - JavaScript will override these with inline styles */
+#suggestionsDropdown {
+    position: fixed !important;
+    top: 300px !important;
+}
+
+#suggestionsDropdown.active {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
 }
 
 .suggestions-dropdown.active {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
-}
-
-.suggestions-dropdown-upward.active {
-    transform: translateX(-50%) translateY(0);
 }
 
 .suggestions-grid {
@@ -144,10 +153,12 @@
     cursor: pointer;
     transition: background 0.2s ease;
     text-align: left;
-    white-space: nowrap;
+    white-space: normal;  /* Allow text wrapping */
     overflow: hidden;
     text-overflow: ellipsis;
     width: 100%;
+    display: block;
+    box-sizing: border-box;
 }
 
 .suggested-item:hover {

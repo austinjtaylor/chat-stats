@@ -172,7 +172,7 @@ body.chat-page {
 .try-asking-container.try-asking-inline {
     display: none; /* Hidden by default */
     position: absolute;
-    right: calc(50% - 494px); /* Position to the right of the 650px chat bar */
+    right: calc(50% - 494px); /* Position to the right of the 725px chat bar */
     top: 50%;
     transform: translateY(-50%);
     z-index: 100;
@@ -218,6 +218,25 @@ body.chat-page {
     position: relative;
     width: 100vw; /* Full viewport width for scrollbar positioning */
     margin-left: calc(50% - 50vw); /* Offset to extend to edges */
+}
+
+/* Gradient overlay at the bottom of chat messages */
+.chat-active .chat-messages::after {
+    content: '';
+    position: fixed;
+    bottom: 74px; /* Position above the chat input area */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 755px; /* Match chat bar width */
+    height: 60px; /* Height of gradient fade */
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        var(--background) 85%,
+        var(--background) 100%
+    );
+    pointer-events: none; /* Allow clicking through the gradient */
+    z-index: 10;
 }
 
 
