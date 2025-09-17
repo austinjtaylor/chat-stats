@@ -165,9 +165,9 @@ function setupDropdowns(): void {
         });
     }
 
-    // Try Asking suggestions dropdown - setup for both buttons
-    setupTryAskingDropdown('tryAskingButton', 'suggestionsDropdown');
-    setupTryAskingDropdown('tryAskingButtonCentered', 'suggestionsDropdownCentered');
+    // DISABLED: Try Asking dropdown is now handled by dropdown.ts module
+    // setupTryAskingDropdown('tryAskingButton', 'suggestionsDropdown');
+    // setupTryAskingDropdown('tryAskingButtonCentered', 'suggestionsDropdownCentered');
 }
 
 // Helper function to setup try asking dropdown behavior

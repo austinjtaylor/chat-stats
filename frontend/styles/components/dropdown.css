@@ -119,12 +119,7 @@
     top: auto;
 }
 
-/* ID-specific positioning - JavaScript will override these with inline styles */
-#suggestionsDropdown {
-    position: fixed !important;
-    top: 300px !important;
-}
-
+/* ID-specific active state */
 #suggestionsDropdown.active {
     opacity: 1 !important;
     visibility: visible !important;

@@ -67,27 +67,74 @@ function setupSettingsDropdown(): void {
 }
 
 function setupTryAskingDropdown(): void {
-    const tryAskingButton = document.getElementById('tryAskingButton');  // Back to the inline button
-    const tryAskingContainer = document.querySelector('.try-asking-container');
-    const suggestionsDropdown = document.getElementById('suggestionsDropdown');  // Back to the inline dropdown
+    // Setup both inline and centered dropdowns
+    setupDropdownPair('tryAskingButton', 'suggestionsDropdown');
+    setupDropdownPair('tryAskingButtonCentered', 'suggestionsDropdownCentered');
+}
 
-    console.log('Setting up dropdown - Button:', !!tryAskingButton, 'Dropdown:', !!suggestionsDropdown, 'Container:', !!tryAskingContainer);
+function setupDropdownPair(buttonId: string, dropdownId: string): void {
+    const tryAskingButton = document.getElementById(buttonId);
+    const suggestionsDropdown = document.getElementById(dropdownId) as HTMLElement;
 
-    if (tryAskingButton && suggestionsDropdown && tryAskingContainer) {
+
+    if (tryAskingButton && suggestionsDropdown) {
         let suggestionsTimeout: TimeoutHandle | undefined;
+        let originalParent = suggestionsDropdown.parentElement; // Store original parent
 
         // Show dropdown when hovering button
         tryAskingButton.addEventListener('mouseenter', () => {
             clearTimeout(suggestionsTimeout);
 
-            // Calculate position from viewport edge
-            const viewportWidth = window.innerWidth;
-            const dropdownWidth = 320;
-            const rightMargin = 20;
-            const leftPosition = viewportWidth - dropdownWidth - rightMargin;
+            // Move dropdown to body for unconstrained positioning
+            if (buttonId === 'tryAskingButton') {
+                document.body.appendChild(suggestionsDropdown);
+            }
 
-            // Log for debugging
-            console.log('Dropdown position - Left:', leftPosition, 'Viewport Width:', viewportWidth);
+            // Get button position
+            const buttonRect = tryAskingButton.getBoundingClientRect();
+            const dropdownWidth = 320;
+            const dropdownMaxHeight = 300;
+            const margin = 8; // Normal margin spacing
+
+            // Calculate horizontal position
+            let leftPosition: number;
+            const viewportWidth = window.innerWidth;
+
+            // For inline dropdown (right-side button), position dropdown to the left of button
+            if (buttonId === 'tryAskingButton') {
+                // Position dropdown to the left of the button
+                leftPosition = buttonRect.left - dropdownWidth - 10;
+
+                // If that would go off the left edge, position it just inside the viewport
+                if (leftPosition < 10) {
+                    leftPosition = 10;
+                }
+
+            } else {
+                // For centered button, center the dropdown on the button
+                leftPosition = buttonRect.left + (buttonRect.width / 2) - (dropdownWidth / 2);
+
+                // Keep within viewport bounds
+                if (leftPosition < 10) {
+                    leftPosition = 10;
+                } else if (leftPosition + dropdownWidth > viewportWidth - 10) {
+                    leftPosition = viewportWidth - dropdownWidth - 10;
+                }
+
+            }
+
+            // Calculate vertical position
+            let topPosition = buttonRect.top - dropdownMaxHeight - margin;
+
+            // Check if dropdown would go above viewport
+            const scrollY = window.scrollY || window.pageYOffset;
+            const viewportTop = scrollY;
+
+            // If dropdown would be above viewport, position it below button instead
+            if (topPosition < viewportTop) {
+                topPosition = buttonRect.bottom + margin;
+            }
+
 
             // Remove any interfering classes
             suggestionsDropdown.classList.remove('suggestions-dropdown-inline');
@@ -95,26 +142,29 @@ function setupTryAskingDropdown(): void {
             // Apply styles using setProperty for !important
             suggestionsDropdown.style.setProperty('position', 'fixed', 'important');
             suggestionsDropdown.style.setProperty('left', `${leftPosition}px`, 'important');
-            suggestionsDropdown.style.setProperty('top', '300px', 'important');
+            suggestionsDropdown.style.setProperty('top', `${topPosition}px`, 'important');
             suggestionsDropdown.style.setProperty('right', 'auto', 'important');
             suggestionsDropdown.style.setProperty('bottom', 'auto', 'important');
             suggestionsDropdown.style.setProperty('transform', 'none', 'important');
-            suggestionsDropdown.style.setProperty('width', '320px', 'important');
-            suggestionsDropdown.style.setProperty('min-width', '320px', 'important');
-            suggestionsDropdown.style.setProperty('max-width', '320px', 'important');
+            suggestionsDropdown.style.setProperty('width', `${dropdownWidth}px`, 'important');
+            suggestionsDropdown.style.setProperty('min-width', `${dropdownWidth}px`, 'important');
+            suggestionsDropdown.style.setProperty('max-width', `${dropdownWidth}px`, 'important');
             suggestionsDropdown.style.setProperty('height', 'auto', 'important');
             suggestionsDropdown.style.setProperty('min-height', '172px', 'important');
-            suggestionsDropdown.style.setProperty('max-height', '300px', 'important');
+            suggestionsDropdown.style.setProperty('max-height', `${dropdownMaxHeight}px`, 'important');
             suggestionsDropdown.style.setProperty('visibility', 'visible', 'important');
             suggestionsDropdown.style.setProperty('opacity', '1', 'important');
             suggestionsDropdown.style.setProperty('display', 'block', 'important');
             suggestionsDropdown.style.setProperty('z-index', '10000', 'important');
 
+            // Remove any temporary debug styles
+            suggestionsDropdown.style.removeProperty('border');
+            suggestionsDropdown.style.removeProperty('background-color');
+            suggestionsDropdown.style.removeProperty('color');
+
             // Add active class after setting styles
             suggestionsDropdown.classList.add('active');
 
-            // Verify styles were applied
-            console.log('Applied styles - top:', suggestionsDropdown.style.top, 'left:', suggestionsDropdown.style.left);
         });
 
         // Hide dropdown when leaving button (with delay)
@@ -125,47 +175,21 @@ function setupTryAskingDropdown(): void {
                 suggestionsDropdown.style.visibility = 'hidden';
                 suggestionsDropdown.style.opacity = '0';
                 suggestionsDropdown.style.display = 'none';
+
+                // Return dropdown to original parent if it was moved
+                if (buttonId === 'tryAskingButton' && originalParent && suggestionsDropdown.parentElement === document.body) {
+                    originalParent.appendChild(suggestionsDropdown);
+                }
             }, 200);
         });
 
         // Keep dropdown open when hovering over it
         suggestionsDropdown.addEventListener('mouseenter', () => {
             clearTimeout(suggestionsTimeout);
-            // Maintain position while hovering
-            requestAnimationFrame(() => {
-                // Calculate position from viewport edge
-                const viewportWidth = window.innerWidth;
-                const dropdownWidth = 320;
-                const rightMargin = 20;
-                const leftPosition = viewportWidth - dropdownWidth - rightMargin;
-
-                // Remove any existing properties
-                suggestionsDropdown.style.removeProperty('right');
-                suggestionsDropdown.style.removeProperty('transform');
-
-                // Maintain position with calculated left value
-                suggestionsDropdown.style.position = 'fixed';
-                suggestionsDropdown.style.setProperty('right', 'auto', 'important');  // Override CSS right property
-                suggestionsDropdown.style.left = `${leftPosition}px`;
-                suggestionsDropdown.style.top = '300px';  // Position in middle-upper area
-                suggestionsDropdown.style.bottom = '';  // Clear bottom
-                suggestionsDropdown.style.transform = 'none';
-
-                // Enforce width and height
-                suggestionsDropdown.style.width = '320px';
-                suggestionsDropdown.style.minWidth = '320px';
-                suggestionsDropdown.style.maxWidth = '320px';
-                suggestionsDropdown.style.height = 'auto';
-                suggestionsDropdown.style.minHeight = '172px';
-                suggestionsDropdown.style.maxHeight = '300px';
-                suggestionsDropdown.style.boxSizing = 'border-box';
-
-                // Force visibility
-                suggestionsDropdown.style.visibility = 'visible';
-                suggestionsDropdown.style.opacity = '1';
-                suggestionsDropdown.style.display = 'block';
-                suggestionsDropdown.style.zIndex = '10000';
-            });
+            // Just maintain visibility, position is already set
+            suggestionsDropdown.style.visibility = 'visible';
+            suggestionsDropdown.style.opacity = '1';
+            suggestionsDropdown.style.display = 'block';
         });
 
         // Hide dropdown when leaving the dropdown itself
@@ -176,6 +200,11 @@ function setupTryAskingDropdown(): void {
                 suggestionsDropdown.style.visibility = 'hidden';
                 suggestionsDropdown.style.opacity = '0';
                 suggestionsDropdown.style.display = 'none';
+
+                // Return dropdown to original parent if it was moved
+                if (buttonId === 'tryAskingButton' && originalParent && suggestionsDropdown.parentElement === document.body) {
+                    originalParent.appendChild(suggestionsDropdown);
+                }
             }, 200);
         });
 
