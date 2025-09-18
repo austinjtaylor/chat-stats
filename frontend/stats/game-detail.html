@@ -3,32 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game Details - UFA Statistics</title>
+    <title>Game Stats - UFA Statistics</title>
     <!-- Main styles -->
     <link rel="stylesheet" href="../styles/main.css">
     <!-- Game detail specific styles -->
     <style>
-        .game-detail-container {
-            display: flex;
-            min-height: 100vh;
-            background: var(--bg-primary);
+        /* Game Search Icon */
+        .game-search-wrapper {
+            position: fixed;
+            top: 4.5rem;
+            left: 1rem;
+            z-index: 1000;
         }
 
-        /* Game Selection Panel (Left Sidebar) */
-        .game-selection-panel {
-            width: 250px;
-            background: var(--bg-secondary);
-            border-right: 1px solid var(--border-color);
-            padding: 20px;
-            transition: transform 0.3s ease;
-            overflow-y: auto;
-        }
-
-        .game-selection-panel.collapsed {
-            transform: translateX(-100%);
-            position: absolute;
+        /* Game Search Overlay */
+        .game-search-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
             height: 100%;
-            z-index: 100;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .game-search-overlay.active {
+            display: block;
+            opacity: 1;
+        }
+
+        .game-search-overlay.active .game-selection-panel {
+            transform: translateX(0);
+        }
+
+        /* Panel Header with Close Button */
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .close-panel {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-panel:hover {
+            color: var(--text-primary);
+        }
+
+        /* Panel Filters */
+        .panel-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .panel-filters .filter-group {
+            flex: 1;
+        }
+
+        .panel-filters .filter-group label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+
+        .panel-filters .filter-select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+
+        /* Remove old container styles since we're using stats-container */
+
+        /* Game Selection Panel (Pop-out) */
+        .game-selection-panel {
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 300px;
+            background: var(--bg-secondary);
+            padding: 20px;
+            overflow-y: auto;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
         }
 
         .game-selection-header {
@@ -38,16 +118,6 @@
             color: var(--text-primary);
         }
 
-        .game-select-dropdown {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
 
         .game-list {
             display: flex;
@@ -76,10 +146,13 @@
         }
 
         /* Main Content Area */
-        .game-detail-main {
-            flex: 1;
+        .stats-main {
             display: flex;
             flex-direction: column;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            padding-top: 60px;
         }
 
         /* Scoreboard Header */
@@ -303,37 +376,7 @@
             font-variant-numeric: tabular-nums;
         }
 
-        /* Mobile Toggle Button */
-        .panel-toggle {
-            display: none;
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            z-index: 101;
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 8px 12px;
-            cursor: pointer;
-        }
-
         @media (max-width: 768px) {
-            .game-selection-panel {
-                position: fixed;
-                height: 100%;
-                z-index: 100;
-                transform: translateX(-100%);
-            }
-
-            .game-selection-panel.open {
-                transform: translateX(0);
-            }
-
-            .panel-toggle {
-                display: block;
-            }
-
             .scoreboard-content {
                 flex-direction: column;
                 gap: 20px;
@@ -342,30 +385,140 @@
             .quarter-scores {
                 width: 100%;
             }
+
+            .game-selection-panel {
+                width: 85%;
+            }
         }
     </style>
 </head>
-<body class="stats-page" data-page="game-detail">
-    <!-- Mobile Panel Toggle -->
-    <button class="panel-toggle" id="panelToggle">☰ Games</button>
+<body class="stats-page" data-page="games">
+    <!-- Menu Icon -->
+    <div class="menu-wrapper">
+        <button class="icon-button menu-icon" id="menuIcon" aria-label="Menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </button>
+        <div class="dropdown menu-dropdown" id="menuDropdown">
+            <a href="/index.html" class="dropdown-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V15"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Chat
+            </a>
+            <div class="dropdown-divider"></div>
+            <a href="/stats/players.html" class="dropdown-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="8" r="3"></circle>
+                    <path d="M12 11c3.5 0 6.5 1.5 8 4-1.5 2.5-4.5 4-8 4s-6.5-1.5-8-4c1.5-2.5 4.5-4 8-4z"></path>
+                </svg>
+                Player Stats
+            </a>
+            <a href="/stats/teams.html" class="dropdown-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                Team Stats
+            </a>
+            <a href="/stats/game-detail.html" class="dropdown-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                Game Stats
+            </a>
+        </div>
+    </div>
 
-    <div class="game-detail-container">
-        <!-- Game Selection Panel (Left Sidebar) -->
-        <aside class="game-selection-panel" id="gameSelectionPanel">
-            <h2 class="game-selection-header">Game Search</h2>
+    <!-- Game Search Icon -->
+    <div class="game-search-wrapper">
+        <button class="icon-button game-search-icon" id="gameSearchIcon" aria-label="Search Games">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+            </svg>
+        </button>
+    </div>
 
-            <label for="gameSelect">Select Game</label>
-            <select id="gameSelect" class="game-select-dropdown">
-                <option value="">Loading games...</option>
-            </select>
-
-            <div class="game-list" id="gameList">
-                <!-- Games will be populated here -->
+    <!-- Settings Icon -->
+    <div class="settings-wrapper">
+        <button class="icon-button settings-icon" id="settingsIcon" aria-label="Settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"></path>
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"></path>
+            </svg>
+        </button>
+        <div class="dropdown settings-dropdown" id="settingsDropdown">
+            <div class="theme-toggle-item" id="themeToggleItem">
+                <div class="theme-toggle-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    Dark Mode
+                </div>
+                <div class="theme-toggle-switch" id="themeSwitch">
+                    <div class="theme-toggle-slider"></div>
+                </div>
             </div>
-        </aside>
+        </div>
+    </div>
+
+    <div class="stats-container">
+        <!-- Game Selection Panel (Pop-out Overlay) -->
+        <div class="game-search-overlay" id="gameSearchOverlay">
+            <aside class="game-selection-panel" id="gameSelectionPanel">
+                <div class="panel-header">
+                    <h2 class="game-selection-header">Game Search</h2>
+                    <button class="close-panel" id="closePanel">&times;</button>
+                </div>
+
+                <!-- Filters -->
+                <div class="panel-filters">
+                    <div class="filter-group">
+                        <label for="yearFilter">Season</label>
+                        <select id="yearFilter" class="filter-select">
+                            <option value="2025" selected>2025</option>
+                            <option value="2024">2024</option>
+                            <option value="2023">2023</option>
+                            <option value="2022">2022</option>
+                            <option value="2021">2021</option>
+                            <option value="2020">2020</option>
+                            <option value="2019">2019</option>
+                            <option value="2018">2018</option>
+                            <option value="2017">2017</option>
+                            <option value="2016">2016</option>
+                            <option value="2015">2015</option>
+                            <option value="2014">2014</option>
+                            <option value="2013">2013</option>
+                            <option value="2012">2012</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="teamFilter">Team</label>
+                        <select id="teamFilter" class="filter-select">
+                            <option value="all" selected>All</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="game-list" id="gameList">
+                    <!-- Games will be populated here -->
+                </div>
+            </aside>
+        </div>
 
         <!-- Main Content Area -->
-        <main class="game-detail-main">
+        <main class="stats-main">
             <!-- Scoreboard Header -->
             <section class="game-scoreboard" id="gameScoreboard">
                 <div class="scoreboard-content">

@@ -63,12 +63,18 @@ class GameDetailPage {
     private currentTeam: 'home' | 'away' = 'away';
     private sortColumn: string = 'plus_minus';
     private sortDirection: 'asc' | 'desc' = 'desc';
+    private currentYear: number = 2025;
+    private currentTeamFilter: string = 'all';
+    private teams: any[] = [];
 
     // DOM elements
     private elements = {
-        panelToggle: null as HTMLElement | null,
+        gameSearchIcon: null as HTMLElement | null,
+        gameSearchOverlay: null as HTMLElement | null,
         gameSelectionPanel: null as HTMLElement | null,
-        gameSelect: null as HTMLSelectElement | null,
+        closePanel: null as HTMLElement | null,
+        yearFilter: null as HTMLSelectElement | null,
+        teamFilter: null as HTMLSelectElement | null,
         gameList: null as HTMLElement | null,
         // Scoreboard elements
         awayLogo: null as HTMLElement | null,
@@ -91,15 +97,19 @@ class GameDetailPage {
     constructor() {
         this.initializeElements();
         this.attachEventListeners();
+        this.loadTeams();
         this.loadGamesList();
         this.checkURLParams();
     }
 
     private initializeElements(): void {
         // Get all DOM elements
-        this.elements.panelToggle = document.getElementById('panelToggle');
+        this.elements.gameSearchIcon = document.getElementById('gameSearchIcon');
+        this.elements.gameSearchOverlay = document.getElementById('gameSearchOverlay');
         this.elements.gameSelectionPanel = document.getElementById('gameSelectionPanel');
-        this.elements.gameSelect = document.getElementById('gameSelect') as HTMLSelectElement;
+        this.elements.closePanel = document.getElementById('closePanel');
+        this.elements.yearFilter = document.getElementById('yearFilter') as HTMLSelectElement;
+        this.elements.teamFilter = document.getElementById('teamFilter') as HTMLSelectElement;
         this.elements.gameList = document.getElementById('gameList');
 
         // Scoreboard elements
@@ -122,20 +132,41 @@ class GameDetailPage {
     }
 
     private attachEventListeners(): void {
-        // Mobile panel toggle
-        if (this.elements.panelToggle) {
-            this.elements.panelToggle.addEventListener('click', () => {
-                this.elements.gameSelectionPanel?.classList.toggle('open');
+        // Game search icon toggle
+        if (this.elements.gameSearchIcon) {
+            this.elements.gameSearchIcon.addEventListener('click', () => {
+                this.openGameSearch();
             });
         }
 
-        // Game selection dropdown
-        if (this.elements.gameSelect) {
-            this.elements.gameSelect.addEventListener('change', (e) => {
-                const gameId = (e.target as HTMLSelectElement).value;
-                if (gameId) {
-                    this.loadGameDetails(gameId);
+        // Close panel button
+        if (this.elements.closePanel) {
+            this.elements.closePanel.addEventListener('click', () => {
+                this.closeGameSearch();
+            });
+        }
+
+        // Click overlay to close
+        if (this.elements.gameSearchOverlay) {
+            this.elements.gameSearchOverlay.addEventListener('click', (e) => {
+                if (e.target === this.elements.gameSearchOverlay) {
+                    this.closeGameSearch();
                 }
+            });
+        }
+
+        // Filter changes
+        if (this.elements.yearFilter) {
+            this.elements.yearFilter.addEventListener('change', (e) => {
+                this.currentYear = parseInt((e.target as HTMLSelectElement).value);
+                this.loadGamesList();
+            });
+        }
+
+        if (this.elements.teamFilter) {
+            this.elements.teamFilter.addEventListener('change', (e) => {
+                this.currentTeamFilter = (e.target as HTMLSelectElement).value;
+                this.loadGamesList();
             });
         }
 
@@ -171,13 +202,36 @@ class GameDetailPage {
         }
     }
 
+    private async loadTeams(): Promise<void> {
+        try {
+            const response = await fetch('/api/teams');
+            this.teams = await response.json();
+
+            if (this.elements.teamFilter) {
+                this.elements.teamFilter.innerHTML = '<option value="all">All</option>';
+                this.teams.forEach(team => {
+                    const option = document.createElement('option');
+                    option.value = team.team_id;
+                    option.textContent = `${team.city} ${team.name}`;
+                    this.elements.teamFilter.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Failed to load teams:', error);
+        }
+    }
+
     private async loadGamesList(): Promise<void> {
         try {
-            const response = await fetch('/api/games/list?limit=50');
+            let url = `/api/games/list?limit=100&year=${this.currentYear}`;
+            if (this.currentTeamFilter !== 'all') {
+                url += `&team_id=${this.currentTeamFilter}`;
+            }
+
+            const response = await fetch(url);
             const data = await response.json();
 
             this.gameList = data.games || [];
-            this.updateGameSelect();
             this.updateGameList();
 
             // Only load first game automatically if no game specified in URL
@@ -199,25 +253,23 @@ class GameDetailPage {
         if (gameId) {
             // Wait for games list to load then select the game
             setTimeout(() => {
-                if (this.elements.gameSelect) {
-                    this.elements.gameSelect.value = gameId;
-                }
                 this.loadGameDetails(gameId);
             }, 500);
         }
     }
 
-    private updateGameSelect(): void {
-        if (!this.elements.gameSelect) return;
+    private openGameSearch(): void {
+        if (this.elements.gameSearchOverlay) {
+            this.elements.gameSearchOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+    }
 
-        this.elements.gameSelect.innerHTML = this.gameList.map(game => {
-            const date = new Date(game.date).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric'
-            });
-            return `<option value="${game.game_id}">${game.display_name} - ${date}</option>`;
-        }).join('');
+    private closeGameSearch(): void {
+        if (this.elements.gameSearchOverlay) {
+            this.elements.gameSearchOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
     }
 
     private updateGameList(): void {
@@ -246,10 +298,6 @@ class GameDetailPage {
             item.addEventListener('click', (e) => {
                 const gameId = (e.currentTarget as HTMLElement).dataset.gameId;
                 if (gameId) {
-                    // Update select dropdown
-                    if (this.elements.gameSelect) {
-                        this.elements.gameSelect.value = gameId;
-                    }
                     // Update active state
                     this.elements.gameList?.querySelectorAll('.game-list-item').forEach(i => {
                         i.classList.remove('active');
@@ -277,10 +325,8 @@ class GameDetailPage {
                 item.classList.toggle('active', item.getAttribute('data-game-id') === gameId);
             });
 
-            // Close mobile panel after selection
-            if (window.innerWidth <= 768) {
-                this.elements.gameSelectionPanel?.classList.remove('open');
-            }
+            // Close search overlay after selection
+            this.closeGameSearch();
         } catch (error) {
             console.error('Failed to load game details:', error);
         }

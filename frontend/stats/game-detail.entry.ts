@@ -12,6 +12,9 @@ window.DOM = DOM;
 window.Format = Format;
 window.statsAPI = statsAPI;
 
+// Import the shared utilities for menu/settings functionality
+import './shared';
+
 // Import the main game detail script
 import './game-detail';
 

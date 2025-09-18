@@ -13,7 +13,6 @@ export default defineConfig({
         main: path.resolve(__dirname, 'index.html'),
         players: path.resolve(__dirname, 'stats/players.html'),
         teams: path.resolve(__dirname, 'stats/teams.html'),
-        games: path.resolve(__dirname, 'stats/games.html'),
         gameDetail: path.resolve(__dirname, 'stats/game-detail.html'),
       },
       output: {
