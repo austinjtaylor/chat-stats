@@ -278,7 +278,7 @@ function createLoadingMessage(): HTMLElement {
     messageDiv.className = 'message assistant';
     messageDiv.innerHTML = `
         <div class="message-content">
-            <div class="loading">
+            <div class="thinking-indicator">
                 <span></span>
                 <span></span>
                 <span></span>
