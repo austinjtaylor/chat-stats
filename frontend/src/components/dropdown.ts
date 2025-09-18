@@ -103,7 +103,7 @@ function setupDropdownPair(buttonId: string, dropdownId: string): void {
             // For inline dropdown (right-side button), position dropdown to the left of button
             if (buttonId === 'tryAskingButton') {
                 // Position dropdown to the left of the button
-                leftPosition = buttonRect.left - dropdownWidth - 10;
+                leftPosition = buttonRect.left;
 
                 // If that would go off the left edge, position it just inside the viewport
                 if (leftPosition < 10) {
@@ -126,6 +126,11 @@ function setupDropdownPair(buttonId: string, dropdownId: string): void {
             // Calculate vertical position
             let topPosition = buttonRect.top - dropdownMaxHeight - margin;
 
+            // Add 50px offset for centered dropdown only
+            if (buttonId === 'tryAskingButtonCentered') {
+                topPosition += 105;
+            }
+
             // Check if dropdown would go above viewport
             const scrollY = window.scrollY || window.pageYOffset;
             const viewportTop = scrollY;
@@ -133,6 +138,10 @@ function setupDropdownPair(buttonId: string, dropdownId: string): void {
             // If dropdown would be above viewport, position it below button instead
             if (topPosition < viewportTop) {
                 topPosition = buttonRect.bottom + margin;
+                // Also add the 50px offset when flipping to below for centered dropdown
+                if (buttonId === 'tryAskingButtonCentered') {
+                    topPosition += 105;
+                }
             }
 
 
