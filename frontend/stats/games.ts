@@ -136,8 +136,10 @@ class GamesPage {
             window.Format.date(game.date) :
             new Date(game.date).toLocaleDateString();
 
+        const gameId = game.game_id || game.id || '';
+
         return `
-            <div class="game-card" data-game-id="${game.game_id || game.id || ''}">
+            <div class="game-card" data-game-id="${gameId}" style="cursor: pointer;">
                 <div class="game-date">${formattedDate}</div>
                 <div class="game-teams">
                     <span class="team-name">${game.home_team || ''}</span>
@@ -147,6 +149,9 @@ class GamesPage {
                     <span class="team-name">${game.away_team || ''}</span>
                 </div>
                 ${game.venue ? `<div class="game-venue">${game.venue}</div>` : ''}
+                <div style="margin-top: 8px;">
+                    <a href="/stats/game-detail.html?game=${gameId}" style="color: var(--primary-color); text-decoration: none; font-size: 12px;">View Details →</a>
+                </div>
             </div>
         `;
     }

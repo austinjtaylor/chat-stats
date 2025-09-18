@@ -1,0 +1,447 @@
+/**
+ * Game Detail Page - Main Logic
+ */
+
+interface GameListItem {
+    game_id: string;
+    display_name: string;
+    date: string;
+    home_team: string;
+    away_team: string;
+    home_score: number;
+    away_score: number;
+    year: number;
+    week: string;
+}
+
+interface PlayerStats {
+    name: string;
+    jersey_number: string;
+    points_played: number;
+    o_points_played: number;
+    d_points_played: number;
+    assists: number;
+    goals: number;
+    blocks: number;
+    plus_minus: number;
+    yards_received: number;
+    yards_thrown: number;
+    total_yards: number;
+    completions: number;
+    completion_percentage: number;
+    hockey_assists: number;
+    turnovers: number;
+    stalls: number;
+    callahans: number;
+    drops: number;
+}
+
+interface TeamData {
+    team_id: string;
+    name: string;
+    full_name: string;
+    city: string;
+    final_score: number;
+    quarter_scores: number[];
+    players: PlayerStats[];
+}
+
+interface BoxScoreData {
+    game_id: string;
+    status: string;
+    start_timestamp: string;
+    location: string;
+    year: number;
+    week: string;
+    home_team: TeamData;
+    away_team: TeamData;
+}
+
+class GameDetailPage {
+    private gameList: GameListItem[] = [];
+    private currentGame: BoxScoreData | null = null;
+    private currentTeam: 'home' | 'away' = 'away';
+    private sortColumn: string = 'plus_minus';
+    private sortDirection: 'asc' | 'desc' = 'desc';
+
+    // DOM elements
+    private elements = {
+        panelToggle: null as HTMLElement | null,
+        gameSelectionPanel: null as HTMLElement | null,
+        gameSelect: null as HTMLSelectElement | null,
+        gameList: null as HTMLElement | null,
+        // Scoreboard elements
+        awayLogo: null as HTMLElement | null,
+        awayName: null as HTMLElement | null,
+        awayScore: null as HTMLElement | null,
+        homeLogo: null as HTMLElement | null,
+        homeName: null as HTMLElement | null,
+        homeScore: null as HTMLElement | null,
+        awayQuarters: null as HTMLTableRowElement | null,
+        homeQuarters: null as HTMLTableRowElement | null,
+        awayTeamAbbrev: null as HTMLElement | null,
+        homeTeamAbbrev: null as HTMLElement | null,
+        // Box score elements
+        awayTeamRadio: null as HTMLElement | null,
+        homeTeamRadio: null as HTMLElement | null,
+        statsTable: null as HTMLTableElement | null,
+        statsTableBody: null as HTMLElement | null,
+    };
+
+    constructor() {
+        this.initializeElements();
+        this.attachEventListeners();
+        this.loadGamesList();
+        this.checkURLParams();
+    }
+
+    private initializeElements(): void {
+        // Get all DOM elements
+        this.elements.panelToggle = document.getElementById('panelToggle');
+        this.elements.gameSelectionPanel = document.getElementById('gameSelectionPanel');
+        this.elements.gameSelect = document.getElementById('gameSelect') as HTMLSelectElement;
+        this.elements.gameList = document.getElementById('gameList');
+
+        // Scoreboard elements
+        this.elements.awayLogo = document.getElementById('awayLogo');
+        this.elements.awayName = document.getElementById('awayName');
+        this.elements.awayScore = document.getElementById('awayScore');
+        this.elements.homeLogo = document.getElementById('homeLogo');
+        this.elements.homeName = document.getElementById('homeName');
+        this.elements.homeScore = document.getElementById('homeScore');
+        this.elements.awayQuarters = document.getElementById('awayQuarters') as HTMLTableRowElement;
+        this.elements.homeQuarters = document.getElementById('homeQuarters') as HTMLTableRowElement;
+        this.elements.awayTeamAbbrev = document.getElementById('awayTeamAbbrev');
+        this.elements.homeTeamAbbrev = document.getElementById('homeTeamAbbrev');
+
+        // Box score elements
+        this.elements.awayTeamRadio = document.getElementById('awayTeamRadio');
+        this.elements.homeTeamRadio = document.getElementById('homeTeamRadio');
+        this.elements.statsTable = document.getElementById('statsTable') as HTMLTableElement;
+        this.elements.statsTableBody = document.getElementById('statsTableBody');
+    }
+
+    private attachEventListeners(): void {
+        // Mobile panel toggle
+        if (this.elements.panelToggle) {
+            this.elements.panelToggle.addEventListener('click', () => {
+                this.elements.gameSelectionPanel?.classList.toggle('open');
+            });
+        }
+
+        // Game selection dropdown
+        if (this.elements.gameSelect) {
+            this.elements.gameSelect.addEventListener('change', (e) => {
+                const gameId = (e.target as HTMLSelectElement).value;
+                if (gameId) {
+                    this.loadGameDetails(gameId);
+                }
+            });
+        }
+
+        // Tab switching
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const tab = (e.target as HTMLElement).dataset.tab;
+                if (tab) {
+                    this.switchTab(tab);
+                }
+            });
+        });
+
+        // Team toggle
+        document.querySelectorAll('input[name="teamSelect"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                this.currentTeam = (e.target as HTMLInputElement).value as 'home' | 'away';
+                this.updateStatsTable();
+            });
+        });
+
+        // Table sorting
+        if (this.elements.statsTable) {
+            const headers = this.elements.statsTable.querySelectorAll('th[data-sort]');
+            headers.forEach(header => {
+                header.addEventListener('click', (e) => {
+                    const column = (e.target as HTMLElement).dataset.sort;
+                    if (column) {
+                        this.sortTable(column);
+                    }
+                });
+            });
+        }
+    }
+
+    private async loadGamesList(): Promise<void> {
+        try {
+            const response = await fetch('/api/games/list?limit=50');
+            const data = await response.json();
+
+            this.gameList = data.games || [];
+            this.updateGameSelect();
+            this.updateGameList();
+
+            // Only load first game automatically if no game specified in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const gameIdFromUrl = urlParams.get('game');
+
+            if (!gameIdFromUrl && this.gameList.length > 0) {
+                this.loadGameDetails(this.gameList[0].game_id);
+            }
+        } catch (error) {
+            console.error('Failed to load games list:', error);
+        }
+    }
+
+    private checkURLParams(): void {
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameId = urlParams.get('game');
+
+        if (gameId) {
+            // Wait for games list to load then select the game
+            setTimeout(() => {
+                if (this.elements.gameSelect) {
+                    this.elements.gameSelect.value = gameId;
+                }
+                this.loadGameDetails(gameId);
+            }, 500);
+        }
+    }
+
+    private updateGameSelect(): void {
+        if (!this.elements.gameSelect) return;
+
+        this.elements.gameSelect.innerHTML = this.gameList.map(game => {
+            const date = new Date(game.date).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+            return `<option value="${game.game_id}">${game.display_name} - ${date}</option>`;
+        }).join('');
+    }
+
+    private updateGameList(): void {
+        if (!this.elements.gameList) return;
+
+        this.elements.gameList.innerHTML = this.gameList.map(game => {
+            const date = new Date(game.date).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+            return `
+                <div class="game-list-item" data-game-id="${game.game_id}">
+                    <div style="font-weight: 500; margin-bottom: 4px;">
+                        ${game.away_team} @ ${game.home_team}
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">
+                        ${date} • ${game.away_score}-${game.home_score}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Add click handlers to game list items
+        this.elements.gameList.querySelectorAll('.game-list-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const gameId = (e.currentTarget as HTMLElement).dataset.gameId;
+                if (gameId) {
+                    // Update select dropdown
+                    if (this.elements.gameSelect) {
+                        this.elements.gameSelect.value = gameId;
+                    }
+                    // Update active state
+                    this.elements.gameList?.querySelectorAll('.game-list-item').forEach(i => {
+                        i.classList.remove('active');
+                    });
+                    (e.currentTarget as HTMLElement).classList.add('active');
+                    // Load game
+                    this.loadGameDetails(gameId);
+                }
+            });
+        });
+    }
+
+    private async loadGameDetails(gameId: string): Promise<void> {
+        try {
+            const response = await fetch(`/api/games/${gameId}/box-score`);
+            const data: BoxScoreData = await response.json();
+
+            this.currentGame = data;
+            this.updateScoreboard();
+            this.updateTeamRadios();
+            this.updateStatsTable();
+
+            // Update active game in list
+            this.elements.gameList?.querySelectorAll('.game-list-item').forEach(item => {
+                item.classList.toggle('active', item.getAttribute('data-game-id') === gameId);
+            });
+
+            // Close mobile panel after selection
+            if (window.innerWidth <= 768) {
+                this.elements.gameSelectionPanel?.classList.remove('open');
+            }
+        } catch (error) {
+            console.error('Failed to load game details:', error);
+        }
+    }
+
+    private updateScoreboard(): void {
+        if (!this.currentGame) return;
+
+        const { home_team, away_team } = this.currentGame;
+
+        // Update team names and scores
+        if (this.elements.awayName) this.elements.awayName.textContent = away_team.full_name;
+        if (this.elements.awayScore) this.elements.awayScore.textContent = String(away_team.final_score);
+        if (this.elements.homeName) this.elements.homeName.textContent = home_team.full_name;
+        if (this.elements.homeScore) this.elements.homeScore.textContent = String(home_team.final_score);
+
+        // Update team logos (first letter of team name)
+        if (this.elements.awayLogo) this.elements.awayLogo.textContent = away_team.name.charAt(0);
+        if (this.elements.homeLogo) this.elements.homeLogo.textContent = home_team.name.charAt(0);
+
+        // Update team abbreviations in quarter table
+        if (this.elements.awayTeamAbbrev) {
+            this.elements.awayTeamAbbrev.textContent = away_team.name.substring(0, 3).toUpperCase();
+        }
+        if (this.elements.homeTeamAbbrev) {
+            this.elements.homeTeamAbbrev.textContent = home_team.name.substring(0, 3).toUpperCase();
+        }
+
+        // Update quarter scores
+        this.updateQuarterScores();
+    }
+
+    private updateQuarterScores(): void {
+        if (!this.currentGame) return;
+
+        const { home_team, away_team } = this.currentGame;
+
+        // Update away team quarters
+        if (this.elements.awayQuarters) {
+            const cells = this.elements.awayQuarters.cells;
+            away_team.quarter_scores.forEach((score, i) => {
+                if (cells[i + 1]) {
+                    cells[i + 1].textContent = String(score);
+                }
+            });
+            // Update total
+            if (cells[5]) {
+                cells[5].textContent = String(away_team.final_score);
+            }
+        }
+
+        // Update home team quarters
+        if (this.elements.homeQuarters) {
+            const cells = this.elements.homeQuarters.cells;
+            home_team.quarter_scores.forEach((score, i) => {
+                if (cells[i + 1]) {
+                    cells[i + 1].textContent = String(score);
+                }
+            });
+            // Update total
+            if (cells[5]) {
+                cells[5].textContent = String(home_team.final_score);
+            }
+        }
+    }
+
+    private updateTeamRadios(): void {
+        if (!this.currentGame) return;
+
+        const { home_team, away_team } = this.currentGame;
+
+        if (this.elements.awayTeamRadio) {
+            this.elements.awayTeamRadio.textContent = away_team.full_name;
+        }
+        if (this.elements.homeTeamRadio) {
+            this.elements.homeTeamRadio.textContent = home_team.full_name;
+        }
+    }
+
+    private updateStatsTable(): void {
+        if (!this.currentGame || !this.elements.statsTableBody) return;
+
+        const team = this.currentTeam === 'home' ? this.currentGame.home_team : this.currentGame.away_team;
+        const players = [...team.players];
+
+        // Sort players
+        players.sort((a, b) => {
+            const aVal = a[this.sortColumn as keyof PlayerStats] ?? 0;
+            const bVal = b[this.sortColumn as keyof PlayerStats] ?? 0;
+
+            if (this.sortDirection === 'asc') {
+                return aVal > bVal ? 1 : -1;
+            } else {
+                return aVal < bVal ? 1 : -1;
+            }
+        });
+
+        // Render table rows
+        this.elements.statsTableBody.innerHTML = players.map(player => `
+            <tr>
+                <td class="player-name">${player.name}</td>
+                <td>${player.jersey_number || '-'}</td>
+                <td class="numeric">${player.points_played}</td>
+                <td class="numeric">${player.o_points_played}</td>
+                <td class="numeric">${player.d_points_played}</td>
+                <td class="numeric">${player.assists}</td>
+                <td class="numeric">${player.goals}</td>
+                <td class="numeric">${player.blocks}</td>
+                <td class="numeric">${player.plus_minus >= 0 ? '+' : ''}${player.plus_minus}</td>
+                <td class="numeric">${player.yards_received}</td>
+                <td class="numeric">${player.yards_thrown}</td>
+                <td class="numeric">${player.total_yards}</td>
+                <td class="numeric">${player.completions}</td>
+                <td class="numeric">${player.completion_percentage.toFixed(1)}%</td>
+                <td class="numeric">${player.hockey_assists}</td>
+                <td class="numeric">${player.turnovers}</td>
+                <td class="numeric">${player.stalls}</td>
+                <td class="numeric">${player.callahans}</td>
+                <td class="numeric">${player.drops}</td>
+            </tr>
+        `).join('');
+    }
+
+    private sortTable(column: string): void {
+        // Toggle sort direction if same column
+        if (this.sortColumn === column) {
+            this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            this.sortColumn = column;
+            this.sortDirection = 'desc';
+        }
+
+        // Update header classes
+        if (this.elements.statsTable) {
+            this.elements.statsTable.querySelectorAll('th[data-sort]').forEach(th => {
+                th.classList.remove('sorted-asc', 'sorted-desc');
+                if (th.getAttribute('data-sort') === column) {
+                    th.classList.add(this.sortDirection === 'asc' ? 'sorted-asc' : 'sorted-desc');
+                }
+            });
+        }
+
+        this.updateStatsTable();
+    }
+
+    private switchTab(tabId: string): void {
+        // Update active tab button
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.classList.toggle('active', button.getAttribute('data-tab') === tabId);
+        });
+
+        // Update active tab pane
+        document.querySelectorAll('.tab-pane').forEach(pane => {
+            pane.classList.toggle('active', pane.id === tabId);
+        });
+    }
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    new GameDetailPage();
+});
+
+export default GameDetailPage;

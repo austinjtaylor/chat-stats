@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Details - UFA Statistics</title>
+    <!-- Main styles -->
+    <link rel="stylesheet" href="../styles/main.css">
+    <!-- Game detail specific styles -->
+    <style>
+        .game-detail-container {
+            display: flex;
+            min-height: 100vh;
+            background: var(--bg-primary);
+        }
+
+        /* Game Selection Panel (Left Sidebar) */
+        .game-selection-panel {
+            width: 250px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            padding: 20px;
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .game-selection-panel.collapsed {
+            transform: translateX(-100%);
+            position: absolute;
+            height: 100%;
+            z-index: 100;
+        }
+
+        .game-selection-header {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+
+        .game-select-dropdown {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .game-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .game-list-item {
+            padding: 10px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .game-list-item:hover {
+            background: var(--bg-hover);
+            border-color: var(--primary-color);
+        }
+
+        .game-list-item.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        /* Main Content Area */
+        .game-detail-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Scoreboard Header */
+        .game-scoreboard {
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .scoreboard-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .team-score {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .team-logo {
+            width: 60px;
+            height: 60px;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 24px;
+        }
+
+        .team-info {
+            text-align: left;
+        }
+
+        .team-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .team-final-score {
+            font-size: 36px;
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+
+        .quarter-scores {
+            background: var(--bg-primary);
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .quarter-scores table {
+            border-collapse: collapse;
+        }
+
+        .quarter-scores th,
+        .quarter-scores td {
+            padding: 5px 10px;
+            text-align: center;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .quarter-scores th:last-child,
+        .quarter-scores td:last-child {
+            border-right: none;
+            font-weight: bold;
+        }
+
+        .quarter-scores th {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Tab Navigation */
+        .game-tabs {
+            background: var(--bg-secondary);
+            border-bottom: 2px solid var(--border-color);
+            padding: 0 20px;
+        }
+
+        .tabs-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            gap: 20px;
+        }
+
+        .tab-button {
+            padding: 15px 20px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-button:hover {
+            color: var(--text-primary);
+        }
+
+        .tab-button.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+
+        /* Tab Content */
+        .tab-content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* Box Score Specific */
+        .box-score-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .team-toggle {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .team-toggle label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .team-toggle input[type="radio"] {
+            cursor: pointer;
+        }
+
+        /* Player Stats Table */
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .stats-table thead {
+            background: var(--bg-primary);
+        }
+
+        .stats-table th {
+            padding: 12px 8px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+
+        .stats-table th:hover {
+            background: var(--bg-hover);
+        }
+
+        .stats-table th.sortable::after {
+            content: '⇅';
+            position: absolute;
+            right: 4px;
+            opacity: 0.3;
+        }
+
+        .stats-table th.sorted-asc::after {
+            content: '↑';
+            opacity: 1;
+        }
+
+        .stats-table th.sorted-desc::after {
+            content: '↓';
+            opacity: 1;
+        }
+
+        .stats-table td {
+            padding: 10px 8px;
+            font-size: 14px;
+            color: var(--text-primary);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .stats-table tbody tr:hover {
+            background: var(--bg-hover);
+        }
+
+        .player-name {
+            font-weight: 500;
+        }
+
+        /* Numeric columns */
+        .stats-table td.numeric {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Mobile Toggle Button */
+        .panel-toggle {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 101;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .game-selection-panel {
+                position: fixed;
+                height: 100%;
+                z-index: 100;
+                transform: translateX(-100%);
+            }
+
+            .game-selection-panel.open {
+                transform: translateX(0);
+            }
+
+            .panel-toggle {
+                display: block;
+            }
+
+            .scoreboard-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .quarter-scores {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body class="stats-page" data-page="game-detail">
+    <!-- Mobile Panel Toggle -->
+    <button class="panel-toggle" id="panelToggle">☰ Games</button>
+
+    <div class="game-detail-container">
+        <!-- Game Selection Panel (Left Sidebar) -->
+        <aside class="game-selection-panel" id="gameSelectionPanel">
+            <h2 class="game-selection-header">Game Search</h2>
+
+            <label for="gameSelect">Select Game</label>
+            <select id="gameSelect" class="game-select-dropdown">
+                <option value="">Loading games...</option>
+            </select>
+
+            <div class="game-list" id="gameList">
+                <!-- Games will be populated here -->
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="game-detail-main">
+            <!-- Scoreboard Header -->
+            <section class="game-scoreboard" id="gameScoreboard">
+                <div class="scoreboard-content">
+                    <!-- Away Team -->
+                    <div class="team-score">
+                        <div class="team-logo" id="awayLogo">A</div>
+                        <div class="team-info">
+                            <div class="team-name" id="awayName">Away Team</div>
+                            <div class="team-final-score" id="awayScore">0</div>
+                        </div>
+                    </div>
+
+                    <!-- Quarter Scores -->
+                    <div class="quarter-scores">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>1</th>
+                                    <th>2</th>
+                                    <th>3</th>
+                                    <th>4</th>
+                                    <th>T</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr id="awayQuarters">
+                                    <td id="awayTeamAbbrev">AWAY</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                </tr>
+                                <tr id="homeQuarters">
+                                    <td id="homeTeamAbbrev">HOME</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Home Team -->
+                    <div class="team-score">
+                        <div class="team-info" style="text-align: right;">
+                            <div class="team-name" id="homeName">Home Team</div>
+                            <div class="team-final-score" id="homeScore">0</div>
+                        </div>
+                        <div class="team-logo" id="homeLogo">H</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab Navigation -->
+            <nav class="game-tabs">
+                <div class="tabs-container">
+                    <button class="tab-button active" data-tab="box-score">Box Score</button>
+                    <button class="tab-button" data-tab="team-stats">Team Stats</button>
+                    <button class="tab-button" data-tab="play-by-play">Play-by-Play</button>
+                </div>
+            </nav>
+
+            <!-- Tab Content -->
+            <div class="tab-content">
+                <!-- Box Score Tab -->
+                <div class="tab-pane active" id="box-score">
+                    <div class="box-score-header">
+                        <label>Select Team:</label>
+                        <div class="team-toggle">
+                            <label>
+                                <input type="radio" name="teamSelect" value="away" checked>
+                                <span id="awayTeamRadio">Away Team</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="teamSelect" value="home">
+                                <span id="homeTeamRadio">Home Team</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <table class="stats-table" id="statsTable">
+                        <thead>
+                            <tr>
+                                <th data-sort="name">Name</th>
+                                <th data-sort="jersey_number">#</th>
+                                <th data-sort="points_played" class="sortable">PP</th>
+                                <th data-sort="o_points_played" class="sortable">OPP</th>
+                                <th data-sort="d_points_played" class="sortable">DPP</th>
+                                <th data-sort="assists" class="sortable">AST</th>
+                                <th data-sort="goals" class="sortable">GLS</th>
+                                <th data-sort="blocks" class="sortable">BLK</th>
+                                <th data-sort="plus_minus" class="sortable sorted-desc">+/-</th>
+                                <th data-sort="yards_received" class="sortable">Rcv Yds</th>
+                                <th data-sort="yards_thrown" class="sortable">Thr Yds</th>
+                                <th data-sort="total_yards" class="sortable">Tot Yds</th>
+                                <th data-sort="completions" class="sortable">Cmp</th>
+                                <th data-sort="completion_percentage" class="sortable">Cmp%</th>
+                                <th data-sort="hockey_assists" class="sortable">HA</th>
+                                <th data-sort="turnovers" class="sortable">T</th>
+                                <th data-sort="stalls" class="sortable">S</th>
+                                <th data-sort="callahans" class="sortable">C</th>
+                                <th data-sort="drops" class="sortable">D</th>
+                            </tr>
+                        </thead>
+                        <tbody id="statsTableBody">
+                            <!-- Player rows will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Team Stats Tab -->
+                <div class="tab-pane" id="team-stats">
+                    <div style="padding: 40px; text-align: center; color: var(--text-secondary);">
+                        Team Statistics - Coming Soon
+                    </div>
+                </div>
+
+                <!-- Play-by-Play Tab -->
+                <div class="tab-pane" id="play-by-play">
+                    <div style="padding: 40px; text-align: center; color: var(--text-secondary);">
+                        Play-by-Play - Coming Soon
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Vite entry point -->
+    <script type="module" src="/stats/game-detail.entry.ts"></script>
+</body>
+</html>

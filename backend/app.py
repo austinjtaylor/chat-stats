@@ -5,6 +5,7 @@ warnings.filterwarnings("ignore", message="resource_tracker: There appear to be.
 import os
 
 from api.game import create_game_routes
+from api.game_box_score import create_box_score_routes
 from api.player_stats import create_player_stats_route
 
 # Import route modules
@@ -28,11 +29,13 @@ stats_system = get_stats_system(config)
 basic_router, _ = create_basic_routes(stats_system)
 player_stats_router = create_player_stats_route(stats_system)
 game_router = create_game_routes(stats_system)
+box_score_router = create_box_score_routes(stats_system)
 
 # Include all routers
 app.include_router(basic_router)
 app.include_router(player_stats_router)
 app.include_router(game_router)
+app.include_router(box_score_router)
 
 
 @app.on_event("startup")
