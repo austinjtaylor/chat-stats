@@ -124,23 +124,23 @@ function setupDropdownPair(buttonId: string, dropdownId: string): void {
             }
 
             // Calculate vertical position
-            let topPosition = buttonRect.top - dropdownMaxHeight - margin;
+            let topPosition: number;
 
-            // Add 50px offset for centered dropdown only
             if (buttonId === 'tryAskingButtonCentered') {
-                topPosition += 105;
-            }
+                // Centered button: Fixed pixel position from top
+                // This keeps dropdown in exact same spot regardless of window resizing
+                topPosition = 200; // Fixed position in pixels from top
+            } else {
+                // Inline button: Position above with viewport collision detection
+                topPosition = buttonRect.top - dropdownMaxHeight - margin;
 
-            // Check if dropdown would go above viewport
-            const scrollY = window.scrollY || window.pageYOffset;
-            const viewportTop = scrollY;
+                // Check if dropdown would go above viewport
+                const scrollY = window.scrollY || window.pageYOffset;
+                const viewportTop = scrollY;
 
-            // If dropdown would be above viewport, position it below button instead
-            if (topPosition < viewportTop) {
-                topPosition = buttonRect.bottom + margin;
-                // Also add the 50px offset when flipping to below for centered dropdown
-                if (buttonId === 'tryAskingButtonCentered') {
-                    topPosition += 105;
+                // If dropdown would be above viewport, position it below button instead
+                if (topPosition < viewportTop) {
+                    topPosition = buttonRect.bottom + margin;
                 }
             }
 
