@@ -39,3 +39,9 @@ docs/
 
 # Vite cache
 .vite/
+
+# Git worktrees
+.trees/
+
+# VS Code settings (optional - you may want to keep this)
+.vscode/
