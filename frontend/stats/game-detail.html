@@ -16,26 +16,8 @@
             z-index: 1000;
         }
 
-        /* Game Search Overlay */
-        .game-search-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 999;
-            display: none;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .game-search-overlay.active {
-            display: block;
-            opacity: 1;
-        }
-
-        .game-search-overlay.active .game-selection-panel {
+        /* Remove overlay - sidebar works standalone */
+        .game-selection-panel.active {
             transform: translateX(0);
         }
 
@@ -45,6 +27,7 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+            padding-left: 45px; /* Move right to align with search icon */
         }
 
         .close-panel {
@@ -70,10 +53,13 @@
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
+            padding-left: 45px; /* Align with header */
+            padding-right: 25px; /* Add right padding to prevent overflow */
         }
 
         .panel-filters .filter-group {
             flex: 1;
+            min-width: 0; /* Allow flex items to shrink */
         }
 
         .panel-filters .filter-group label {
@@ -85,18 +71,20 @@
 
         .panel-filters .filter-select {
             width: 100%;
+            max-width: 100%; /* Prevent overflow */
             padding: 8px;
             border: 1px solid var(--border-color);
             border-radius: 4px;
             background: var(--bg-primary);
             color: var(--text-primary);
             font-size: 14px;
+            box-sizing: border-box; /* Include padding and border in width */
         }
 
 
         /* Remove old container styles since we're using stats-container */
 
-        /* Game Selection Panel (Pop-out) */
+        /* Game Selection Panel (Standalone Sidebar) */
         .game-selection-panel {
             position: fixed;
             left: 0;
@@ -105,10 +93,14 @@
             width: 300px;
             background: var(--bg-secondary);
             padding: 20px;
+            padding-top: 80px; /* Move content down to avoid menu button */
             overflow-y: auto;
+            overflow-x: hidden; /* Prevent horizontal overflow */
             transform: translateX(-100%);
             transition: transform 0.3s ease;
             z-index: 1000;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            border-right: 1px solid var(--border-color);
         }
 
         .game-selection-header {
@@ -123,6 +115,10 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
+            padding-left: 45px; /* Align with header */
+            padding-right: 25px; /* Add some right padding for better look */
+            box-sizing: border-box;
+            width: 100%;
         }
 
         .game-list-item {
@@ -132,6 +128,21 @@
             border-radius: 4px;
             cursor: pointer;
             transition: all 0.2s;
+            overflow: hidden;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .game-list-item > div:first-child {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .game-list-item > div:last-child {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .game-list-item:hover {
@@ -143,6 +154,16 @@
             background: var(--primary-color);
             color: white;
             border-color: var(--primary-color);
+        }
+
+        /* Content shift when sidebar is open */
+        body.sidebar-open .stats-container {
+            transform: translateX(300px);
+            transition: transform 0.3s ease;
+        }
+
+        .stats-container {
+            transition: transform 0.3s ease;
         }
 
         /* Main Content Area */
@@ -473,50 +494,48 @@
         </div>
     </div>
 
-    <div class="stats-container">
-        <!-- Game Selection Panel (Pop-out Overlay) -->
-        <div class="game-search-overlay" id="gameSearchOverlay">
-            <aside class="game-selection-panel" id="gameSelectionPanel">
-                <div class="panel-header">
-                    <h2 class="game-selection-header">Game Search</h2>
-                    <button class="close-panel" id="closePanel">&times;</button>
-                </div>
-
-                <!-- Filters -->
-                <div class="panel-filters">
-                    <div class="filter-group">
-                        <label for="yearFilter">Season</label>
-                        <select id="yearFilter" class="filter-select">
-                            <option value="2025" selected>2025</option>
-                            <option value="2024">2024</option>
-                            <option value="2023">2023</option>
-                            <option value="2022">2022</option>
-                            <option value="2021">2021</option>
-                            <option value="2020">2020</option>
-                            <option value="2019">2019</option>
-                            <option value="2018">2018</option>
-                            <option value="2017">2017</option>
-                            <option value="2016">2016</option>
-                            <option value="2015">2015</option>
-                            <option value="2014">2014</option>
-                            <option value="2013">2013</option>
-                            <option value="2012">2012</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label for="teamFilter">Team</label>
-                        <select id="teamFilter" class="filter-select">
-                            <option value="all" selected>All</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="game-list" id="gameList">
-                    <!-- Games will be populated here -->
-                </div>
-            </aside>
+    <!-- Game Selection Panel (Standalone Sidebar) -->
+    <aside class="game-selection-panel" id="gameSelectionPanel">
+        <div class="panel-header">
+            <h2 class="game-selection-header">Game Search</h2>
+            <button class="close-panel" id="closePanel">&times;</button>
         </div>
 
+        <!-- Filters -->
+        <div class="panel-filters">
+            <div class="filter-group">
+                <label for="yearFilter">Season</label>
+                <select id="yearFilter" class="filter-select">
+                    <option value="2025" selected>2025</option>
+                    <option value="2024">2024</option>
+                    <option value="2023">2023</option>
+                    <option value="2022">2022</option>
+                    <option value="2021">2021</option>
+                    <option value="2020">2020</option>
+                    <option value="2019">2019</option>
+                    <option value="2018">2018</option>
+                    <option value="2017">2017</option>
+                    <option value="2016">2016</option>
+                    <option value="2015">2015</option>
+                    <option value="2014">2014</option>
+                    <option value="2013">2013</option>
+                    <option value="2012">2012</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="teamFilter">Team</label>
+                <select id="teamFilter" class="filter-select">
+                    <option value="all" selected>All</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="game-list" id="gameList">
+            <!-- Games will be populated here -->
+        </div>
+    </aside>
+
+    <div class="stats-container">
         <!-- Main Content Area -->
         <main class="stats-main">
             <!-- Scoreboard Header -->
