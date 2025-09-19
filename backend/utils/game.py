@@ -123,32 +123,55 @@ def get_individual_leaders(db, game_id: str, game: dict[str, Any]) -> dict[str, 
     """Get individual stat leaders for a game."""
     leaders = {}
 
-    # Helper function to get top player for a stat
+    # Helper function to get top player(s) for a stat - includes ties
     def get_stat_leader(stat_column, stat_name):
+        # Query to get all players with the maximum value for the stat
         query = f"""
-        SELECT p.full_name, pgs.{stat_column} as value, pgs.team_id,
+        WITH max_stat AS (
+            SELECT MAX(pgs.{stat_column}) as max_value
+            FROM player_game_stats pgs
+            WHERE pgs.game_id = :game_id
+            AND pgs.team_id = :team_id
+            AND pgs.{stat_column} > 0
+        )
+        SELECT DISTINCT p.full_name, pgs.{stat_column} as value, pgs.team_id,
                t.name as team_name
         FROM player_game_stats pgs
         JOIN players p ON pgs.player_id = p.player_id
         JOIN teams t ON pgs.team_id = t.team_id AND pgs.year = t.year
+        CROSS JOIN max_stat
         WHERE pgs.game_id = :game_id
         AND pgs.team_id = :team_id
-        AND pgs.{stat_column} > 0
-        ORDER BY pgs.{stat_column} DESC
-        LIMIT 1
+        AND pgs.{stat_column} = max_stat.max_value
+        ORDER BY p.full_name
         """
 
-        home_leader = db.execute_query(
+        home_leaders = db.execute_query(
             query, {"game_id": game_id, "team_id": game["home_full_team_id"]}
         )
 
-        away_leader = db.execute_query(
+        away_leaders = db.execute_query(
             query, {"game_id": game_id, "team_id": game["away_full_team_id"]}
         )
 
+        # Format multiple leaders with comma separation
+        def format_leaders(leaders_list):
+            if not leaders_list:
+                return None
+            if len(leaders_list) == 1:
+                return leaders_list[0]
+            # For multiple tied leaders, combine their names
+            names = "; ".join([leader["full_name"] for leader in leaders_list])
+            return {
+                "full_name": names,
+                "value": leaders_list[0]["value"],  # All have the same value
+                "team_id": leaders_list[0]["team_id"],
+                "team_name": leaders_list[0]["team_name"]
+            }
+
         return {
-            "home": home_leader[0] if home_leader else None,
-            "away": away_leader[0] if away_leader else None,
+            "home": format_leaders(home_leaders),
+            "away": format_leaders(away_leaders),
         }
 
     # Get leaders for each category
@@ -160,31 +183,53 @@ def get_individual_leaders(db, game_id: str, game: dict[str, Any]) -> dict[str, 
         "o_points_played + d_points_played", "Points Played"
     )
 
-    # Plus/minus requires special handling
+    # Plus/minus requires special handling - also handle ties
     pm_query = """
-    SELECT p.full_name, 
+    WITH max_pm AS (
+        SELECT MAX(pgs.goals + pgs.assists + pgs.blocks - pgs.throwaways - pgs.stalls - pgs.drops) as max_value
+        FROM player_game_stats pgs
+        WHERE pgs.game_id = :game_id
+        AND pgs.team_id = :team_id
+    )
+    SELECT DISTINCT p.full_name,
            (pgs.goals + pgs.assists + pgs.blocks - pgs.throwaways - pgs.stalls - pgs.drops) as value,
            pgs.team_id, t.name as team_name
     FROM player_game_stats pgs
     JOIN players p ON pgs.player_id = p.player_id
     JOIN teams t ON pgs.team_id = t.team_id AND pgs.year = t.year
+    CROSS JOIN max_pm
     WHERE pgs.game_id = :game_id
     AND pgs.team_id = :team_id
-    ORDER BY value DESC
-    LIMIT 1
+    AND (pgs.goals + pgs.assists + pgs.blocks - pgs.throwaways - pgs.stalls - pgs.drops) = max_pm.max_value
+    ORDER BY p.full_name
     """
 
-    home_pm = db.execute_query(
+    home_pm_leaders = db.execute_query(
         pm_query, {"game_id": game_id, "team_id": game["home_full_team_id"]}
     )
 
-    away_pm = db.execute_query(
+    away_pm_leaders = db.execute_query(
         pm_query, {"game_id": game_id, "team_id": game["away_full_team_id"]}
     )
 
+    # Format multiple leaders with comma separation
+    def format_leaders(leaders_list):
+        if not leaders_list:
+            return None
+        if len(leaders_list) == 1:
+            return leaders_list[0]
+        # For multiple tied leaders, combine their names
+        names = "; ".join([leader["full_name"] for leader in leaders_list])
+        return {
+            "full_name": names,
+            "value": leaders_list[0]["value"],  # All have the same value
+            "team_id": leaders_list[0]["team_id"],
+            "team_name": leaders_list[0]["team_name"]
+        }
+
     leaders["plus_minus"] = {
-        "home": home_pm[0] if home_pm else None,
-        "away": away_pm[0] if away_pm else None,
+        "home": format_leaders(home_pm_leaders),
+        "away": format_leaders(away_pm_leaders),
     }
 
     return leaders
