@@ -214,7 +214,7 @@ class GameDetailPage {
                     const option = document.createElement('option');
                     option.value = team.team_id;
                     option.textContent = `${team.city} ${team.name}`;
-                    this.elements.teamFilter.appendChild(option);
+                    this.elements.teamFilter!.appendChild(option);
                 });
             }
         } catch (error) {
@@ -236,11 +236,13 @@ class GameDetailPage {
             this.updateGameList();
 
             // Only load first game automatically if no game specified in URL
+            // AND the sidebar is not currently open (to prevent closing it during filter changes)
             const urlParams = new URLSearchParams(window.location.search);
             const gameIdFromUrl = urlParams.get('game');
+            const isSidebarOpen = this.elements.gameSelectionPanel?.classList.contains('active');
 
-            if (!gameIdFromUrl && this.gameList.length > 0) {
-                this.loadGameDetails(this.gameList[0].game_id);
+            if (!gameIdFromUrl && this.gameList.length > 0 && !isSidebarOpen) {
+                this.loadGameDetails(this.gameList[0].game_id, false);
             }
         } catch (error) {
             console.error('Failed to load games list:', error);
@@ -254,7 +256,7 @@ class GameDetailPage {
         if (gameId) {
             // Wait for games list to load then select the game
             setTimeout(() => {
-                this.loadGameDetails(gameId);
+                this.loadGameDetails(gameId, false);
             }, 500);
         }
     }
@@ -313,7 +315,7 @@ class GameDetailPage {
         });
     }
 
-    private async loadGameDetails(gameId: string): Promise<void> {
+    private async loadGameDetails(gameId: string, closePanel: boolean = true): Promise<void> {
         try {
             const response = await fetch(`/api/games/${gameId}/box-score`);
             const data: BoxScoreData = await response.json();
@@ -328,8 +330,10 @@ class GameDetailPage {
                 item.classList.toggle('active', item.getAttribute('data-game-id') === gameId);
             });
 
-            // Close search overlay after selection
-            this.closeGameSearch();
+            // Close search overlay after selection only if requested
+            if (closePanel) {
+                this.closeGameSearch();
+            }
         } catch (error) {
             console.error('Failed to load game details:', error);
         }

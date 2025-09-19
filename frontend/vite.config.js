@@ -19,9 +19,9 @@ export default defineConfig({
         manualChunks: {
           // Group API and utilities together
           'utils': [
-            './js/api/client.js',
-            './js/utils/dom.js',
-            './js/utils/format.js'
+            './src/api/client.ts',
+            './src/utils/dom.ts',
+            './src/utils/format.ts'
           ]
         }
       }
