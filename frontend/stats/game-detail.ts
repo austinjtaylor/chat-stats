@@ -70,7 +70,6 @@ class GameDetailPage {
     // DOM elements
     private elements = {
         gameSearchIcon: null as HTMLElement | null,
-        gameSearchOverlay: null as HTMLElement | null,
         gameSelectionPanel: null as HTMLElement | null,
         closePanel: null as HTMLElement | null,
         yearFilter: null as HTMLSelectElement | null,
@@ -105,7 +104,6 @@ class GameDetailPage {
     private initializeElements(): void {
         // Get all DOM elements
         this.elements.gameSearchIcon = document.getElementById('gameSearchIcon');
-        this.elements.gameSearchOverlay = document.getElementById('gameSearchOverlay');
         this.elements.gameSelectionPanel = document.getElementById('gameSelectionPanel');
         this.elements.closePanel = document.getElementById('closePanel');
         this.elements.yearFilter = document.getElementById('yearFilter') as HTMLSelectElement;
@@ -146,14 +144,17 @@ class GameDetailPage {
             });
         }
 
-        // Click overlay to close
-        if (this.elements.gameSearchOverlay) {
-            this.elements.gameSearchOverlay.addEventListener('click', (e) => {
-                if (e.target === this.elements.gameSearchOverlay) {
-                    this.closeGameSearch();
-                }
-            });
-        }
+        // Click outside to close (on the shifted content)
+        document.addEventListener('click', (e) => {
+            const panel = this.elements.gameSelectionPanel;
+            const icon = this.elements.gameSearchIcon;
+            if (panel && icon &&
+                panel.classList.contains('active') &&
+                !panel.contains(e.target as Node) &&
+                !icon.contains(e.target as Node)) {
+                this.closeGameSearch();
+            }
+        });
 
         // Filter changes
         if (this.elements.yearFilter) {
@@ -259,16 +260,18 @@ class GameDetailPage {
     }
 
     private openGameSearch(): void {
-        if (this.elements.gameSearchOverlay) {
-            this.elements.gameSearchOverlay.classList.add('active');
-            document.body.style.overflow = 'hidden';
+        if (this.elements.gameSelectionPanel) {
+            this.elements.gameSelectionPanel.classList.add('active');
+            document.documentElement.classList.add('sidebar-open');
+            document.body.classList.add('sidebar-open');
         }
     }
 
     private closeGameSearch(): void {
-        if (this.elements.gameSearchOverlay) {
-            this.elements.gameSearchOverlay.classList.remove('active');
-            document.body.style.overflow = '';
+        if (this.elements.gameSelectionPanel) {
+            this.elements.gameSelectionPanel.classList.remove('active');
+            document.documentElement.classList.remove('sidebar-open');
+            document.body.classList.remove('sidebar-open');
         }
     }
 

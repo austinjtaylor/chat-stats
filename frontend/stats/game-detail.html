@@ -156,14 +156,24 @@
             border-color: var(--primary-color);
         }
 
+        /* Prevent horizontal scrolling globally when sidebar is open */
+        html.sidebar-open {
+            overflow-x: hidden !important;
+        }
+
         /* Content shift when sidebar is open */
+        body.sidebar-open {
+            overflow-x: hidden !important;
+            position: relative;
+        }
+
         body.sidebar-open .stats-container {
-            transform: translateX(300px);
-            transition: transform 0.3s ease;
+            margin-left: 300px;
+            transition: margin-left 0.3s ease;
         }
 
         .stats-container {
-            transition: transform 0.3s ease;
+            transition: margin-left 0.3s ease;
         }
 
         /* Main Content Area */
