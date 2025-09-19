@@ -157,6 +157,7 @@ function setupDropdowns(): void {
 }
 
 // Helper function to setup try asking dropdown behavior
+// @ts-ignore - Function is preserved for potential future use
 function setupTryAskingDropdown(buttonId: string, dropdownId: string): void {
     const button = document.getElementById(buttonId);
     const dropdown = document.getElementById(dropdownId);
