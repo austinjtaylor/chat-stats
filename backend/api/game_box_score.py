@@ -195,10 +195,11 @@ def create_box_score_routes(stats_system):
             raise HTTPException(status_code=500, detail=str(e))
 
     @router.get("/api/games/list")
-    async def get_games_list(year: int = None, limit: int = 100):
+    async def get_games_list(year: int = None, team_id: str = None, limit: int = 100):
         """Get list of all games for the game selection dropdown"""
         try:
             year_filter = f"AND g.year = {year}" if year else ""
+            team_filter = f"AND (g.home_team_id = :team_id OR g.away_team_id = :team_id)" if team_id else ""
 
             query = f"""
             SELECT
@@ -218,12 +219,16 @@ def create_box_score_routes(stats_system):
             FROM games g
             LEFT JOIN teams ht ON g.home_team_id = ht.team_id AND g.year = ht.year
             LEFT JOIN teams at ON g.away_team_id = at.team_id AND g.year = at.year
-            WHERE g.status = 'Final' {year_filter}
+            WHERE g.status = 'Final' {year_filter} {team_filter}
             ORDER BY g.start_timestamp DESC
             LIMIT :limit
             """
 
-            games = stats_system.db.execute_query(query, {"limit": limit})
+            params = {"limit": limit}
+            if team_id:
+                params["team_id"] = team_id
+
+            games = stats_system.db.execute_query(query, params)
 
             return {
                 "games": [
