@@ -160,6 +160,7 @@ class GameDetailPage {
         if (this.elements.yearFilter) {
             this.elements.yearFilter.addEventListener('change', (e) => {
                 this.currentYear = parseInt((e.target as HTMLSelectElement).value);
+                this.loadTeams();  // Reload teams for the selected year
                 this.loadGamesList();
             });
         }
@@ -205,17 +206,29 @@ class GameDetailPage {
 
     private async loadTeams(): Promise<void> {
         try {
-            const response = await fetch('/api/teams');
+            const response = await fetch(`/api/teams?year=${this.currentYear}`);
             this.teams = await response.json();
 
             if (this.elements.teamFilter) {
+                // Remember current selection
+                const currentSelection = this.elements.teamFilter.value;
+
                 this.elements.teamFilter.innerHTML = '<option value="all">All</option>';
                 this.teams.forEach(team => {
                     const option = document.createElement('option');
                     option.value = team.team_id;
-                    option.textContent = `${team.city} ${team.name}`;
+                    option.textContent = team.name;
                     this.elements.teamFilter!.appendChild(option);
                 });
+
+                // Restore selection if team still exists, otherwise reset to 'all'
+                const teamExists = this.teams.some(team => team.team_id === currentSelection);
+                if (teamExists) {
+                    this.elements.teamFilter.value = currentSelection;
+                } else {
+                    this.elements.teamFilter.value = 'all';
+                    this.currentTeamFilter = 'all';
+                }
             }
         } catch (error) {
             console.error('Failed to load teams:', error);

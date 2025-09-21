@@ -2,6 +2,7 @@
 API routes for sports statistics endpoints.
 """
 
+from typing import Optional
 from config import config
 from fastapi import APIRouter, HTTPException
 from models.api import (
@@ -65,22 +66,37 @@ def create_basic_routes(stats_system):
             raise HTTPException(status_code=500, detail=str(e))
 
     @router.get("/api/teams")
-    async def get_all_teams():
-        """Get all teams for dropdowns"""
+    async def get_all_teams(year: Optional[int] = None):
+        """Get all teams for dropdowns, optionally filtered by year"""
         try:
-            query = """
-            SELECT DISTINCT
-                t.team_id as id,
-                t.team_id,
-                t.name,
-                t.city,
-                t.full_name,
-                t.year
-            FROM teams t
-            WHERE t.year = (SELECT MAX(year) FROM teams)
-            ORDER BY t.full_name
-            """
-            teams = stats_system.db.execute_query(query)
+            if year:
+                query = """
+                SELECT DISTINCT
+                    t.team_id as id,
+                    t.team_id,
+                    t.name,
+                    t.city,
+                    t.full_name,
+                    t.year
+                FROM teams t
+                WHERE t.year = :year
+                ORDER BY t.full_name
+                """
+                teams = stats_system.db.execute_query(query, {"year": year})
+            else:
+                query = """
+                SELECT DISTINCT
+                    t.team_id as id,
+                    t.team_id,
+                    t.name,
+                    t.city,
+                    t.full_name,
+                    t.year
+                FROM teams t
+                WHERE t.year = (SELECT MAX(year) FROM teams)
+                ORDER BY t.full_name
+                """
+                teams = stats_system.db.execute_query(query)
             return teams
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
