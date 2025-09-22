@@ -30,6 +30,8 @@ interface PlayerStats {
     completions: number;
     completion_percentage: number;
     hockey_assists: number;
+    hucks_completed: number;
+    huck_percentage: number;
     turnovers: number;
     stalls: number;
     callahans: number;
@@ -499,6 +501,8 @@ class GameDetailPage {
                 <td class="numeric">${player.total_yards}</td>
                 <td class="numeric">${player.completions}</td>
                 <td class="numeric">${player.completion_percentage.toFixed(1)}%</td>
+                <td class="numeric">${player.hucks_completed}</td>
+                <td class="numeric">${player.huck_percentage.toFixed(1)}%</td>
                 <td class="numeric">${player.hockey_assists}</td>
                 <td class="numeric">${player.turnovers}</td>
                 <td class="numeric">${player.stalls}</td>

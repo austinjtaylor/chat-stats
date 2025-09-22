@@ -77,6 +77,13 @@ def create_box_score_routes(stats_system):
                 pgs.yards_received,
                 (pgs.yards_thrown + pgs.yards_received) as total_yards,
                 pgs.catches,
+                pgs.hucks_completed,
+                pgs.hucks_attempted,
+                CASE
+                    WHEN pgs.hucks_attempted > 0
+                    THEN ROUND((pgs.hucks_completed * 100.0 / pgs.hucks_attempted), 1)
+                    ELSE 0
+                END as huck_percentage,
                 (pgs.goals + pgs.assists + pgs.blocks - pgs.throwaways - pgs.drops - pgs.stalls) as plus_minus
             FROM player_game_stats pgs
             JOIN players p ON pgs.player_id = p.player_id AND pgs.year = p.year
@@ -109,6 +116,8 @@ def create_box_score_routes(stats_system):
                     "completions": player["completions"],
                     "completion_percentage": player["completion_percentage"],
                     "hockey_assists": player["hockey_assists"],
+                    "hucks_completed": player["hucks_completed"],
+                    "huck_percentage": player["huck_percentage"],
                     "turnovers": player["throwaways"] + player["stalls"],
                     "stalls": player["stalls"],
                     "callahans": player["callahans"],
