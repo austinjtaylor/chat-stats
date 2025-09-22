@@ -79,6 +79,7 @@ def create_box_score_routes(stats_system):
                 pgs.catches,
                 pgs.hucks_completed,
                 pgs.hucks_attempted,
+                pgs.hucks_received,
                 CASE
                     WHEN pgs.hucks_attempted > 0
                     THEN ROUND((pgs.hucks_completed * 100.0 / pgs.hucks_attempted), 1)
@@ -117,6 +118,7 @@ def create_box_score_routes(stats_system):
                     "completion_percentage": player["completion_percentage"],
                     "hockey_assists": player["hockey_assists"],
                     "hucks_completed": player["hucks_completed"],
+                    "hucks_received": player["hucks_received"],
                     "huck_percentage": player["huck_percentage"],
                     "turnovers": player["throwaways"] + player["stalls"],
                     "stalls": player["stalls"],

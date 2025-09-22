@@ -156,6 +156,8 @@ export interface PlayerGameStats {
   hucks_attempted?: number;
   /** Long throws completed - Available from 2021 onwards */
   hucks_completed?: number;
+  /** Long throws received (caught) - Available from 2021 onwards */
+  hucks_received?: number;
   /** Total catches */
   catches?: number;
   /** Total disc touches */
@@ -238,6 +240,8 @@ export interface PlayerSeasonStats {
   hucks_attempted?: number;
   /** Total hucks completed - Available from 2021 onwards */
   hucks_completed?: number;
+  /** Total hucks received (caught) - Available from 2021 onwards */
+  hucks_received?: number;
   /** Huck completion percentage - Available from 2021 onwards */
   huck_percentage?: number;
   /** Total catches */

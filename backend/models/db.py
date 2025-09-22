@@ -76,6 +76,7 @@ class PlayerGameStats(BaseModel):
     yards_thrown: int = 0
     hucks_attempted: int = 0
     hucks_completed: int = 0
+    hucks_received: int = 0
     catches: int = 0
     drops: int = 0
     blocks: int = 0
@@ -127,6 +128,7 @@ class PlayerSeasonStats(BaseModel):
     total_yards_thrown: int = 0
     total_hucks_attempted: int = 0
     total_hucks_completed: int = 0
+    total_hucks_received: int = 0
     total_catches: int = 0
     total_drops: int = 0
     total_blocks: int = 0

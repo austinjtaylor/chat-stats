@@ -205,6 +205,7 @@ class PlayerStats {
         // Huck stats available from 2021
         const huckStats2021: PlayerColumn[] = [
             { key: 'total_hucks_completed', label: 'Hck', sortable: true },
+            { key: 'total_hucks_received', label: 'HckR', sortable: true },
             { key: 'huck_percentage', label: 'Hck%', sortable: true }
         ];
 
