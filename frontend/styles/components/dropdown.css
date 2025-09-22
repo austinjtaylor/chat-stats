@@ -213,6 +213,57 @@
     transform: translateX(20px);
 }
 
+/* Tooltip Styles - Gemini-inspired */
+.tooltip {
+    background: #2c2c2c;
+    color: #ffffff;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    line-height: 1.4;
+    letter-spacing: 0.01em;
+}
+
+/* Tooltip arrow pointing up (tooltip appears below element) */
+.tooltip::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-bottom: 4px solid #2c2c2c;
+}
+
+/* Dark theme tooltip adjustments */
+[data-theme="dark"] .tooltip {
+    background: #3c3c3c;
+    color: #e8e8e8;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .tooltip::before {
+    border-bottom-color: #3c3c3c;
+}
+
+/* Light theme tooltip adjustments */
+[data-theme="light"] .tooltip {
+    background: #424242;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] .tooltip::before {
+    border-bottom-color: #424242;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .suggestions-dropdown {
@@ -222,5 +273,10 @@
 
     .suggestions-grid {
         grid-template-columns: 1fr;
+    }
+
+    /* Hide tooltips on mobile/touch devices */
+    .tooltip {
+        display: none !important;
     }
 }

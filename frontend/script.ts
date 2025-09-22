@@ -104,93 +104,22 @@ function setupEventListeners(): void {
 
 // Setup dropdown functionality
 function setupDropdowns(): void {
-    // Menu dropdown
-    const menuWrapper = document.querySelector('.menu-wrapper');
-    const menuDropdown = document.getElementById('menuDropdown');
-
-    if (menuWrapper && menuDropdown) {
-        let menuTimeout: number | undefined;
-
-        menuWrapper.addEventListener('mouseenter', () => {
-            clearTimeout(menuTimeout);
-            menuDropdown.classList.add('active');
-            // Close settings dropdown if open
-            const settingsDropdown = document.getElementById('settingsDropdown');
-            if (settingsDropdown) {
-                settingsDropdown.classList.remove('active');
-            }
-        });
-
-        menuWrapper.addEventListener('mouseleave', () => {
-            menuTimeout = window.setTimeout(() => {
-                menuDropdown.classList.remove('active');
-            }, 200);
-        });
-    }
-
-    // Settings dropdown
-    const settingsWrapper = document.querySelector('.settings-wrapper');
-    const settingsDropdown = document.getElementById('settingsDropdown');
-
-    if (settingsWrapper && settingsDropdown) {
-        let settingsTimeout: number | undefined;
-
-        settingsWrapper.addEventListener('mouseenter', () => {
-            clearTimeout(settingsTimeout);
-            settingsDropdown.classList.add('active');
-            // Close menu dropdown if open
-            if (menuDropdown) {
-                menuDropdown.classList.remove('active');
-            }
-        });
-
-        settingsWrapper.addEventListener('mouseleave', () => {
-            settingsTimeout = window.setTimeout(() => {
-                settingsDropdown.classList.remove('active');
-            }, 200);
-        });
-    }
-
-    // DISABLED: Try Asking dropdown is now handled by dropdown.ts module
-    // setupTryAskingDropdown('tryAskingButton', 'suggestionsDropdown');
-    // setupTryAskingDropdown('tryAskingButtonCentered', 'suggestionsDropdownCentered');
+    // All dropdown functionality has been moved to dropdown.ts module
+    // which handles click-based interactions instead of hover
+    // The dropdown.ts module is initialized in main.ts
+    // See: src/components/dropdown.ts
 }
 
 // Helper function to setup try asking dropdown behavior
-// @ts-ignore - Function is preserved for potential future use
+// DEPRECATED: This function is no longer used
+// All dropdown functionality has been moved to dropdown.ts with click-based interactions
+// @ts-ignore - Function is preserved for reference only
 function setupTryAskingDropdown(buttonId: string, dropdownId: string): void {
-    const button = document.getElementById(buttonId);
-    const dropdown = document.getElementById(dropdownId);
+    // This function has been replaced by click-based dropdown handling in dropdown.ts
+    return;
+}
 
-    if (button && dropdown) {
-        let timeout: number | undefined;
-
-        // Show dropdown when hovering button
-        button.addEventListener('mouseenter', () => {
-            clearTimeout(timeout);
-            dropdown.classList.add('active');
-        });
-
-        // Hide dropdown when leaving button (with delay)
-        button.addEventListener('mouseleave', () => {
-            timeout = window.setTimeout(() => {
-                dropdown.classList.remove('active');
-            }, 200);
-        });
-
-        // Keep dropdown open when hovering over it
-        dropdown.addEventListener('mouseenter', () => {
-            clearTimeout(timeout);
-        });
-
-        // Hide dropdown when leaving dropdown
-        dropdown.addEventListener('mouseleave', () => {
-            timeout = window.setTimeout(() => {
-                dropdown.classList.remove('active');
-            }, 200);
-        });
-    }
-
+function setupThemeToggleOld(): void {
     // Theme toggle functionality
     const themeToggleItem = document.getElementById('themeToggleItem');
     const themeSwitch = document.getElementById('themeSwitch');

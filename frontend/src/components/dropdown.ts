@@ -3,34 +3,31 @@
  * Handles all dropdown interactions including menu, settings, and suggestions
  */
 
-// Type for timeout handles
-type TimeoutHandle = ReturnType<typeof setTimeout>;
+// Track currently open dropdown
+let currentOpenDropdown: string | null = null;
 
 export function initDropdowns(): void {
     setupMenuDropdown();
     setupSettingsDropdown();
     setupTryAskingDropdown();
     setupThemeToggle();
+    setupTooltips();
+    setupClickOutsideHandler();
 }
 
 function setupMenuDropdown(): void {
-    const menuWrapper = document.querySelector('.menu-wrapper');
+    const menuIcon = document.getElementById('menuIcon');
     const menuDropdown = document.getElementById('menuDropdown');
 
-    if (menuWrapper && menuDropdown) {
-        let menuTimeout: TimeoutHandle | undefined;
-
-        menuWrapper.addEventListener('mouseenter', () => {
-            clearTimeout(menuTimeout);
-            menuDropdown.classList.add('active');
-            // Close other dropdowns
-            closeOtherDropdowns('menuDropdown');
+    if (menuIcon && menuDropdown) {
+        menuIcon.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleDropdown('menuDropdown');
         });
 
-        menuWrapper.addEventListener('mouseleave', () => {
-            menuTimeout = setTimeout(() => {
-                menuDropdown.classList.remove('active');
-            }, 200);
+        // Prevent dropdown from closing when clicking inside it
+        menuDropdown.addEventListener('click', (e) => {
+            e.stopPropagation();
         });
 
         // Handle new chat menu item click
@@ -38,30 +35,25 @@ function setupMenuDropdown(): void {
         if (newChatMenuItem) {
             newChatMenuItem.addEventListener('click', () => {
                 startNewChat();
-                menuDropdown.classList.remove('active');
+                closeDropdown('menuDropdown');
             });
         }
     }
 }
 
 function setupSettingsDropdown(): void {
-    const settingsWrapper = document.querySelector('.settings-wrapper');
+    const settingsIcon = document.getElementById('settingsIcon');
     const settingsDropdown = document.getElementById('settingsDropdown');
 
-    if (settingsWrapper && settingsDropdown) {
-        let settingsTimeout: TimeoutHandle | undefined;
-
-        settingsWrapper.addEventListener('mouseenter', () => {
-            clearTimeout(settingsTimeout);
-            settingsDropdown.classList.add('active');
-            // Close other dropdowns
-            closeOtherDropdowns('settingsDropdown');
+    if (settingsIcon && settingsDropdown) {
+        settingsIcon.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleDropdown('settingsDropdown');
         });
 
-        settingsWrapper.addEventListener('mouseleave', () => {
-            settingsTimeout = setTimeout(() => {
-                settingsDropdown.classList.remove('active');
-            }, 200);
+        // Prevent dropdown from closing when clicking inside it
+        settingsDropdown.addEventListener('click', (e) => {
+            e.stopPropagation();
         });
     }
 }
@@ -76,145 +68,91 @@ function setupDropdownPair(buttonId: string, dropdownId: string): void {
     const tryAskingButton = document.getElementById(buttonId);
     const suggestionsDropdown = document.getElementById(dropdownId) as HTMLElement;
 
-
     if (tryAskingButton && suggestionsDropdown) {
-        let suggestionsTimeout: TimeoutHandle | undefined;
         let originalParent = suggestionsDropdown.parentElement; // Store original parent
 
-        // Show dropdown when hovering button
-        tryAskingButton.addEventListener('mouseenter', () => {
-            clearTimeout(suggestionsTimeout);
+        // Toggle dropdown on click
+        tryAskingButton.addEventListener('click', (e) => {
+            e.stopPropagation();
 
-            // Move dropdown to body for unconstrained positioning
-            if (buttonId === 'tryAskingButton') {
-                document.body.appendChild(suggestionsDropdown);
-            }
+            // Check if this dropdown is already open
+            const isOpen = suggestionsDropdown.classList.contains('active');
 
-            // Get button position
-            const buttonRect = tryAskingButton.getBoundingClientRect();
-            const dropdownWidth = 320;
-            const dropdownMaxHeight = 300;
-            const margin = 8; // Normal margin spacing
+            // Close all dropdowns first
+            closeAllDropdowns();
 
-            // Calculate horizontal position
-            let leftPosition: number;
-            const viewportWidth = window.innerWidth;
+            // If it wasn't open, open it
+            if (!isOpen) {
 
-            // For inline dropdown (right-side button), position dropdown to the left of button
-            if (buttonId === 'tryAskingButton') {
-                // Position dropdown to the left of the button
-                leftPosition = buttonRect.left;
-
-                // If that would go off the left edge, position it just inside the viewport
-                if (leftPosition < 10) {
-                    leftPosition = 10;
+                // Move dropdown to body for unconstrained positioning
+                if (buttonId === 'tryAskingButton') {
+                    document.body.appendChild(suggestionsDropdown);
                 }
 
-            } else {
-                // For centered button, center the dropdown on the button
-                leftPosition = buttonRect.left + (buttonRect.width / 2) - (dropdownWidth / 2);
+                // Get button position
+                const buttonRect = tryAskingButton.getBoundingClientRect();
+                const dropdownWidth = 320;
+                const dropdownMaxHeight = 300;
+                const margin = 8;
 
-                // Keep within viewport bounds
-                if (leftPosition < 10) {
-                    leftPosition = 10;
-                } else if (leftPosition + dropdownWidth > viewportWidth - 10) {
-                    leftPosition = viewportWidth - dropdownWidth - 10;
+                // Calculate horizontal position
+                let leftPosition: number;
+                const viewportWidth = window.innerWidth;
+
+                if (buttonId === 'tryAskingButton') {
+                    leftPosition = buttonRect.left;
+                    if (leftPosition < 10) {
+                        leftPosition = 10;
+                    }
+                } else {
+                    leftPosition = buttonRect.left + (buttonRect.width / 2) - (dropdownWidth / 2);
+                    if (leftPosition < 10) {
+                        leftPosition = 10;
+                    } else if (leftPosition + dropdownWidth > viewportWidth - 10) {
+                        leftPosition = viewportWidth - dropdownWidth - 10;
+                    }
                 }
 
-            }
-
-            // Calculate vertical position
-            let topPosition: number;
-
-            if (buttonId === 'tryAskingButtonCentered') {
-                // Centered button: Fixed pixel position from top
-                // This keeps dropdown in exact same spot regardless of window resizing
-                topPosition = 200; // Fixed position in pixels from top
-            } else {
-                // Inline button: Position above with viewport collision detection
-                topPosition = buttonRect.top - dropdownMaxHeight - margin;
-
-                // Check if dropdown would go above viewport
-                const scrollY = window.scrollY || window.pageYOffset;
-                const viewportTop = scrollY;
-
-                // If dropdown would be above viewport, position it below button instead
-                if (topPosition < viewportTop) {
-                    topPosition = buttonRect.bottom + margin;
+                // Calculate vertical position
+                let topPosition: number;
+                if (buttonId === 'tryAskingButtonCentered') {
+                    topPosition = 200;
+                } else {
+                    topPosition = buttonRect.top - dropdownMaxHeight - margin;
+                    const scrollY = window.scrollY || window.pageYOffset;
+                    const viewportTop = scrollY;
+                    if (topPosition < viewportTop) {
+                        topPosition = buttonRect.bottom + margin;
+                    }
                 }
+
+                // Apply positioning styles
+                suggestionsDropdown.classList.remove('suggestions-dropdown-inline');
+                suggestionsDropdown.style.setProperty('position', 'fixed', 'important');
+                suggestionsDropdown.style.setProperty('left', `${leftPosition}px`, 'important');
+                suggestionsDropdown.style.setProperty('top', `${topPosition}px`, 'important');
+                suggestionsDropdown.style.setProperty('right', 'auto', 'important');
+                suggestionsDropdown.style.setProperty('bottom', 'auto', 'important');
+                suggestionsDropdown.style.setProperty('transform', 'none', 'important');
+                suggestionsDropdown.style.setProperty('width', `${dropdownWidth}px`, 'important');
+                suggestionsDropdown.style.setProperty('min-width', `${dropdownWidth}px`, 'important');
+                suggestionsDropdown.style.setProperty('max-width', `${dropdownWidth}px`, 'important');
+                suggestionsDropdown.style.setProperty('height', 'auto', 'important');
+                suggestionsDropdown.style.setProperty('min-height', '172px', 'important');
+                suggestionsDropdown.style.setProperty('max-height', `${dropdownMaxHeight}px`, 'important');
+                suggestionsDropdown.style.setProperty('visibility', 'visible', 'important');
+                suggestionsDropdown.style.setProperty('opacity', '1', 'important');
+                suggestionsDropdown.style.setProperty('display', 'block', 'important');
+                suggestionsDropdown.style.setProperty('z-index', '10000', 'important');
+
+                suggestionsDropdown.classList.add('active');
+                currentOpenDropdown = dropdownId;
             }
-
-
-            // Remove any interfering classes
-            suggestionsDropdown.classList.remove('suggestions-dropdown-inline');
-
-            // Apply styles using setProperty for !important
-            suggestionsDropdown.style.setProperty('position', 'fixed', 'important');
-            suggestionsDropdown.style.setProperty('left', `${leftPosition}px`, 'important');
-            suggestionsDropdown.style.setProperty('top', `${topPosition}px`, 'important');
-            suggestionsDropdown.style.setProperty('right', 'auto', 'important');
-            suggestionsDropdown.style.setProperty('bottom', 'auto', 'important');
-            suggestionsDropdown.style.setProperty('transform', 'none', 'important');
-            suggestionsDropdown.style.setProperty('width', `${dropdownWidth}px`, 'important');
-            suggestionsDropdown.style.setProperty('min-width', `${dropdownWidth}px`, 'important');
-            suggestionsDropdown.style.setProperty('max-width', `${dropdownWidth}px`, 'important');
-            suggestionsDropdown.style.setProperty('height', 'auto', 'important');
-            suggestionsDropdown.style.setProperty('min-height', '172px', 'important');
-            suggestionsDropdown.style.setProperty('max-height', `${dropdownMaxHeight}px`, 'important');
-            suggestionsDropdown.style.setProperty('visibility', 'visible', 'important');
-            suggestionsDropdown.style.setProperty('opacity', '1', 'important');
-            suggestionsDropdown.style.setProperty('display', 'block', 'important');
-            suggestionsDropdown.style.setProperty('z-index', '10000', 'important');
-
-            // Remove any temporary debug styles
-            suggestionsDropdown.style.removeProperty('border');
-            suggestionsDropdown.style.removeProperty('background-color');
-            suggestionsDropdown.style.removeProperty('color');
-
-            // Add active class after setting styles
-            suggestionsDropdown.classList.add('active');
-
         });
 
-        // Hide dropdown when leaving button (with delay)
-        tryAskingButton.addEventListener('mouseleave', () => {
-            suggestionsTimeout = setTimeout(() => {
-                suggestionsDropdown.classList.remove('active');
-                // Don't clear all styles, just hide it
-                suggestionsDropdown.style.visibility = 'hidden';
-                suggestionsDropdown.style.opacity = '0';
-                suggestionsDropdown.style.display = 'none';
-
-                // Return dropdown to original parent if it was moved
-                if (buttonId === 'tryAskingButton' && originalParent && suggestionsDropdown.parentElement === document.body) {
-                    originalParent.appendChild(suggestionsDropdown);
-                }
-            }, 200);
-        });
-
-        // Keep dropdown open when hovering over it
-        suggestionsDropdown.addEventListener('mouseenter', () => {
-            clearTimeout(suggestionsTimeout);
-            // Just maintain visibility, position is already set
-            suggestionsDropdown.style.visibility = 'visible';
-            suggestionsDropdown.style.opacity = '1';
-            suggestionsDropdown.style.display = 'block';
-        });
-
-        // Hide dropdown when leaving the dropdown itself
-        suggestionsDropdown.addEventListener('mouseleave', () => {
-            suggestionsTimeout = setTimeout(() => {
-                suggestionsDropdown.classList.remove('active');
-                // Don't clear all styles, just hide it
-                suggestionsDropdown.style.visibility = 'hidden';
-                suggestionsDropdown.style.opacity = '0';
-                suggestionsDropdown.style.display = 'none';
-
-                // Return dropdown to original parent if it was moved
-                if (buttonId === 'tryAskingButton' && originalParent && suggestionsDropdown.parentElement === document.body) {
-                    originalParent.appendChild(suggestionsDropdown);
-                }
-            }, 200);
+        // Prevent dropdown from closing when clicking inside it
+        suggestionsDropdown.addEventListener('click', (e) => {
+            e.stopPropagation();
         });
 
         // Handle suggested question clicks for this specific dropdown
@@ -225,17 +163,11 @@ function setupDropdownPair(buttonId: string, dropdownId: string): void {
                 const chatInput = document.getElementById('chatInput') as HTMLInputElement | null;
                 if (chatInput && question) {
                     chatInput.value = question;
-                    // Trigger send message if sendButton exists
                     const sendButton = document.getElementById('sendButton') as HTMLButtonElement | null;
                     if (sendButton) {
                         sendButton.click();
                     }
-                    // Close dropdown after selection
-                    suggestionsDropdown.classList.remove('active');
-                    // Don't clear all styles, just hide it
-                    suggestionsDropdown.style.visibility = 'hidden';
-                    suggestionsDropdown.style.opacity = '0';
-                    suggestionsDropdown.style.display = 'none';
+                    closeDropdown(dropdownId);
                 }
             });
         });
@@ -276,15 +208,123 @@ function setupThemeToggle(): void {
     }
 }
 
-function closeOtherDropdowns(exceptDropdownId: string): void {
-    const dropdownIds = ['menuDropdown', 'settingsDropdown', 'suggestionsDropdown'];
-    dropdownIds.forEach(id => {
-        if (id !== exceptDropdownId) {
-            const dropdown = document.getElementById(id);
-            if (dropdown) {
-                dropdown.classList.remove('active');
-            }
+function toggleDropdown(dropdownId: string): void {
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) return;
+
+    const isOpen = dropdown.classList.contains('active');
+    closeAllDropdowns();
+
+    if (!isOpen) {
+        dropdown.classList.add('active');
+        currentOpenDropdown = dropdownId;
+    }
+}
+
+function closeDropdown(dropdownId: string): void {
+    const dropdown = document.getElementById(dropdownId);
+    if (dropdown) {
+        dropdown.classList.remove('active');
+        if (dropdownId === 'suggestionsDropdown' || dropdownId === 'suggestionsDropdownCentered') {
+            dropdown.style.visibility = 'hidden';
+            dropdown.style.opacity = '0';
+            dropdown.style.display = 'none';
         }
+        if (currentOpenDropdown === dropdownId) {
+            currentOpenDropdown = null;
+        }
+    }
+}
+
+function closeAllDropdowns(): void {
+    const dropdownIds = ['menuDropdown', 'settingsDropdown', 'suggestionsDropdown', 'suggestionsDropdownCentered'];
+    dropdownIds.forEach(id => closeDropdown(id));
+    currentOpenDropdown = null;
+}
+
+function setupClickOutsideHandler(): void {
+    document.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+
+        // Don't close if clicking inside a dropdown or on a trigger button
+        const isClickInside = target.closest('.dropdown') ||
+                            target.closest('.menu-wrapper') ||
+                            target.closest('.settings-wrapper') ||
+                            target.closest('.try-asking-button');
+
+        if (!isClickInside) {
+            closeAllDropdowns();
+        }
+    });
+}
+
+function setupTooltips(): void {
+    // Create tooltip element
+    const tooltip = document.createElement('div');
+    tooltip.className = 'tooltip';
+    tooltip.style.cssText = 'position: fixed; opacity: 0; visibility: hidden; pointer-events: none; z-index: 10001;';
+    document.body.appendChild(tooltip);
+
+    // Tooltip configurations
+    const tooltipTargets: Array<{selector: string, text: string}> = [
+        { selector: '#menuIcon', text: 'Menu' },
+        { selector: '#settingsIcon', text: 'Settings' },
+        { selector: '#tryAskingButton', text: 'Suggested questions' },
+        { selector: '#tryAskingButtonCentered', text: 'Suggested questions' },
+        { selector: '#gameSearchIcon', text: 'Game search' }
+    ];
+
+    tooltipTargets.forEach(({ selector, text }) => {
+        const element = document.querySelector(selector) as HTMLElement;
+        if (!element) return;
+
+        let tooltipTimeout: ReturnType<typeof setTimeout> | undefined;
+
+        element.addEventListener('mouseenter', () => {
+            // Clear any existing timeout
+            clearTimeout(tooltipTimeout);
+
+            // Show tooltip after a short delay
+            tooltipTimeout = setTimeout(() => {
+                const rect = element.getBoundingClientRect();
+                tooltip.textContent = text;
+
+                // Position tooltip below the element
+                const tooltipTop = rect.bottom + 8;
+                let tooltipLeft = rect.left + rect.width / 2;
+
+                // Temporarily show tooltip to measure width
+                tooltip.style.visibility = 'hidden';
+                tooltip.style.display = 'block';
+                const tooltipWidth = tooltip.offsetWidth;
+                tooltip.style.display = '';
+
+                // Check if tooltip would extend beyond left edge
+                const halfWidth = tooltipWidth / 2;
+                if (tooltipLeft - halfWidth < 10) {
+                    // Adjust position to stay within viewport with 10px margin
+                    tooltipLeft = halfWidth + 10;
+                }
+
+                // Also check right edge
+                const viewportWidth = window.innerWidth;
+                if (tooltipLeft + halfWidth > viewportWidth - 10) {
+                    tooltipLeft = viewportWidth - halfWidth - 10;
+                }
+
+                tooltip.style.top = `${tooltipTop}px`;
+                tooltip.style.left = `${tooltipLeft}px`;
+                tooltip.style.transform = 'translateX(-50%)';
+                tooltip.style.opacity = '1';
+                tooltip.style.visibility = 'visible';
+            }, 300);
+        });
+
+        element.addEventListener('mouseleave', () => {
+            clearTimeout(tooltipTimeout);
+            tooltip.style.opacity = '0';
+            tooltip.style.visibility = 'hidden';
+        });
     });
 }
 

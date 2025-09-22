@@ -15,10 +15,15 @@ window.statsAPI = statsAPI;
 // Import the shared utilities
 import './shared';
 
+// Import the dropdown functionality with tooltips
+import { initDropdowns } from '../src/components/dropdown';
+
 // Import the main players script
 import './players';
 
 // Initialize when DOM is ready
 DOM.ready(() => {
     console.log('Players stats page loaded with Vite');
+    // Initialize dropdowns and tooltips
+    initDropdowns();
 });

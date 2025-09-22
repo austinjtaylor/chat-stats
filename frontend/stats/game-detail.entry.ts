@@ -15,10 +15,15 @@ window.statsAPI = statsAPI;
 // Import the shared utilities for menu/settings functionality
 import './shared';
 
+// Import the dropdown functionality with tooltips
+import { initDropdowns } from '../src/components/dropdown';
+
 // Import the main game detail script
 import './game-detail';
 
 // Initialize when DOM is ready
 DOM.ready(() => {
     console.log('Game detail page loaded with Vite');
+    // Initialize dropdowns and tooltips
+    initDropdowns();
 });

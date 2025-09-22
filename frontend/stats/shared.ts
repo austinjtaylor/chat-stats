@@ -279,54 +279,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedTheme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
 
-    // Menu dropdown functionality
-    const menuDropdown = document.getElementById('menuDropdown');
-    const menuWrapper = document.querySelector('.menu-wrapper');
-    let menuTimeout: ReturnType<typeof setTimeout>;
-
-    if (menuWrapper && menuDropdown) {
-        // Show dropdown on hover
-        menuWrapper.addEventListener('mouseenter', () => {
-            clearTimeout(menuTimeout);
-            menuDropdown.classList.add('active');
-            // Close settings dropdown if open
-            const settingsDropdown = document.getElementById('settingsDropdown');
-            if (settingsDropdown) {
-                settingsDropdown.classList.remove('active');
-            }
-        });
-
-        // Hide dropdown when leaving the wrapper
-        menuWrapper.addEventListener('mouseleave', () => {
-            menuTimeout = setTimeout(() => {
-                menuDropdown.classList.remove('active');
-            }, 200); // Small delay to prevent accidental closing
-        });
-    }
-
-    // Settings dropdown functionality
-    const settingsDropdown = document.getElementById('settingsDropdown');
-    const settingsWrapper = document.querySelector('.settings-wrapper');
-    let settingsTimeout: ReturnType<typeof setTimeout>;
-
-    if (settingsWrapper && settingsDropdown) {
-        // Show dropdown on hover
-        settingsWrapper.addEventListener('mouseenter', () => {
-            clearTimeout(settingsTimeout);
-            settingsDropdown.classList.add('active');
-            // Close menu dropdown if open
-            if (menuDropdown) {
-                menuDropdown.classList.remove('active');
-            }
-        });
-
-        // Hide dropdown when leaving the wrapper
-        settingsWrapper.addEventListener('mouseleave', () => {
-            settingsTimeout = setTimeout(() => {
-                settingsDropdown.classList.remove('active');
-            }, 200); // Small delay to prevent accidental closing
-        });
-    }
+    // Dropdown functionality is now handled by dropdown.ts which is imported in the entry files
+    // This provides click-based dropdowns instead of hover-based
 
     // Theme toggle functionality
     const themeToggleItem = document.getElementById('themeToggleItem');
