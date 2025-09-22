@@ -212,7 +212,7 @@ class TeamStats {
             const cells = columns.map(col => {
                 switch (col.key) {
                     case 'name':
-                        return `<td class="team-name">${team.team_name || ''}</td>`;
+                        return `<td class="team-name">${team.name || ''}</td>`;
                     case 'completion_percentage':
                     case 'huck_percentage':
                     case 'hold_percentage':
