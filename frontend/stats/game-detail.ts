@@ -275,7 +275,7 @@ class GameDetailPage {
 
     private async loadGamesList(): Promise<void> {
         try {
-            let url = `/api/games/list?limit=100&year=${this.currentYear}`;
+            let url = `/api/games/list?limit=500&year=${this.currentYear}`;
             if (this.currentTeamFilter !== 'all') {
                 url += `&team_id=${this.currentTeamFilter}`;
             }

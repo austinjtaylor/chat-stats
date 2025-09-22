@@ -153,7 +153,7 @@ def create_box_score_routes(stats_system):
             raise HTTPException(status_code=500, detail=str(e))
 
     @router.get("/api/games")
-    async def get_games(year: int = None, team_id: str = None, limit: int = 100):
+    async def get_games(year: int = None, team_id: str = None, limit: int = 500):
         """Get list of games with optional filters - compatible with frontend"""
         try:
             year_filter = f"AND g.year = {year}" if year else ""
@@ -195,7 +195,7 @@ def create_box_score_routes(stats_system):
             raise HTTPException(status_code=500, detail=str(e))
 
     @router.get("/api/games/list")
-    async def get_games_list(year: int = None, team_id: str = None, limit: int = 100):
+    async def get_games_list(year: int = None, team_id: str = None, limit: int = 500):
         """Get list of all games for the game selection dropdown"""
         try:
             year_filter = f"AND g.year = {year}" if year else ""
