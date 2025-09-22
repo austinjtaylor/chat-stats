@@ -101,6 +101,44 @@ class GameDetailPage {
         this.checkURLParams();
     }
 
+    private getCityAbbreviation(city: string): string {
+        // Handle special cases and common city abbreviations
+        const cityAbbreviations: Record<string, string> = {
+            'Atlanta': 'ATL',
+            'Austin': 'AUS',
+            'Boston': 'BOS',
+            'Carolina': 'CAR',
+            'Chicago': 'CHI',
+            'Colorado': 'COL',
+            'DC': 'DC',
+            'Detroit': 'DET',
+            'Houston': 'HOU',
+            'Indianapolis': 'IND',
+            'LA': 'LA',
+            'Madison': 'MAD',
+            'Minnesota': 'MIN',
+            'Montreal': 'MTL',
+            'New York': 'NY',
+            'Oakland': 'OAK',
+            'Oregon': 'ORE',
+            'Philadelphia': 'PHI',
+            'Pittsburgh': 'PIT',
+            'Salt Lake': 'SLC',
+            'San Diego': 'SD',
+            'Seattle': 'SEA',
+            'Toronto': 'TOR',
+            'Vegas': 'LV'
+        };
+
+        // Return the mapped abbreviation if it exists
+        if (cityAbbreviations[city]) {
+            return cityAbbreviations[city];
+        }
+
+        // Fallback: take first 3 characters and uppercase
+        return city.substring(0, 3).toUpperCase();
+    }
+
     private initializeElements(): void {
         // Get all DOM elements
         this.elements.gameSearchIcon = document.getElementById('gameSearchIcon');
@@ -369,10 +407,10 @@ class GameDetailPage {
 
         // Update team abbreviations in quarter table
         if (this.elements.awayTeamAbbrev) {
-            this.elements.awayTeamAbbrev.textContent = away_team.name.substring(0, 3).toUpperCase();
+            this.elements.awayTeamAbbrev.textContent = this.getCityAbbreviation(away_team.city);
         }
         if (this.elements.homeTeamAbbrev) {
-            this.elements.homeTeamAbbrev.textContent = home_team.name.substring(0, 3).toUpperCase();
+            this.elements.homeTeamAbbrev.textContent = this.getCityAbbreviation(home_team.city);
         }
 
         // Update quarter scores
