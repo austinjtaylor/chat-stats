@@ -424,6 +424,72 @@
             font-variant-numeric: tabular-nums;
         }
 
+        /* Team Stats Table Styles */
+        .team-stats-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .team-stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .team-stats-table thead {
+            background: var(--bg-primary);
+        }
+
+        .team-stats-table th {
+            padding: 15px;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: left;
+            color: var(--text-primary);
+        }
+
+        .team-stats-table th.stat-category {
+            width: 40%;
+        }
+
+        .team-stats-table th.team-column {
+            width: 30%;
+            text-align: center;
+            color: var(--primary-color);
+        }
+
+        .team-stats-table tbody tr {
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .team-stats-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .team-stats-table tbody tr:hover {
+            background: var(--bg-hover);
+        }
+
+        .team-stats-table td {
+            padding: 12px 15px;
+            font-size: 14px;
+        }
+
+        .team-stats-table .stat-label {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .team-stats-table .stat-value {
+            text-align: center;
+            color: var(--text-primary);
+            font-weight: 500;
+            font-variant-numeric: tabular-nums;
+        }
+
         @media (max-width: 768px) {
             .scoreboard-content {
                 flex-direction: column;
@@ -436,6 +502,16 @@
 
             .game-selection-panel {
                 width: 85%;
+            }
+
+            .team-stats-table th.stat-category {
+                font-size: 12px;
+                padding: 12px 8px;
+            }
+
+            .team-stats-table .stat-label {
+                font-size: 12px;
+                padding: 10px 8px;
             }
         }
     </style>
@@ -685,8 +761,63 @@
 
                 <!-- Team Stats Tab -->
                 <div class="tab-pane" id="team-stats">
-                    <div style="padding: 40px; text-align: center; color: var(--text-secondary);">
-                        Team Statistics - Coming Soon
+                    <div class="team-stats-container">
+                        <table class="team-stats-table">
+                            <thead>
+                                <tr>
+                                    <th class="stat-category">Team Stats</th>
+                                    <th class="team-column" id="awayTeamHeader">Away Team</th>
+                                    <th class="team-column" id="homeTeamHeader">Home Team</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="stat-label">Completions</td>
+                                    <td class="stat-value" id="awayCompletions">-</td>
+                                    <td class="stat-value" id="homeCompletions">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="stat-label">Hucks</td>
+                                    <td class="stat-value" id="awayHucks">-</td>
+                                    <td class="stat-value" id="homeHucks">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="stat-label">Hold %</td>
+                                    <td class="stat-value" id="awayHold">-</td>
+                                    <td class="stat-value" id="homeHold">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="stat-label">O-Line Conversion %</td>
+                                    <td class="stat-value" id="awayOLineConv">-</td>
+                                    <td class="stat-value" id="homeOLineConv">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="stat-label">Break %</td>
+                                    <td class="stat-value" id="awayBreak">-</td>
+                                    <td class="stat-value" id="homeBreak">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="stat-label">D-Line Conversion %</td>
+                                    <td class="stat-value" id="awayDLineConv">-</td>
+                                    <td class="stat-value" id="homeDLineConv">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="stat-label">Red Zone Conversion %</td>
+                                    <td class="stat-value" id="awayRedZone">-</td>
+                                    <td class="stat-value" id="homeRedZone">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="stat-label">Blocks</td>
+                                    <td class="stat-value" id="awayBlocks">-</td>
+                                    <td class="stat-value" id="homeBlocks">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="stat-label">Turnovers</td>
+                                    <td class="stat-value" id="awayTurnovers">-</td>
+                                    <td class="stat-value" id="homeTurnovers">-</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 

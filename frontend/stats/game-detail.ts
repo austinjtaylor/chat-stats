@@ -40,6 +40,25 @@ interface PlayerStats {
     drops: number;
 }
 
+interface StatDetail {
+    percentage: number;
+    made: number;
+    total?: number;
+    attempted?: number;
+}
+
+interface TeamStatistics {
+    completions: StatDetail;
+    hucks: StatDetail;
+    blocks: number;
+    turnovers: number;
+    hold?: StatDetail;
+    o_line_conversion?: StatDetail;
+    break?: StatDetail;
+    d_line_conversion?: StatDetail;
+    redzone_conversion?: StatDetail;
+}
+
 interface TeamData {
     team_id: string;
     name: string;
@@ -48,6 +67,7 @@ interface TeamData {
     final_score: number;
     quarter_scores: number[];
     players: PlayerStats[];
+    stats?: TeamStatistics;
 }
 
 interface BoxScoreData {
@@ -379,6 +399,7 @@ class GameDetailPage {
             this.updateScoreboard();
             this.updateTeamRadios();
             this.updateStatsTable();
+            this.updateTeamStats();
 
             // Update active game in list
             this.elements.gameList?.querySelectorAll('.game-list-item').forEach(item => {
@@ -548,6 +569,69 @@ class GameDetailPage {
         document.querySelectorAll('.tab-pane').forEach(pane => {
             pane.classList.toggle('active', pane.id === tabId);
         });
+    }
+
+    private updateTeamStats(): void {
+        if (!this.currentGame) return;
+
+        const { home_team, away_team } = this.currentGame;
+
+        // Update team headers
+        const awayTeamHeader = document.getElementById('awayTeamHeader');
+        const homeTeamHeader = document.getElementById('homeTeamHeader');
+        if (awayTeamHeader) awayTeamHeader.textContent = away_team.full_name;
+        if (homeTeamHeader) homeTeamHeader.textContent = home_team.full_name;
+
+        // Helper function to format stat with percentage and fraction
+        const formatStat = (stat?: StatDetail): string => {
+            if (!stat) return '-';
+            // Use 'attempted' for completions and hucks, 'total' for others
+            const denominator = stat.attempted !== undefined ? stat.attempted : stat.total;
+            if (denominator === undefined || denominator === 0) return '0% (0/0)';
+            return `${stat.percentage}% (${stat.made}/${denominator})`;
+        };
+
+        // Update away team stats
+        if (away_team.stats) {
+            const stats = away_team.stats;
+            document.getElementById('awayCompletions')!.textContent = formatStat(stats.completions);
+            document.getElementById('awayHucks')!.textContent = formatStat(stats.hucks);
+            document.getElementById('awayHold')!.textContent = stats.hold ? formatStat(stats.hold) : '-';
+            document.getElementById('awayOLineConv')!.textContent = stats.o_line_conversion ? formatStat(stats.o_line_conversion) : '-';
+            document.getElementById('awayBreak')!.textContent = stats.break ? formatStat(stats.break) : '-';
+            document.getElementById('awayDLineConv')!.textContent = stats.d_line_conversion ? formatStat(stats.d_line_conversion) : '-';
+            document.getElementById('awayRedZone')!.textContent = stats.redzone_conversion ? formatStat(stats.redzone_conversion) : '-';
+            document.getElementById('awayBlocks')!.textContent = String(stats.blocks);
+            document.getElementById('awayTurnovers')!.textContent = String(stats.turnovers);
+        } else {
+            // Clear all away team stats
+            ['awayCompletions', 'awayHucks', 'awayHold', 'awayOLineConv', 'awayBreak',
+             'awayDLineConv', 'awayRedZone', 'awayBlocks', 'awayTurnovers'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = '-';
+            });
+        }
+
+        // Update home team stats
+        if (home_team.stats) {
+            const stats = home_team.stats;
+            document.getElementById('homeCompletions')!.textContent = formatStat(stats.completions);
+            document.getElementById('homeHucks')!.textContent = formatStat(stats.hucks);
+            document.getElementById('homeHold')!.textContent = stats.hold ? formatStat(stats.hold) : '-';
+            document.getElementById('homeOLineConv')!.textContent = stats.o_line_conversion ? formatStat(stats.o_line_conversion) : '-';
+            document.getElementById('homeBreak')!.textContent = stats.break ? formatStat(stats.break) : '-';
+            document.getElementById('homeDLineConv')!.textContent = stats.d_line_conversion ? formatStat(stats.d_line_conversion) : '-';
+            document.getElementById('homeRedZone')!.textContent = stats.redzone_conversion ? formatStat(stats.redzone_conversion) : '-';
+            document.getElementById('homeBlocks')!.textContent = String(stats.blocks);
+            document.getElementById('homeTurnovers')!.textContent = String(stats.turnovers);
+        } else {
+            // Clear all home team stats
+            ['homeCompletions', 'homeHucks', 'homeHold', 'homeOLineConv', 'homeBreak',
+             'homeDLineConv', 'homeRedZone', 'homeBlocks', 'homeTurnovers'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = '-';
+            });
+        }
     }
 }
 
