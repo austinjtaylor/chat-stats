@@ -490,6 +490,225 @@
             font-variant-numeric: tabular-nums;
         }
 
+        /* Play-by-Play Styles */
+        .play-by-play-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .play-by-play-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .filter-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .team-filter-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .team-filter-btn {
+            padding: 6px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .team-filter-btn:hover {
+            background: var(--bg-hover);
+        }
+
+        .team-filter-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .control-section {
+            display: flex;
+            gap: 10px;
+        }
+
+        .expand-all-btn,
+        .collapse-all-btn {
+            padding: 6px 12px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .collapse-all-btn {
+            background: #dc3545;
+        }
+
+        .expand-all-btn:hover {
+            background: #218838;
+        }
+
+        .collapse-all-btn:hover {
+            background: #c82333;
+        }
+
+
+        /* Points List */
+        .points-list {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .quarter-section {
+            margin-bottom: 30px;
+        }
+
+        .quarter-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .quarter-header {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        /* Point Item */
+        .point-item {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+        }
+
+        .point-item.point-scored {
+            background: rgba(40, 167, 69, 0.1);
+            border-color: #28a745;
+        }
+
+        .point-item.point-conceded {
+            background: rgba(220, 53, 69, 0.1);
+            border-color: #dc3545;
+        }
+
+        .point-item.point-tie {
+            background: rgba(0, 123, 255, 0.1);
+            border-color: #007bff;
+        }
+
+        .point-header {
+            display: grid;
+            grid-template-columns: 25px 60px 70px 60px 70px 1fr;
+            align-items: center;
+            padding: 12px 15px;
+            cursor: pointer;
+            user-select: none;
+            gap: 15px;
+        }
+
+        .point-header:hover {
+            background: var(--bg-hover);
+        }
+
+        .expand-icon {
+            font-size: 12px;
+            color: var(--text-secondary);
+            transition: transform 0.2s;
+        }
+
+        .point-score {
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--text-primary);
+        }
+
+        .point-line-type {
+            padding: 3px 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .point-time {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .point-duration {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .point-players {
+            font-size: 13px;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Point Details */
+        .point-details {
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            padding: 15px;
+        }
+
+        .event-item {
+            display: grid;
+            grid-template-columns: 30px 50px 1fr;
+            align-items: center;
+            padding: 8px 10px;
+            margin-bottom: 5px;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            gap: 10px;
+        }
+
+        .event-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .event-icon {
+            font-size: 18px;
+            text-align: center;
+        }
+
+        .event-yard {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .event-description {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
         @media (max-width: 768px) {
             .scoreboard-content {
                 flex-direction: column;
@@ -512,6 +731,20 @@
             .team-stats-table .stat-label {
                 font-size: 12px;
                 padding: 10px 8px;
+            }
+
+            .play-by-play-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .point-header {
+                grid-template-columns: 25px 50px 60px 50px 60px;
+                font-size: 12px;
+            }
+
+            .point-players {
+                display: none;
             }
         }
     </style>
@@ -823,9 +1056,7 @@
 
                 <!-- Play-by-Play Tab -->
                 <div class="tab-pane" id="play-by-play">
-                    <div style="padding: 40px; text-align: center; color: var(--text-secondary);">
-                        Play-by-Play - Coming Soon
-                    </div>
+                    <!-- Content will be dynamically loaded -->
                 </div>
             </div>
         </main>
