@@ -266,6 +266,8 @@ export interface TeamSeasonStats {
   team_id: number;
   /** Team name */
   team_name: string;
+  /** API returns this as 'name' */
+  name?: string;
   /** Season year */
   season: number;
   /** Games played this season */
