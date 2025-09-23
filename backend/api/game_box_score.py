@@ -94,6 +94,7 @@ def create_box_score_routes(stats_system):
             FROM player_game_stats pgs
             JOIN players p ON pgs.player_id = p.player_id AND pgs.year = p.year
             WHERE pgs.game_id = :game_id
+            AND (pgs.o_points_played > 0 OR pgs.d_points_played > 0)
             ORDER BY pgs.team_id, (pgs.goals + pgs.assists) DESC, plus_minus DESC
             """
 
