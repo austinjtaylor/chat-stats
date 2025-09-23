@@ -37,6 +37,7 @@ def get_sort_column(sort_key, is_career=False, per_game=False, team=None):
             "minutes_played": "ROUND(SUM(pss.total_seconds_played) / 60.0, 0)",
             "huck_percentage": "CASE WHEN SUM(pss.total_hucks_attempted) > 0 THEN ROUND(SUM(pss.total_hucks_completed) * 100.0 / SUM(pss.total_hucks_attempted), 1) ELSE 0 END",
             "offensive_efficiency": "CASE WHEN SUM(pss.total_o_opportunities) >= 20 THEN ROUND(SUM(pss.total_o_opportunity_scores) * 100.0 / SUM(pss.total_o_opportunities), 1) ELSE NULL END",
+            "yards_per_turn": "CASE WHEN (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops)) > 0 THEN ROUND((SUM(pss.total_yards_thrown) + SUM(pss.total_yards_received)) * 1.0 / (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops)), 1) ELSE NULL END",
         }
         base_column = career_columns.get(sort_key, f"SUM(pss.{sort_key})")
 
@@ -46,6 +47,7 @@ def get_sort_column(sort_key, is_career=False, per_game=False, team=None):
             "completion_percentage",
             "huck_percentage",
             "offensive_efficiency",
+            "yards_per_turn",
             "games_played",
         ]:
             # Use the full games_played subquery for career stats
@@ -91,6 +93,7 @@ def get_sort_column(sort_key, is_career=False, per_game=False, team=None):
         "minutes_played": "ROUND(pss.total_seconds_played / 60.0, 0)",
         "huck_percentage": "CASE WHEN pss.total_hucks_attempted > 0 THEN ROUND(pss.total_hucks_completed * 100.0 / pss.total_hucks_attempted, 1) ELSE 0 END",
         "offensive_efficiency": "CASE WHEN pss.total_o_opportunities >= 20 THEN ROUND(pss.total_o_opportunity_scores * 100.0 / pss.total_o_opportunities, 1) ELSE NULL END",
+        "yards_per_turn": "CASE WHEN (pss.total_throwaways + pss.total_stalls + pss.total_drops) > 0 THEN ROUND((pss.total_yards_thrown + pss.total_yards_received) * 1.0 / (pss.total_throwaways + pss.total_stalls + pss.total_drops), 1) ELSE NULL END",
     }
 
     # Get the base column
@@ -102,6 +105,7 @@ def get_sort_column(sort_key, is_career=False, per_game=False, team=None):
         "completion_percentage",
         "huck_percentage",
         "offensive_efficiency",
+        "yards_per_turn",
         "games_played",
     ]:
         games_played_col = column_mapping["games_played"]

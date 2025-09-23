@@ -107,6 +107,15 @@ class PlayerGameStats(BaseModel):
             - self.drops
         )
 
+    @property
+    def yards_per_turn(self) -> float | None:
+        """Calculate yards per turn: (yards_thrown + yards_received) / (throwaways + stalls + drops)"""
+        total_turnovers = self.throwaways + self.stalls + self.drops
+        if total_turnovers > 0:
+            total_yards = self.yards_thrown + self.yards_received
+            return round(total_yards / total_turnovers, 1)
+        return None
+
 
 class PlayerSeasonStats(BaseModel):
     """Model for aggregated Ultimate Frisbee player season statistics matching UFA API"""
@@ -161,6 +170,15 @@ class PlayerSeasonStats(BaseModel):
             - self.total_stalls
             - self.total_drops
         )
+
+    @property
+    def yards_per_turn(self) -> float | None:
+        """Calculate yards per turn: (total_yards_thrown + total_yards_received) / (total_throwaways + total_stalls + total_drops)"""
+        total_turnovers = self.total_throwaways + self.total_stalls + self.total_drops
+        if total_turnovers > 0:
+            total_yards = self.total_yards_thrown + self.total_yards_received
+            return round(total_yards / total_turnovers, 1)
+        return None
 
 
 class TeamSeasonStats(BaseModel):

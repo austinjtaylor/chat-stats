@@ -87,7 +87,12 @@ def create_player_stats_route(stats_system):
                         WHEN SUM(pss.total_o_opportunities) >= 20
                         THEN ROUND(SUM(pss.total_o_opportunity_scores) * 100.0 / SUM(pss.total_o_opportunities), 1)
                         ELSE NULL
-                    END as offensive_efficiency
+                    END as offensive_efficiency,
+                    CASE
+                        WHEN (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops)) > 0
+                        THEN ROUND((SUM(pss.total_yards_thrown) + SUM(pss.total_yards_received)) * 1.0 / (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops)), 1)
+                        ELSE NULL
+                    END as yards_per_turn
                 FROM player_season_stats pss
                 JOIN (SELECT DISTINCT pss2.player_id,
                              FIRST_VALUE(pl.full_name) OVER (PARTITION BY pss2.player_id ORDER BY pss2.year DESC) as full_name,
@@ -149,11 +154,16 @@ def create_player_stats_route(stats_system):
                     (pss.total_yards_thrown + pss.total_yards_received) as total_yards,
                     ROUND(pss.total_seconds_played / 60.0, 0) as minutes_played,
                     CASE WHEN pss.total_hucks_attempted > 0 THEN ROUND(pss.total_hucks_completed * 100.0 / pss.total_hucks_attempted, 1) ELSE 0 END as huck_percentage,
-                    CASE 
-                        WHEN pss.total_o_opportunities >= 20 
+                    CASE
+                        WHEN pss.total_o_opportunities >= 20
                         THEN ROUND(pss.total_o_opportunity_scores * 100.0 / pss.total_o_opportunities, 1)
-                        ELSE NULL 
-                    END as offensive_efficiency
+                        ELSE NULL
+                    END as offensive_efficiency,
+                    CASE
+                        WHEN (pss.total_throwaways + pss.total_stalls + pss.total_drops) > 0
+                        THEN ROUND((pss.total_yards_thrown + pss.total_yards_received) * 1.0 / (pss.total_throwaways + pss.total_stalls + pss.total_drops), 1)
+                        ELSE NULL
+                    END as yards_per_turn
                 FROM player_season_stats pss
                 JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
                 LEFT JOIN teams t ON pss.team_id = t.team_id AND pss.year = t.year
@@ -243,6 +253,7 @@ def create_player_stats_route(stats_system):
                         "offensive_efficiency": (
                             row[37] if row[37] is not None else None
                         ),
+                        "yards_per_turn": row[38] if row[38] is not None else None,
                     }
                     players.append(player)
 

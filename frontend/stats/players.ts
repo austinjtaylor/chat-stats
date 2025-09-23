@@ -196,7 +196,16 @@ class PlayerStats {
 
         // Other base columns
         const otherBaseColumns: PlayerColumn[] = [
-            { key: 'total_throwaways', label: 'T', sortable: true },
+            { key: 'total_throwaways', label: 'T', sortable: true }
+        ];
+
+        // Y/T available from 2021 (when yards data exists)
+        const yardsPerTurnColumn: PlayerColumn[] = [
+            { key: 'yards_per_turn', label: 'Y/T', sortable: true }
+        ];
+
+        // Rest of base columns
+        const restBaseColumns: PlayerColumn[] = [
             { key: 'total_stalls', label: 'S', sortable: true },
             { key: 'total_drops', label: 'D', sortable: true },
             { key: 'total_callahans', label: 'C', sortable: true }
@@ -233,6 +242,13 @@ class PlayerStats {
         }
 
         columns.push(...otherBaseColumns);
+
+        // Y/T from 2021 (when yards data is available)
+        if (season === 'career' || (season && parseInt(String(season)) >= 2021)) {
+            columns.push(...yardsPerTurnColumn);
+        }
+
+        columns.push(...restBaseColumns);
 
         // Huck stats from 2021
         if (season === 'career' || (season && parseInt(String(season)) >= 2021)) {
@@ -362,6 +378,9 @@ class PlayerStats {
                         // Backend calculates this, but we may need to calculate for older data
                         const huckPct = player.huck_percentage || this.calculateHuckPercentage(player);
                         return `<td class="numeric">${huckPct ? `${huckPct.toFixed(1)}%` : '-'}</td>`;
+                    case 'yards_per_turn':
+                        const yPerTurn = player.yards_per_turn;
+                        return `<td class="numeric">${yPerTurn !== null && yPerTurn !== undefined ? yPerTurn.toFixed(1) : '-'}</td>`;
                     default:
                         const fieldValue = player[col.key as keyof PlayerSeasonStats];
                         return `<td class="numeric">${this.formatValue(fieldValue || 0)}</td>`;
