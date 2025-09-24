@@ -146,8 +146,27 @@ export class GamePlayByPlay {
         if (event.type === 'opponent_score') {
             // Red minus sign for when opponent scores
             iconHtml = '<span class="event-icon opponent-score">⊖</span>';
+        } else if (event.type === 'opponent_turnover') {
+            // Green plus sign for when opponent turns it over (we gain possession)
+            iconHtml = '<span class="event-icon" style="color: #4CAF50;">⊕</span>';
         } else if (event.type === 'pull') {
-            iconHtml = '<span class="event-icon">↗</span>';
+            // Use a curved arrow SVG that matches UFA site style
+            iconHtml = `
+                <span class="event-icon pull">
+                    <svg width="24" height="24" viewBox="0 0 24 24" style="display: inline-block; vertical-align: middle;">
+                        <path d="M 4 20 Q 4 8, 12 8 L 18 8"
+                              stroke="white"
+                              stroke-width="3"
+                              fill="none"
+                              stroke-linecap="round"/>
+                        <path d="M 15 5 L 18 8 L 15 11"
+                              stroke="white"
+                              stroke-width="3"
+                              fill="none"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"/>
+                    </svg>
+                </span>`;
         } else if (event.type === 'pass' || event.type === 'goal') {
             // Use SVG arrow with rotation for passes and goals
             if (event.direction !== undefined) {

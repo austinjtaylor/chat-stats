@@ -693,6 +693,12 @@ body.sidebar-open .stats-container {
     font-weight: bold;
 }
 
+.event-icon.pull {
+    color: #333;
+    display: inline-block;
+    vertical-align: middle;
+}
+
 .event-yard {
     font-size: 13px;
     color: var(--text-secondary);

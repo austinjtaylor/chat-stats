@@ -237,17 +237,67 @@ def calculate_play_by_play(stats_system, game_id: str) -> List[Dict[str, Any]]:
             current_point_events_away = []
 
             # Add pull event to both perspectives
-            if event["puller_last"]:
-                pull_event = {
+            # Always add pull event to the pulling team
+            if pulling_team == "home":
+                # Home team pulls
+                if event["puller_last"]:
+                    pull_event = {
+                        "type": "pull",
+                        "description": f"Pull by {event['puller_last']}",
+                        "yard_line": None
+                    }
+                else:
+                    pull_event = {
+                        "type": "pull",
+                        "description": "Pull",
+                        "yard_line": None
+                    }
+                current_point_events_home.append(pull_event)
+            else:
+                # Away team pulls - add generic pull event
+                away_pull_event = {
                     "type": "pull",
-                    "description": f"Pull by {event['puller_last']}",
+                    "description": "Pull",
                     "yard_line": None
                 }
-                # Add to appropriate team's events
-                if pulling_team == "home":
-                    current_point_events_home.append(pull_event)
+                current_point_events_away.append(away_pull_event)
+
+        # Pull inbounds/out of bounds events (actual pull data)
+        elif event_type in [7, 8]:  # PULL_INBOUNDS or PULL_OUT_OF_BOUNDS
+            if current_point_home and event["puller_last"]:
+                # Calculate pull distance if coordinates are available
+                pull_distance = None
+                if event["pull_y"] is not None:
+                    # Pull Y coordinate is where it landed
+                    # Distance from endzone (20y line) is pull_y - 20
+                    pull_distance = int(abs(event["pull_y"] - 20))
+
+                # Replace the generic pull event with detailed one
+                pull_description = f"Pull by {event['puller_last']}"
+                if pull_distance:
+                    pull_description = f"{pull_distance}y {pull_description}"
+
+                detailed_pull_event = {
+                    "type": "pull",
+                    "description": pull_description,
+                    "yard_line": None  # Don't show yard line for pulls, distance is in description
+                }
+
+                # Replace the last event (generic pull) with detailed one
+                if current_point_events_home and current_point_events_home[-1]["type"] == "pull":
+                    current_point_events_home[-1] = detailed_pull_event
                 else:
-                    current_point_events_away.append(pull_event)
+                    current_point_events_home.append(detailed_pull_event)
+
+        # Opponent turnover events (from home perspective, opponent turns over)
+        elif event_type in [13, 14]:  # THROWAWAY_BY_OPPOSING or STALL_ON_OPPOSING
+            # Add to home team's events as they gain possession
+            turnover_type = "Throwaway" if event_type == 13 else "Stall"
+            current_point_events_home.append({
+                "type": "opponent_turnover",
+                "description": f"Opponent turnover ({turnover_type})",
+                "yard_line": None
+            })
 
         # Goal events (from home team perspective)
         elif event_type in [19, 15]:  # GOAL or SCORE_BY_OPPOSING
@@ -375,6 +425,12 @@ def calculate_play_by_play(stats_system, game_id: str) -> List[Dict[str, Any]]:
                 }
                 # Add to home team's events (since we're processing home team events)
                 current_point_events_home.append(block_event)
+                # Add opponent turnover to away team's events
+                current_point_events_away.append({
+                    "type": "opponent_turnover",
+                    "description": "Opponent turnover (Block)",
+                    "yard_line": yard_line
+                })
         elif event_type == 20:  # DROP
             if event["receiver_last"]:
                 yard_line = int(event["turnover_y"]) if event["turnover_y"] is not None else None
@@ -385,6 +441,12 @@ def calculate_play_by_play(stats_system, game_id: str) -> List[Dict[str, Any]]:
                 }
                 # Add to home team's events (since we're processing home team events)
                 current_point_events_home.append(drop_event)
+                # Add opponent turnover to away team's events
+                current_point_events_away.append({
+                    "type": "opponent_turnover",
+                    "description": "Opponent turnover (Drop)",
+                    "yard_line": yard_line
+                })
         elif event_type == 22:  # THROWAWAY
             if event["thrower_last"]:
                 # Calculate distance and direction for throwaway if coordinates available
@@ -422,6 +484,12 @@ def calculate_play_by_play(stats_system, game_id: str) -> List[Dict[str, Any]]:
                     }
                 # Add to home team's events (since we're processing home team events)
                 current_point_events_home.append(throwaway_event)
+                # Add opponent turnover to away team's events
+                current_point_events_away.append({
+                    "type": "opponent_turnover",
+                    "description": "Opponent turnover (Throwaway)",
+                    "yard_line": None
+                })
         elif event_type == 24:  # STALL
             yard_line = int(event["turnover_y"]) if event["turnover_y"] is not None else None
             stall_event = {
@@ -431,6 +499,12 @@ def calculate_play_by_play(stats_system, game_id: str) -> List[Dict[str, Any]]:
             }
             # Add to home team's events (since we're processing home team events)
             current_point_events_home.append(stall_event)
+            # Add opponent turnover to away team's events
+            current_point_events_away.append({
+                "type": "opponent_turnover",
+                "description": "Opponent turnover (Stall)",
+                "yard_line": yard_line
+            })
 
     # Save last points if exist
     if current_point_home:
