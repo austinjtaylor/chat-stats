@@ -2,6 +2,7 @@
 Play-by-play service for processing game events.
 """
 
+import math
 from typing import List, Dict, Any
 
 
@@ -225,38 +226,70 @@ def calculate_play_by_play(stats_system, game_id: str) -> List[Dict[str, Any]]:
 
             # Add goal event
             if event["receiver_last"] and event["thrower_last"]:
-                yard_line = int(event["receiver_y"]) if event["receiver_y"] is not None else None
-                current_point_events.append({
-                    "type": "goal",
-                    "description": f"Score from {event['thrower_last']} to {event['receiver_last']}",
-                    "yard_line": yard_line
-                })
+                # Calculate direction for goal if coordinates available
+                if (event["thrower_y"] is not None and event["receiver_y"] is not None and
+                    event["thrower_x"] is not None and event["receiver_x"] is not None):
+                    vertical_yards = event["receiver_y"] - event["thrower_y"]
+                    horizontal_yards = event["receiver_x"] - event["thrower_x"]
+                    angle_radians = math.atan2(vertical_yards, -horizontal_yards)
+                    angle_degrees = math.degrees(angle_radians)
+
+                    current_point_events.append({
+                        "type": "goal",
+                        "description": f"Score from {event['thrower_last']} to {event['receiver_last']}",
+                        "yard_line": None,  # Don't show yard line for goals
+                        "direction": angle_degrees
+                    })
+                else:
+                    current_point_events.append({
+                        "type": "goal",
+                        "description": f"Score from {event['thrower_last']} to {event['receiver_last']}",
+                        "yard_line": None
+                    })
 
         # Pass events
         elif event_type == 18:  # PASS
             if event["receiver_last"] and event["thrower_last"]:
-                # Determine pass type based on distance
-                if event["thrower_y"] is not None and event["receiver_y"] is not None:
-                    distance = abs(event["receiver_y"] - event["thrower_y"])
-                    yard_line = int(event["thrower_y"])
+                # Calculate pass distance and type
+                if (event["thrower_y"] is not None and event["receiver_y"] is not None and
+                    event["thrower_x"] is not None and event["receiver_x"] is not None):
+                    # Calculate vertical distance (positive = forward, negative = backward)
+                    vertical_yards = event["receiver_y"] - event["thrower_y"]
+                    horizontal_yards = event["receiver_x"] - event["thrower_x"]
 
-                    if distance > 40:
-                        pass_type = "Huck"
-                    elif distance > 20:
-                        pass_type = "Pass"
-                    elif distance > 10:
-                        pass_type = "Dish"
-                    else:
+                    # Calculate actual distance using Pythagorean theorem
+                    actual_distance = math.sqrt(horizontal_yards**2 + vertical_yards**2)
+
+                    # Calculate direction angle in degrees
+                    # atan2 gives angle from positive x-axis, we adjust for field orientation
+                    # Negate horizontal to match UFA site arrow directions
+                    angle_radians = math.atan2(vertical_yards, -horizontal_yards)
+                    angle_degrees = math.degrees(angle_radians)
+
+                    # Determine pass type based on vertical yards
+                    if vertical_yards <= 0:
                         pass_type = "Dump"
-                else:
-                    pass_type = "Pass"
-                    yard_line = None
+                    elif vertical_yards >= 40:
+                        pass_type = "Huck"
+                    else:
+                        pass_type = "Pass"
 
-                current_point_events.append({
-                    "type": "pass",
-                    "description": f"{pass_type} from {event['thrower_last']} to {event['receiver_last']}",
-                    "yard_line": yard_line
-                })
+                    # Format distance for display
+                    distance_str = f"{int(actual_distance)}y"
+                    pass_event = {
+                        "type": "pass",
+                        "description": f"{distance_str} {pass_type} from {event['thrower_last']} to {event['receiver_last']}",
+                        "yard_line": None,  # Don't show yard line for pass events
+                        "direction": angle_degrees
+                    }
+                else:
+                    pass_event = {
+                        "type": "pass",
+                        "description": f"Pass from {event['thrower_last']} to {event['receiver_last']}",
+                        "yard_line": None
+                    }
+
+                current_point_events.append(pass_event)
 
         # Turnover events
         elif event_type == 11:  # BLOCK
@@ -277,11 +310,10 @@ def calculate_play_by_play(stats_system, game_id: str) -> List[Dict[str, Any]]:
                 })
         elif event_type == 22:  # THROWAWAY
             if event["thrower_last"]:
-                yard_line = int(event["turnover_y"]) if event["turnover_y"] is not None else None
                 current_point_events.append({
                     "type": "throwaway",
                     "description": f"Throwaway by {event['thrower_last']}",
-                    "yard_line": yard_line
+                    "yard_line": None
                 })
         elif event_type == 24:  # STALL
             yard_line = int(event["turnover_y"]) if event["turnover_y"] is not None else None

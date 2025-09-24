@@ -6,6 +6,7 @@ export interface PlayByPlayEvent {
     type: string;
     description: string;
     yard_line: number | null;
+    direction?: number;  // Angle in degrees for pass direction
 }
 
 export interface PlayByPlayPoint {
@@ -139,22 +140,53 @@ export class GamePlayByPlay {
     }
 
     private renderEvent(event: PlayByPlayEvent): string {
-        const iconMap: Record<string, string> = {
-            'pull': '↗',
-            'pass': '→',
-            'goal': '⚑',
-            'block': '🛡',
-            'drop': '↓',
-            'throwaway': '↘',
-            'stall': '⏱'
-        };
+        // Determine icon based on event type and description
+        let iconHtml = '<span class="event-icon">•</span>';
 
-        const icon = iconMap[event.type] || '•';
+        if (event.type === 'pull') {
+            iconHtml = '<span class="event-icon">↗</span>';
+        } else if (event.type === 'pass' || event.type === 'goal') {
+            // Use SVG arrow with rotation for passes and goals
+            if (event.direction !== undefined) {
+                // Adjust angle: 0° is East, we want 0° to be North (up)
+                // So we subtract 90 degrees
+                const rotationAngle = event.direction - 90;
+
+                iconHtml = `
+                    <span class="event-icon" style="display: inline-block; transform: rotate(${rotationAngle}deg);">
+                        ↑
+                    </span>
+                `;
+            } else {
+                // Fallback for passes without direction
+                if (event.type === 'goal') {
+                    iconHtml = '<span class="event-icon">⚑</span>';
+                } else {
+                    const description = event.description.toLowerCase();
+                    if (description.includes('dump')) {
+                        iconHtml = '<span class="event-icon">↙</span>';
+                    } else if (description.includes('huck')) {
+                        iconHtml = '<span class="event-icon">↗</span>';
+                    } else {
+                        iconHtml = '<span class="event-icon">→</span>';
+                    }
+                }
+            }
+        } else if (event.type === 'block') {
+            iconHtml = '<span class="event-icon">🛡</span>';
+        } else if (event.type === 'drop') {
+            iconHtml = '<span class="event-icon">↓</span>';
+        } else if (event.type === 'throwaway') {
+            iconHtml = '<span class="event-icon">↘</span>';
+        } else if (event.type === 'stall') {
+            iconHtml = '<span class="event-icon">⏱</span>';
+        }
+
         const yardLine = event.yard_line !== null ? `${event.yard_line}y` : '';
 
         return `
             <div class="event-item">
-                <span class="event-icon">${icon}</span>
+                ${iconHtml}
                 <span class="event-yard">${yardLine}</span>
                 <span class="event-description">${event.description}</span>
             </div>
