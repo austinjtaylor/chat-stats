@@ -177,7 +177,17 @@ export class GamePlayByPlay {
         } else if (event.type === 'drop') {
             iconHtml = '<span class="event-icon">↓</span>';
         } else if (event.type === 'throwaway') {
-            iconHtml = '<span class="event-icon">↘</span>';
+            // Use direction if available for throwaways, similar to passes
+            if (event.direction !== undefined) {
+                const rotationAngle = event.direction - 90;
+                iconHtml = `
+                    <span class="event-icon" style="display: inline-block; transform: rotate(${rotationAngle}deg);">
+                        ↑
+                    </span>
+                `;
+            } else {
+                iconHtml = '<span class="event-icon">↘</span>';
+            }
         } else if (event.type === 'stall') {
             iconHtml = '<span class="event-icon">⏱</span>';
         }

@@ -310,11 +310,39 @@ def calculate_play_by_play(stats_system, game_id: str) -> List[Dict[str, Any]]:
                 })
         elif event_type == 22:  # THROWAWAY
             if event["thrower_last"]:
-                current_point_events.append({
-                    "type": "throwaway",
-                    "description": f"Throwaway by {event['thrower_last']}",
-                    "yard_line": None
-                })
+                # Calculate distance and direction for throwaway if coordinates available
+                if (event["thrower_y"] is not None and event["turnover_y"] is not None and
+                    event["thrower_x"] is not None and event["turnover_x"] is not None):
+                    # Calculate vertical and horizontal distance
+                    vertical_yards = event["turnover_y"] - event["thrower_y"]
+                    horizontal_yards = event["turnover_x"] - event["thrower_x"]
+
+                    # Calculate actual distance using Pythagorean theorem
+                    actual_distance = math.sqrt(horizontal_yards**2 + vertical_yards**2)
+
+                    # Calculate direction angle in degrees
+                    angle_radians = math.atan2(vertical_yards, -horizontal_yards)
+                    angle_degrees = math.degrees(angle_radians)
+
+                    # Determine if it's a huck throwaway (>=40 vertical yards)
+                    throwaway_type = "Huck throwaway" if vertical_yards >= 40 else "Throwaway"
+
+                    # Format distance for display
+                    distance_str = f"{int(actual_distance)}y"
+
+                    current_point_events.append({
+                        "type": "throwaway",
+                        "description": f"{distance_str} {throwaway_type} by {event['thrower_last']}",
+                        "yard_line": None,  # Don't show yard line for throwaway events
+                        "direction": angle_degrees
+                    })
+                else:
+                    # Fallback for throwaways without coordinates
+                    current_point_events.append({
+                        "type": "throwaway",
+                        "description": f"Throwaway by {event['thrower_last']}",
+                        "yard_line": None  # Don't show yard line for throwaway events
+                    })
         elif event_type == 24:  # STALL
             yard_line = int(event["turnover_y"]) if event["turnover_y"] is not None else None
             current_point_events.append({
