@@ -143,7 +143,10 @@ export class GamePlayByPlay {
         // Determine icon based on event type and description
         let iconHtml = '<span class="event-icon">•</span>';
 
-        if (event.type === 'pull') {
+        if (event.type === 'opponent_score') {
+            // Red minus sign for when opponent scores
+            iconHtml = '<span class="event-icon opponent-score">⊖</span>';
+        } else if (event.type === 'pull') {
             iconHtml = '<span class="event-icon">↗</span>';
         } else if (event.type === 'pass' || event.type === 'goal') {
             // Use SVG arrow with rotation for passes and goals

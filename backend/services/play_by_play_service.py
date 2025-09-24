@@ -59,10 +59,13 @@ def calculate_play_by_play(stats_system, game_id: str) -> List[Dict[str, Any]]:
     if not events:
         return []
 
-    # Process events into points
-    points = []
-    current_point = None
-    current_point_events = []
+    # Process events into points for both team perspectives
+    points_home = []  # Points from home team perspective
+    points_away = []  # Points from away team perspective
+    current_point_home = None
+    current_point_away = None
+    current_point_events_home = []
+    current_point_events_away = []
     current_score = {"home": 0, "away": 0}
     quarter = 1
     point_start_time = None
@@ -81,8 +84,8 @@ def calculate_play_by_play(stats_system, game_id: str) -> List[Dict[str, Any]]:
 
         # Quarter end events
         if event_type in [28, 29, 30, 31]:  # Quarter/half/regulation ends
-            # Save current point before quarter ends
-            if current_point:
+            # Save current points before quarter ends
+            if current_point_home:
                 # Calculate the end time based on which quarter is ending
                 quarter_end_time = None
                 if event_type == 28:  # End of Q1
@@ -95,14 +98,25 @@ def calculate_play_by_play(stats_system, game_id: str) -> List[Dict[str, Any]]:
                     quarter_end_time = 2880  # 48 minutes * 60 seconds
 
                 if quarter_end_time is not None:
-                    current_point["end_time"] = quarter_end_time
-                    if current_point["start_time"] is not None:
-                        current_point["duration_seconds"] = max(0, quarter_end_time - current_point["start_time"])
+                    current_point_home["end_time"] = quarter_end_time
+                    if current_point_home["start_time"] is not None:
+                        current_point_home["duration_seconds"] = max(0, quarter_end_time - current_point_home["start_time"])
 
-                current_point["events"] = current_point_events
-                points.append(current_point)
-                current_point = None
-                current_point_events = []
+                current_point_home["events"] = current_point_events_home
+                points_home.append(current_point_home)
+
+                # Also save away team perspective
+                if current_point_away:
+                    current_point_away["end_time"] = quarter_end_time
+                    if current_point_away["start_time"] is not None:
+                        current_point_away["duration_seconds"] = max(0, quarter_end_time - current_point_away["start_time"])
+                    current_point_away["events"] = current_point_events_away
+                    points_away.append(current_point_away)
+
+                current_point_home = None
+                current_point_away = None
+                current_point_events_home = []
+                current_point_events_away = []
 
             # Update quarter and time offset for next points
             if event_type == 28:
@@ -118,18 +132,26 @@ def calculate_play_by_play(stats_system, game_id: str) -> List[Dict[str, Any]]:
 
         # Start of a new point (pull)
         if event_type in [1, 2]:  # START_D_POINT or START_O_POINT
-            # Save previous point if exists
-            if current_point:
+            # Save previous points if exist
+            if current_point_home:
                 # Since the next point starts immediately, use current pull time as end time of previous point
                 if event["event_time"] is not None:
                     # Adjust event time to absolute game time
                     absolute_time = quarter_offset + event["event_time"]
-                    current_point["end_time"] = absolute_time
-                    if current_point["start_time"] is not None:
-                        current_point["duration_seconds"] = max(0, absolute_time - current_point["start_time"])
+                    current_point_home["end_time"] = absolute_time
+                    if current_point_home["start_time"] is not None:
+                        current_point_home["duration_seconds"] = max(0, absolute_time - current_point_home["start_time"])
 
-                current_point["events"] = current_point_events
-                points.append(current_point)
+                current_point_home["events"] = current_point_events_home
+                points_home.append(current_point_home)
+
+                # Also save away team perspective
+                if current_point_away:
+                    current_point_away["end_time"] = absolute_time
+                    if current_point_away["start_time"] is not None:
+                        current_point_away["duration_seconds"] = max(0, absolute_time - current_point_away["start_time"])
+                    current_point_away["events"] = current_point_events_away
+                    points_away.append(current_point_away)
 
             point_number += 1
             # Adjust start time to absolute game time
@@ -137,18 +159,18 @@ def calculate_play_by_play(stats_system, game_id: str) -> List[Dict[str, Any]]:
             point_end_time = None
 
             # From home team perspective:
-            # Type 1 = Home team pulls (D-point for home)
-            # Type 2 = Home team receives (O-point for home)
-            if event_type == 1:  # Home pulls (D-point for home)
+            # Type 1 = Home team pulls (D-point for home, O-point for away)
+            # Type 2 = Home team receives (O-point for home, D-point for away)
+            if event_type == 1:  # Home pulls
                 pulling_team = "home"
                 receiving_team = "away"
-                line_type = "D-Line"
-                point_team = "home"
-            else:  # Type 2: Home receives (O-point for home)
+                home_line_type = "D-Line"
+                away_line_type = "O-Line"
+            else:  # Type 2: Home receives
                 pulling_team = "away"
                 receiving_team = "home"
-                line_type = "O-Line"
-                point_team = "home"
+                home_line_type = "O-Line"
+                away_line_type = "D-Line"
 
             # Get line players
             line_players = []
@@ -176,31 +198,56 @@ def calculate_play_by_play(stats_system, game_id: str) -> List[Dict[str, Any]]:
                     print(f"Error parsing line players: {e}")
                     pass
 
-            current_point = {
+            # Create point from home team perspective
+            current_point_home = {
                 "point_number": point_number,
                 "quarter": quarter,
                 "score": f"{current_score['away']}-{current_score['home']}",
                 "home_score": current_score["home"],
                 "away_score": current_score["away"],
-                "team": point_team,  # Team perspective for this point
-                "line_type": line_type,
+                "team": "home",  # Home team perspective
+                "line_type": home_line_type,
                 "start_time": point_start_time,
                 "end_time": None,  # Will be set when goal is scored
                 "duration_seconds": 0,
-                "players": line_players,
+                "players": line_players if home_line_type == "O-Line" or home_line_type == "D-Line" else [],
                 "pulling_team": pulling_team,
                 "receiving_team": receiving_team,
                 "scoring_team": None
             }
-            current_point_events = []
 
-            # Add pull event
+            # Create point from away team perspective
+            current_point_away = {
+                "point_number": point_number,
+                "quarter": quarter,
+                "score": f"{current_score['away']}-{current_score['home']}",
+                "home_score": current_score["home"],
+                "away_score": current_score["away"],
+                "team": "away",  # Away team perspective
+                "line_type": away_line_type,
+                "start_time": point_start_time,
+                "end_time": None,  # Will be set when goal is scored
+                "duration_seconds": 0,
+                "players": [],  # Away team players would need to be fetched separately
+                "pulling_team": pulling_team,
+                "receiving_team": receiving_team,
+                "scoring_team": None
+            }
+            current_point_events_home = []
+            current_point_events_away = []
+
+            # Add pull event to both perspectives
             if event["puller_last"]:
-                current_point_events.append({
+                pull_event = {
                     "type": "pull",
                     "description": f"Pull by {event['puller_last']}",
                     "yard_line": None
-                })
+                }
+                # Add to appropriate team's events
+                if pulling_team == "home":
+                    current_point_events_home.append(pull_event)
+                else:
+                    current_point_events_away.append(pull_event)
 
         # Goal events (from home team perspective)
         elif event_type in [19, 15]:  # GOAL or SCORE_BY_OPPOSING
@@ -211,41 +258,66 @@ def calculate_play_by_play(stats_system, game_id: str) -> List[Dict[str, Any]]:
             # Type 15 = Away team scores (opponent scores from home perspective)
             if event_type == 19:  # Home team scores
                 current_score["home"] += 1
-                if current_point:
-                    current_point["scoring_team"] = "home"
+                if current_point_home:
+                    current_point_home["scoring_team"] = "home"
+                if current_point_away:
+                    current_point_away["scoring_team"] = "home"
             else:  # Type 15: Away team scores
                 current_score["away"] += 1
-                if current_point:
-                    current_point["scoring_team"] = "away"
+                if current_point_home:
+                    current_point_home["scoring_team"] = "away"
+                if current_point_away:
+                    current_point_away["scoring_team"] = "away"
 
-            # Update point score after goal
-            if current_point:
-                current_point["score"] = f"{current_score['away']}-{current_score['home']}"
-                current_point["home_score"] = current_score["home"]
-                current_point["away_score"] = current_score["away"]
+            # Update point scores after goal
+            if current_point_home:
+                current_point_home["score"] = f"{current_score['away']}-{current_score['home']}"
+                current_point_home["home_score"] = current_score["home"]
+                current_point_home["away_score"] = current_score["away"]
+            if current_point_away:
+                current_point_away["score"] = f"{current_score['away']}-{current_score['home']}"
+                current_point_away["home_score"] = current_score["home"]
+                current_point_away["away_score"] = current_score["away"]
 
-            # Add goal event
-            if event["receiver_last"] and event["thrower_last"]:
-                # Calculate direction for goal if coordinates available
-                if (event["thrower_y"] is not None and event["receiver_y"] is not None and
-                    event["thrower_x"] is not None and event["receiver_x"] is not None):
-                    vertical_yards = event["receiver_y"] - event["thrower_y"]
-                    horizontal_yards = event["receiver_x"] - event["thrower_x"]
-                    angle_radians = math.atan2(vertical_yards, -horizontal_yards)
-                    angle_degrees = math.degrees(angle_radians)
+            # Add goal event to the scoring team's events
+            if event_type == 19:  # Home team scored
+                if event["receiver_last"] and event["thrower_last"]:
+                    # Calculate direction for goal if coordinates available
+                    if (event["thrower_y"] is not None and event["receiver_y"] is not None and
+                        event["thrower_x"] is not None and event["receiver_x"] is not None):
+                        vertical_yards = event["receiver_y"] - event["thrower_y"]
+                        horizontal_yards = event["receiver_x"] - event["thrower_x"]
+                        angle_radians = math.atan2(vertical_yards, -horizontal_yards)
+                        angle_degrees = math.degrees(angle_radians)
 
-                    current_point_events.append({
-                        "type": "goal",
-                        "description": f"Score from {event['thrower_last']} to {event['receiver_last']}",
-                        "yard_line": None,  # Don't show yard line for goals
-                        "direction": angle_degrees
-                    })
-                else:
-                    current_point_events.append({
-                        "type": "goal",
-                        "description": f"Score from {event['thrower_last']} to {event['receiver_last']}",
-                        "yard_line": None
-                    })
+                        goal_event = {
+                            "type": "goal",
+                            "description": f"Score from {event['thrower_last']} to {event['receiver_last']}",
+                            "yard_line": None,
+                            "direction": angle_degrees
+                        }
+                        current_point_events_home.append(goal_event)
+                    else:
+                        goal_event = {
+                            "type": "goal",
+                            "description": f"Score from {event['thrower_last']} to {event['receiver_last']}",
+                            "yard_line": None
+                        }
+                        current_point_events_home.append(goal_event)
+                # Add "They scored" event to away team's events
+                current_point_events_away.append({
+                    "type": "opponent_score",
+                    "description": "They scored",
+                    "yard_line": None
+                })
+            else:  # Away team scored (event_type == 15)
+                # Add "They scored" event to home team's events
+                current_point_events_home.append({
+                    "type": "opponent_score",
+                    "description": "They scored",
+                    "yard_line": None
+                })
+                # Note: We don't have the away team's goal details from home perspective events
 
         # Pass events
         elif event_type == 18:  # PASS
@@ -289,25 +361,30 @@ def calculate_play_by_play(stats_system, game_id: str) -> List[Dict[str, Any]]:
                         "yard_line": None
                     }
 
-                current_point_events.append(pass_event)
+                # Add to home team's events (since we're processing home team events)
+                current_point_events_home.append(pass_event)
 
         # Turnover events
         elif event_type == 11:  # BLOCK
             if event["defender_last"]:
                 yard_line = int(event["turnover_y"]) if event["turnover_y"] is not None else None
-                current_point_events.append({
+                block_event = {
                     "type": "block",
                     "description": f"Block by {event['defender_last']}",
                     "yard_line": yard_line
-                })
+                }
+                # Add to home team's events (since we're processing home team events)
+                current_point_events_home.append(block_event)
         elif event_type == 20:  # DROP
             if event["receiver_last"]:
                 yard_line = int(event["turnover_y"]) if event["turnover_y"] is not None else None
-                current_point_events.append({
+                drop_event = {
                     "type": "drop",
                     "description": f"Drop by {event['receiver_last']}",
                     "yard_line": yard_line
-                })
+                }
+                # Add to home team's events (since we're processing home team events)
+                current_point_events_home.append(drop_event)
         elif event_type == 22:  # THROWAWAY
             if event["thrower_last"]:
                 # Calculate distance and direction for throwaway if coordinates available
@@ -330,39 +407,56 @@ def calculate_play_by_play(stats_system, game_id: str) -> List[Dict[str, Any]]:
                     # Format distance for display
                     distance_str = f"{int(actual_distance)}y"
 
-                    current_point_events.append({
+                    throwaway_event = {
                         "type": "throwaway",
                         "description": f"{distance_str} {throwaway_type} by {event['thrower_last']}",
                         "yard_line": None,  # Don't show yard line for throwaway events
                         "direction": angle_degrees
-                    })
+                    }
                 else:
                     # Fallback for throwaways without coordinates
-                    current_point_events.append({
+                    throwaway_event = {
                         "type": "throwaway",
                         "description": f"Throwaway by {event['thrower_last']}",
                         "yard_line": None  # Don't show yard line for throwaway events
-                    })
+                    }
+                # Add to home team's events (since we're processing home team events)
+                current_point_events_home.append(throwaway_event)
         elif event_type == 24:  # STALL
             yard_line = int(event["turnover_y"]) if event["turnover_y"] is not None else None
-            current_point_events.append({
+            stall_event = {
                 "type": "stall",
                 "description": "Stall",
                 "yard_line": yard_line
-            })
+            }
+            # Add to home team's events (since we're processing home team events)
+            current_point_events_home.append(stall_event)
 
-    # Save last point if exists
-    if current_point:
-        current_point["events"] = current_point_events
+    # Save last points if exist
+    if current_point_home:
+        current_point_home["events"] = current_point_events_home
         # For the last point, estimate a reasonable duration since there's no next pull
-        if not current_point.get("end_time"):
+        if not current_point_home.get("end_time"):
             # Estimate last point took 90 seconds
-            if current_point["start_time"] is not None:
-                current_point["end_time"] = current_point["start_time"] + 90
-                current_point["duration_seconds"] = 90
+            if current_point_home["start_time"] is not None:
+                current_point_home["end_time"] = current_point_home["start_time"] + 90
+                current_point_home["duration_seconds"] = 90
             else:
-                current_point["duration_seconds"] = 0
-        points.append(current_point)
+                current_point_home["duration_seconds"] = 0
+        points_home.append(current_point_home)
+
+    if current_point_away:
+        current_point_away["events"] = current_point_events_away
+        if not current_point_away.get("end_time"):
+            if current_point_away["start_time"] is not None:
+                current_point_away["end_time"] = current_point_away["start_time"] + 90
+                current_point_away["duration_seconds"] = 90
+            else:
+                current_point_away["duration_seconds"] = 0
+        points_away.append(current_point_away)
+
+    # Combine points from both perspectives
+    points = points_home + points_away
 
     # Add formatted time and duration to each point
     for point in points:

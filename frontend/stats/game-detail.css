@@ -688,6 +688,11 @@ body.sidebar-open .stats-container {
     text-align: center;
 }
 
+.event-icon.opponent-score {
+    color: #dc3545;
+    font-weight: bold;
+}
+
 .event-yard {
     font-size: 13px;
     color: var(--text-secondary);
