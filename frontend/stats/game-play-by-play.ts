@@ -203,12 +203,12 @@ export class GamePlayByPlay {
             if (event.direction !== undefined) {
                 const rotationAngle = event.direction - 90;
                 iconHtml = `
-                    <span class="event-icon" style="display: inline-block; transform: rotate(${rotationAngle}deg);">
+                    <span class="event-icon" style="display: inline-block; transform: rotate(${rotationAngle}deg); color: #dc3545;">
                         ↑
                     </span>
                 `;
             } else {
-                iconHtml = '<span class="event-icon">↘</span>';
+                iconHtml = '<span class="event-icon" style="color: #dc3545;">↘</span>';
             }
         } else if (event.type === 'stall') {
             iconHtml = '<span class="event-icon">⏱</span>';
