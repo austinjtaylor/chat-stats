@@ -5,7 +5,7 @@ Game box score API endpoint with detailed player and team statistics.
 from fastapi import APIRouter, HTTPException
 from typing import List, Dict, Any
 from services.box_score_service import calculate_team_stats
-from services.play_by_play_service import calculate_play_by_play
+from services.play_by_play_service_v2 import calculate_play_by_play
 from services.quarter_score_service import calculate_quarter_scores
 
 

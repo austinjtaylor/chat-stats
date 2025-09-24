@@ -195,7 +195,16 @@ export class GamePlayByPlay {
                 }
             }
         } else if (event.type === 'block') {
-            iconHtml = '<span class="event-icon">🛡</span>';
+            // Green shield SVG icon similar to UFA site
+            iconHtml = `
+                <span class="event-icon block">
+                    <svg width="20" height="20" viewBox="0 0 24 24" style="display: inline-block; vertical-align: middle;">
+                        <path d="M12 2L4 7V11C4 16.5 7.5 21.3 12 22C16.5 21.3 20 16.5 20 11V7L12 2Z"
+                              fill="#4CAF50"
+                              stroke="#2E7D32"
+                              stroke-width="1"/>
+                    </svg>
+                </span>`;
         } else if (event.type === 'drop') {
             iconHtml = '<span class="event-icon">↓</span>';
         } else if (event.type === 'throwaway') {
