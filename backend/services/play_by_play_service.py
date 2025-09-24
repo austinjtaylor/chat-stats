@@ -40,7 +40,10 @@ def calculate_play_by_play(stats_system, game_id: str) -> List[Dict[str, Any]]:
         t.full_name as thrower_name, t.last_name as thrower_last,
         r.full_name as receiver_name, r.last_name as receiver_last,
         d.full_name as defender_name, d.last_name as defender_last,
-        p.full_name as puller_name, p.last_name as puller_last
+        p.full_name as puller_name, p.last_name as puller_last,
+        -- Look ahead to get next pull time for estimating goal time if needed
+        LEAD(CASE WHEN e.event_type IN (1, 2) THEN e.event_time ELSE NULL END)
+            OVER (ORDER BY e.event_index) as next_pull_time
     FROM game_events e
     LEFT JOIN players t ON e.thrower_id = t.player_id AND t.year = :year
     LEFT JOIN players r ON e.receiver_id = r.player_id AND r.year = :year
@@ -64,34 +67,72 @@ def calculate_play_by_play(stats_system, game_id: str) -> List[Dict[str, Any]]:
     point_start_time = None
     point_end_time = None
     point_number = 0
+    quarter_offset = 0  # Track cumulative time offset for quarters
 
+    # Get all pull times to calculate point durations
+    pull_times = []
     for event in events:
+        if event["event_type"] in [1, 2] and event["event_time"] is not None:
+            pull_times.append(event["event_time"])
+
+    for i, event in enumerate(events):
         event_type = event["event_type"]
 
         # Quarter end events
         if event_type in [28, 29, 30, 31]:  # Quarter/half/regulation ends
+            # Save current point before quarter ends
+            if current_point:
+                # Calculate the end time based on which quarter is ending
+                quarter_end_time = None
+                if event_type == 28:  # End of Q1
+                    quarter_end_time = 720  # 12 minutes * 60 seconds
+                elif event_type == 29:  # Halftime (End of Q2)
+                    quarter_end_time = 1440  # 24 minutes * 60 seconds
+                elif event_type == 30:  # End of Q3
+                    quarter_end_time = 2160  # 36 minutes * 60 seconds
+                elif event_type == 31:  # End of regulation (End of Q4)
+                    quarter_end_time = 2880  # 48 minutes * 60 seconds
+
+                if quarter_end_time is not None:
+                    current_point["end_time"] = quarter_end_time
+                    if current_point["start_time"] is not None:
+                        current_point["duration_seconds"] = max(0, quarter_end_time - current_point["start_time"])
+
+                current_point["events"] = current_point_events
+                points.append(current_point)
+                current_point = None
+                current_point_events = []
+
+            # Update quarter and time offset for next points
             if event_type == 28:
                 quarter = 2
+                quarter_offset = 720  # Q2 starts after 12 minutes
             elif event_type == 29:
                 quarter = 3
+                quarter_offset = 1440  # Q3 starts after 24 minutes
             elif event_type == 30:
                 quarter = 4
+                quarter_offset = 2160  # Q4 starts after 36 minutes
             continue
 
         # Start of a new point (pull)
         if event_type in [1, 2]:  # START_D_POINT or START_O_POINT
             # Save previous point if exists
             if current_point:
+                # Since the next point starts immediately, use current pull time as end time of previous point
+                if event["event_time"] is not None:
+                    # Adjust event time to absolute game time
+                    absolute_time = quarter_offset + event["event_time"]
+                    current_point["end_time"] = absolute_time
+                    if current_point["start_time"] is not None:
+                        current_point["duration_seconds"] = max(0, absolute_time - current_point["start_time"])
+
                 current_point["events"] = current_point_events
-                # Calculate duration properly
-                if point_end_time and point_start_time:
-                    current_point["duration_seconds"] = max(0, point_end_time - point_start_time)
-                else:
-                    current_point["duration_seconds"] = 0
                 points.append(current_point)
 
             point_number += 1
-            point_start_time = event["event_time"] if event["event_time"] else 0
+            # Adjust start time to absolute game time
+            point_start_time = (quarter_offset + event["event_time"]) if event["event_time"] is not None else quarter_offset
             point_end_time = None
 
             # From home team perspective:
@@ -143,6 +184,7 @@ def calculate_play_by_play(stats_system, game_id: str) -> List[Dict[str, Any]]:
                 "team": point_team,  # Team perspective for this point
                 "line_type": line_type,
                 "start_time": point_start_time,
+                "end_time": None,  # Will be set when goal is scored
                 "duration_seconds": 0,
                 "players": line_players,
                 "pulling_team": pulling_team,
@@ -161,7 +203,8 @@ def calculate_play_by_play(stats_system, game_id: str) -> List[Dict[str, Any]]:
 
         # Goal events (from home team perspective)
         elif event_type in [19, 15]:  # GOAL or SCORE_BY_OPPOSING
-            point_end_time = event["event_time"] if event["event_time"] else point_start_time
+            # Don't set end_time here - it will be set when next point starts
+            # Since there's no time between points, the goal time equals the next pull time
 
             # Type 19 = Home team scores
             # Type 15 = Away team scores (opponent scores from home perspective)
@@ -251,11 +294,14 @@ def calculate_play_by_play(stats_system, game_id: str) -> List[Dict[str, Any]]:
     # Save last point if exists
     if current_point:
         current_point["events"] = current_point_events
-        # Calculate duration properly
-        if point_end_time and point_start_time:
-            current_point["duration_seconds"] = max(0, point_end_time - point_start_time)
-        else:
-            current_point["duration_seconds"] = 0
+        # For the last point, estimate a reasonable duration since there's no next pull
+        if not current_point.get("end_time"):
+            # Estimate last point took 90 seconds
+            if current_point["start_time"] is not None:
+                current_point["end_time"] = current_point["start_time"] + 90
+                current_point["duration_seconds"] = 90
+            else:
+                current_point["duration_seconds"] = 0
         points.append(current_point)
 
     # Add formatted time and duration to each point
@@ -268,14 +314,25 @@ def calculate_play_by_play(stats_system, game_id: str) -> List[Dict[str, Any]]:
         else:
             point["duration"] = f"{seconds}s"
 
-        # Format time remaining in quarter (approximate)
-        if point["start_time"] is not None:
+        # Format time remaining in quarter at END of point (when goal was scored)
+        # Use end_time if available, otherwise fall back to start_time
+        time_reference = point.get("end_time") or point["start_time"]
+        if time_reference is not None:
             quarter_time = 12 * 60  # 12 minutes per quarter
-            time_in_quarter = point["start_time"] % quarter_time
-            minutes_remaining = (quarter_time - time_in_quarter) // 60
-            seconds_remaining = (quarter_time - time_in_quarter) % 60
-            point["time"] = f"{minutes_remaining:02d}:{seconds_remaining:02d}"
+            time_in_quarter = time_reference % quarter_time
+
+            # If the time is exactly at the quarter boundary (0), it means the quarter ended
+            if time_in_quarter == 0 and time_reference > 0:
+                point["time"] = "00:00"
+            else:
+                minutes_remaining = (quarter_time - time_in_quarter) // 60
+                seconds_remaining = (quarter_time - time_in_quarter) % 60
+                point["time"] = f"{minutes_remaining:02d}:{seconds_remaining:02d}"
         else:
             point["time"] = "12:00"
+
+        # Remove end_time from output (it was only needed for calculations)
+        if "end_time" in point:
+            del point["end_time"]
 
     return points
