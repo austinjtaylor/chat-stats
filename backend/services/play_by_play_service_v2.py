@@ -237,12 +237,17 @@ def process_team_events(events: List[Dict], team: str, game_year: int, stats_sys
                     event["thrower_x"] is not None and event["receiver_x"] is not None):
                     vertical_yards = event["receiver_y"] - event["thrower_y"]
                     horizontal_yards = event["receiver_x"] - event["thrower_x"]
+                    actual_distance = math.sqrt(horizontal_yards**2 + vertical_yards**2)
                     angle_radians = math.atan2(vertical_yards, -horizontal_yards)
                     angle_degrees = math.degrees(angle_radians)
 
+                    # Determine if it's a huck (40+ yards forward)
+                    pass_type = "Huck " if vertical_yards >= 40 else ""
+                    distance_str = f"{int(actual_distance)}y"
+
                     goal_event = {
                         "type": "goal",
-                        "description": f"Score from {event['thrower_last']} to {event['receiver_last']}",
+                        "description": f"{distance_str} {pass_type}Score from {event['thrower_last']} to {event['receiver_last']}",
                         "yard_line": None,
                         "direction": angle_degrees
                     }
