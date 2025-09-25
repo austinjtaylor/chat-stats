@@ -18,6 +18,7 @@ export class GameStatsTable {
     constructor() {
         this.initializeElements();
         this.attachEventListeners();
+        this.applyCurrentSortIndicators();
     }
 
     private initializeElements(): void {
@@ -39,8 +40,20 @@ export class GameStatsTable {
         }
     }
 
+    private applyCurrentSortIndicators(): void {
+        if (this.elements.statsTable) {
+            this.elements.statsTable.querySelectorAll('th[data-sort]').forEach(th => {
+                th.classList.remove('sorted-asc', 'sorted-desc');
+                if (th.getAttribute('data-sort') === this.sortColumn) {
+                    th.classList.add(this.sortDirection === 'asc' ? 'sorted-asc' : 'sorted-desc');
+                }
+            });
+        }
+    }
+
     public updatePlayers(players: PlayerStats[]): void {
         this.players = players;
+        this.applyCurrentSortIndicators();
         this.renderTable();
     }
 
