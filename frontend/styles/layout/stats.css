@@ -5,8 +5,8 @@
 
 /* Override body constraints for stats pages */
 body.stats-page {
-    overflow: auto !important;
-    height: auto !important;
+    overflow: hidden !important;
+    height: 100vh !important;
 }
 
 /* Hide the app header on stats pages */
@@ -16,18 +16,24 @@ body.stats-page {
 
 /* Stats Container */
 .stats-container {
-    min-height: 100vh;
+    height: 100vh;
     padding-top: 0;
     background: var(--background);
     color: var(--text-primary);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Main Content Area */
 .stats-main {
-    max-width: 1400px;
+    max-width: 1600px;
     margin: 0 auto;
-    padding: 1.5rem 2rem 2rem 2rem; /* Space for fixed menu/settings icons */
-    min-height: 100vh;
+    padding: 1.5rem 2rem 1rem 2rem; /* Reduced bottom padding */
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 /* Page Title Style - Similar to Chat Stats title */
@@ -104,14 +110,18 @@ body.stats-page {
 
 /* Data Content Section */
 .stats-content {
-    margin-top: 2rem;
+    margin-top: 1rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .page-title {
     font-size: 1.75rem;
     font-weight: 700;
     color: var(--text-primary);
-    margin: 0 0 2rem 0;
+    margin: 0 0 1.5rem 0;
 }
 
 /* Filters Section */
@@ -120,7 +130,7 @@ body.stats-page {
     border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 1.5rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
 }
 
 .filters-row {
@@ -172,6 +182,8 @@ body.stats-page {
     overflow: visible; /* Changed from hidden to allow pagination to show */
     display: flex;
     flex-direction: column;
+    flex: 1;
+    min-height: 0; /* Important for flex children with overflow */
 }
 
 .table-header {
@@ -275,7 +287,6 @@ body.stats-page {
 /* Table Container */
 .table-container {
     overflow-x: auto;
-    max-height: 60vh;
     overflow-y: auto;
     background: var(--surface);
     /* No borders needed, parent handles them */
@@ -283,6 +294,7 @@ body.stats-page {
     position: relative;
     margin: 0 -1px 0 -1px; /* Updated margin to not overlap bottom border */
     flex: 1;
+    min-height: 0; /* Important for flexbox overflow */
 }
 
 

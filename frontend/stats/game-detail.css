@@ -1,3 +1,24 @@
+/* Override the body constraints for game detail page */
+body.stats-page[data-page="games"] {
+    overflow: hidden !important;
+    height: 100vh !important;
+}
+
+/* Override container constraints for game detail page */
+.stats-page[data-page="games"] .stats-container {
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.stats-page[data-page="games"] .stats-main {
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
 /* Game Search Icon */
 .game-search-wrapper {
     position: fixed;
@@ -187,7 +208,7 @@ body.sidebar-open .stats-container {
 .stats-main {
     display: flex;
     flex-direction: column;
-    max-width: 1400px;
+    max-width: 1600px;
     margin: 0 auto;
     width: 100%;
     padding-top: 20px;
@@ -204,7 +225,7 @@ body.sidebar-open .stats-container {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
 }
 
@@ -278,7 +299,7 @@ body.sidebar-open .stats-container {
 }
 
 .tabs-container {
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
     display: flex;
     gap: 20px;
@@ -308,30 +329,57 @@ body.sidebar-open .stats-container {
 /* Tab Content */
 .tab-content {
     padding: 0px 20px 20px 20px;
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
     width: 100%;
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .tab-pane {
     display: none;
+    height: 100%;
+    overflow: hidden;
 }
 
 .tab-pane.active {
-    display: block;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Box Score Specific */
 /* Now using .table-header instead of .box-score-header */
 
 /* Box Score Table Container Adjustments */
+#box-score {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
 #box-score .table-section {
     margin-top: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
 }
 
 /* Team Toggle in Box Score Header */
 #box-score .table-header {
     justify-content: space-between;
+    flex-shrink: 0;
+    background: transparent !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 1rem 0 !important;
+    border-radius: 0 !important;
 }
 
 #box-score .table-title {
@@ -364,36 +412,43 @@ body.sidebar-open .stats-container {
 #box-score .table-container {
     max-width: 100%;
     overflow-x: auto;
+    overflow-y: auto;
+    flex: 1;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+    margin: 0 !important;
+    background: var(--surface) !important;
 }
 
 #box-score .stats-table {
-    min-width: 900px;
-    table-layout: fixed !important;
+    width: 100%;
+    min-width: auto;
+    table-layout: auto !important;
+    border-radius: 0 !important;
 }
 
 /* Force compact styling for all box score table cells */
 #box-score .stats-table th,
 #box-score .stats-table td {
-    padding: 4px 2px !important;
-    font-size: 11px !important;
-}
-
-#box-score .stats-table td {
+    padding: 8px 6px !important;
     font-size: 12px !important;
 }
 
-/* Column width optimizations for box score - using !important for specificity */
+#box-score .stats-table td {
+    font-size: 13px !important;
+}
+
+/* Column width optimizations for box score - using min-width for flexibility */
 #box-score .stats-table th[data-sort="jersey_number"] {
-    width: 22px !important;
-    max-width: 22px !important;
+    min-width: 30px !important;
+    width: 30px !important;
 }
 
 #box-score .stats-table th[data-sort="name"],
 #box-score .stats-table th.player-name {
-    width: 110px !important;
-    max-width: 110px !important;
+    min-width: 150px !important;
     text-align: left !important;
-    padding-left: 4px !important;
+    padding-left: 8px !important;
 }
 
 /* Narrow columns for stats */
@@ -412,8 +467,7 @@ body.sidebar-open .stats-container {
 #box-score .stats-table th[data-sort="stalls"],
 #box-score .stats-table th[data-sort="callahans"],
 #box-score .stats-table th[data-sort="drops"] {
-    width: 26px !important;
-    max-width: 26px !important;
+    min-width: 45px !important;
 }
 
 /* Medium columns for yard stats and percentages */
@@ -423,9 +477,10 @@ body.sidebar-open .stats-container {
 #box-score .stats-table th[data-sort="completion_percentage"],
 #box-score .stats-table th[data-sort="huck_percentage"],
 #box-score .stats-table th[data-sort="yards_per_turn"] {
-    width: 34px !important;
-    max-width: 34px !important;
+    min-width: 60px !important;
 }
+
+/* Remove fixed width overrides for sorted columns - let them use min-width */
 
 /* Ensure player name column is left-aligned */
 #box-score .stats-table td:nth-child(1) {

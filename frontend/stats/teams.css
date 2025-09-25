@@ -1,0 +1,90 @@
+/* Teams Page Specific Styles */
+
+/* Wider container for teams page to accommodate the table */
+.stats-page[data-page="teams"] .stats-main {
+    max-width: 1400px;
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
+/* Ensure the teams table uses full width */
+.stats-page[data-page="teams"] .table-container {
+    width: 100%;
+    overflow-x: auto; /* Allow scroll if needed on smaller screens */
+}
+
+/* Make team stats table fit without scroll */
+.stats-page[data-page="teams"] .stats-table {
+    width: 100%;
+    table-layout: fixed;
+}
+
+/* Adjust column widths for team stats table - more spacing */
+.stats-page[data-page="teams"] .stats-table th,
+.stats-page[data-page="teams"] .stats-table td {
+    padding: 8px 8px;
+    white-space: nowrap;
+    font-size: 13px;
+}
+
+/* Team name column should be wider */
+.stats-page[data-page="teams"] .stats-table th:first-child,
+.stats-page[data-page="teams"] .stats-table td:first-child {
+    width: 140px;
+    text-align: left;
+    padding-left: 12px;
+}
+
+/* Narrow columns - single digit stats */
+.stats-page[data-page="teams"] .stats-table th:nth-child(2), /* G */
+.stats-page[data-page="teams"] .stats-table th:nth-child(3), /* W */
+.stats-page[data-page="teams"] .stats-table th:nth-child(4), /* L */
+.stats-page[data-page="teams"] .stats-table td:nth-child(2),
+.stats-page[data-page="teams"] .stats-table td:nth-child(3),
+.stats-page[data-page="teams"] .stats-table td:nth-child(4) {
+    width: 45px;
+    text-align: center;
+}
+
+/* Medium columns - 3 digit stats */
+.stats-page[data-page="teams"] .stats-table th:nth-child(5), /* S */
+.stats-page[data-page="teams"] .stats-table th:nth-child(6), /* SA */
+.stats-page[data-page="teams"] .stats-table th:nth-child(7), /* C */
+.stats-page[data-page="teams"] .stats-table th:nth-child(9), /* T */
+.stats-page[data-page="teams"] .stats-table th:nth-child(13), /* H */
+.stats-page[data-page="teams"] .stats-table th:nth-child(14), /* B */
+.stats-page[data-page="teams"] .stats-table td:nth-child(5),
+.stats-page[data-page="teams"] .stats-table td:nth-child(6),
+.stats-page[data-page="teams"] .stats-table td:nth-child(7),
+.stats-page[data-page="teams"] .stats-table td:nth-child(9),
+.stats-page[data-page="teams"] .stats-table td:nth-child(13),
+.stats-page[data-page="teams"] .stats-table td:nth-child(14) {
+    width: 55px;
+    text-align: center;
+}
+
+/* Percentage columns - need more space */
+.stats-page[data-page="teams"] .stats-table th:nth-child(8), /* C% */
+.stats-page[data-page="teams"] .stats-table th:nth-child(10), /* H% */
+.stats-page[data-page="teams"] .stats-table th:nth-child(11), /* HLD % */
+.stats-page[data-page="teams"] .stats-table th:nth-child(12), /* OLC % */
+.stats-page[data-page="teams"] .stats-table th:nth-child(15), /* BRK % */
+.stats-page[data-page="teams"] .stats-table th:nth-child(16), /* DLC % */
+.stats-page[data-page="teams"] .stats-table th:nth-child(17), /* RZC % */
+.stats-page[data-page="teams"] .stats-table td:nth-child(8),
+.stats-page[data-page="teams"] .stats-table td:nth-child(10),
+.stats-page[data-page="teams"] .stats-table td:nth-child(11),
+.stats-page[data-page="teams"] .stats-table td:nth-child(12),
+.stats-page[data-page="teams"] .stats-table td:nth-child(15),
+.stats-page[data-page="teams"] .stats-table td:nth-child(16),
+.stats-page[data-page="teams"] .stats-table td:nth-child(17) {
+    width: 70px;
+    text-align: center;
+}
+
+/* Header text */
+.stats-page[data-page="teams"] .stats-table thead th {
+    font-size: 12px;
+    padding: 10px 8px;
+    font-weight: 600;
+}
