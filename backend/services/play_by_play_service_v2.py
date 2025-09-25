@@ -203,11 +203,10 @@ def process_team_events(events: List[Dict], team: str, game_year: int, stats_sys
                     else:
                         pass_type = "Pass"
 
-                    distance_str = f"{int(actual_distance)}y"
                     pass_event = {
                         "type": "pass",
-                        "description": f"{distance_str} {pass_type} from {event['thrower_last']} to {event['receiver_last']}",
-                        "yard_line": None,
+                        "description": f"{pass_type} from {event['thrower_last']} to {event['receiver_last']}",
+                        "yard_line": int(actual_distance),
                         "direction": angle_degrees
                     }
                 else:
@@ -243,12 +242,11 @@ def process_team_events(events: List[Dict], team: str, game_year: int, stats_sys
 
                     # Determine if it's a huck (40+ yards forward)
                     pass_type = "Huck " if vertical_yards >= 40 else ""
-                    distance_str = f"{int(actual_distance)}y"
 
                     goal_event = {
                         "type": "goal",
-                        "description": f"{distance_str} {pass_type}Score from {event['thrower_last']} to {event['receiver_last']}",
-                        "yard_line": None,
+                        "description": f"{pass_type}Score from {event['thrower_last']} to {event['receiver_last']}",
+                        "yard_line": int(actual_distance),
                         "direction": angle_degrees
                     }
                 else:
@@ -329,12 +327,11 @@ def process_team_events(events: List[Dict], team: str, game_year: int, stats_sys
                     angle_degrees = math.degrees(angle_radians)
 
                     throwaway_type = "Huck throwaway" if vertical_yards >= 40 else "Throwaway"
-                    distance_str = f"{int(actual_distance)}y"
 
                     throwaway_event = {
                         "type": "throwaway",
-                        "description": f"{distance_str} {throwaway_type} by {event['thrower_last']}",
-                        "yard_line": None,
+                        "description": f"{throwaway_type} by {event['thrower_last']}",
+                        "yard_line": int(actual_distance),
                         "direction": angle_degrees
                     }
                 else:

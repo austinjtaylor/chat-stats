@@ -670,13 +670,13 @@ body.sidebar-open .stats-container {
 
 .event-item {
     display: grid;
-    grid-template-columns: 30px 50px 1fr;
+    grid-template-columns: 30px 60px 1fr;
     align-items: center;
     padding: 8px 10px;
     margin-bottom: 5px;
     background: var(--bg-primary);
     border-radius: 4px;
-    gap: 10px;
+    gap: 12px;
 }
 
 .event-item:last-child {
@@ -701,8 +701,9 @@ body.sidebar-open .stats-container {
 
 .event-yard {
     font-size: 13px;
-    color: var(--text-secondary);
+    color: var(--text-primary);
     font-weight: 500;
+    text-align: center;
 }
 
 .event-description {
