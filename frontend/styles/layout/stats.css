@@ -184,6 +184,7 @@ body.stats-page {
     flex-direction: column;
     flex: 1;
     min-height: 0; /* Important for flex children with overflow */
+    margin-bottom: 1.5rem;
 }
 
 .table-header {

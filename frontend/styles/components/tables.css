@@ -276,7 +276,7 @@
 }
 
 .stats-table th.sortable {
-    padding-right: 14px; /* Space for sort arrow to prevent overlap */
+    padding-right: 18px; /* Space for sort arrow to prevent overlap */
 }
 
 .stats-table th:hover {
@@ -286,23 +286,23 @@
 .stats-table th.sortable.sorted-asc::after {
     content: '▲';
     position: absolute;
-    right: 8px;
+    right: 2px;
     top: 50%;
     transform: translateY(-50%);
     color: var(--primary-color);
     opacity: 1;
-    font-size: 14px;
+    font-size: 10px;
 }
 
 .stats-table th.sortable.sorted-desc::after {
     content: '▼';
     position: absolute;
-    right: 8px;
+    right: 2px;
     top: 50%;
     transform: translateY(-50%);
     color: var(--primary-color);
     opacity: 1;
-    font-size: 14px;
+    font-size: 10px;
 }
 
 .stats-table td {

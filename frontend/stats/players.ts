@@ -169,21 +169,21 @@ class PlayerStats {
         // Base columns available for all years
         const baseColumns: PlayerColumn[] = [
             { key: 'full_name', label: 'Player', sortable: true },
-            { key: 'games_played', label: 'G', sortable: true },
+            { key: 'games_played', label: 'GP', sortable: true },
             { key: 'total_points_played', label: 'PP', sortable: true },
             { key: 'possessions', label: 'POS', sortable: true },
-            { key: 'score_total', label: 'SCR', sortable: true },
-            { key: 'total_assists', label: 'AST', sortable: true },
-            { key: 'total_goals', label: 'GLS', sortable: true },
-            { key: 'total_blocks', label: 'BLK', sortable: true },
+            { key: 'score_total', label: 'S', sortable: true },
+            { key: 'total_assists', label: 'A', sortable: true },
+            { key: 'total_goals', label: 'G', sortable: true },
+            { key: 'total_blocks', label: 'B', sortable: true },
             { key: 'calculated_plus_minus', label: '+/-', sortable: true },
-            { key: 'total_completions', label: 'Cmp', sortable: true },
-            { key: 'completion_percentage', label: 'Cmp%', sortable: true }
+            { key: 'total_completions', label: 'C', sortable: true },
+            { key: 'completion_percentage', label: 'C%', sortable: true }
         ];
 
         // Advanced stats added in 2021
         const advancedStats2021: PlayerColumn[] = [
-            { key: 'total_yards', label: 'Y', sortable: true },
+            { key: 'total_yards', label: 'TOT Y', sortable: true },
             { key: 'total_yards_thrown', label: 'TY', sortable: true },
             { key: 'total_yards_received', label: 'RY', sortable: true }
         ];
@@ -208,19 +208,19 @@ class PlayerStats {
         const restBaseColumns: PlayerColumn[] = [
             { key: 'total_stalls', label: 'S', sortable: true },
             { key: 'total_drops', label: 'D', sortable: true },
-            { key: 'total_callahans', label: 'C', sortable: true }
+            { key: 'total_callahans', label: 'CAL', sortable: true }
         ];
 
         // Huck stats available from 2021
         const huckStats2021: PlayerColumn[] = [
-            { key: 'total_hucks_completed', label: 'Hck', sortable: true },
-            { key: 'total_hucks_received', label: 'HckR', sortable: true },
-            { key: 'huck_percentage', label: 'Hck%', sortable: true }
+            { key: 'total_hucks_completed', label: 'H', sortable: true },
+            { key: 'total_hucks_received', label: 'HR', sortable: true },
+            { key: 'huck_percentage', label: 'H%', sortable: true }
         ];
 
         // Final columns
         const finalColumns: PlayerColumn[] = [
-            { key: 'total_pulls', label: 'Pul', sortable: true },
+            { key: 'total_pulls', label: 'P', sortable: true },
             { key: 'total_o_points_played', label: 'OPP', sortable: true },
             { key: 'total_d_points_played', label: 'DPP', sortable: true },
             { key: 'minutes_played', label: 'MP', sortable: true }
@@ -271,7 +271,8 @@ class PlayerStats {
         columns.forEach(col => {
             const th = document.createElement('th');
             th.textContent = col.label;
-            th.className = 'numeric';
+            // Use different class for Player column (left-aligned) vs numeric columns (center-aligned)
+            th.className = col.key === 'full_name' ? 'player-name' : 'numeric';
 
             if (col.sortable) {
                 th.setAttribute('data-sort', col.key);

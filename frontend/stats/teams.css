@@ -106,7 +106,7 @@
 
 .stats-page[data-page="teams"] .table-container {
     border: 1px solid var(--border-color) !important;
-    border-radius: 8px 8px 0 0 !important;
+    border-radius: 8px !important;
     margin: 0 !important;
     background: var(--surface) !important;
 }

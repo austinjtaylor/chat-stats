@@ -280,7 +280,7 @@
 .stats-table th {
     background: var(--surface-hover);
     padding: 0.75rem 0.5rem;
-    text-align: left;
+    text-align: center;
     font-weight: 600;
     font-size: 0.75rem;
     text-transform: uppercase;
@@ -339,17 +339,25 @@
     font-weight: 600;
     color: var(--primary-color);
     min-width: 150px;
+    text-align: left;
 }
 
 .stats-table .team-name {
     font-weight: 600;
     color: var(--primary-color);
     min-width: 120px;
+    text-align: left;
 }
 
 .stats-table .numeric {
     text-align: center;
     font-variant-numeric: tabular-nums;
+}
+
+/* Override text-align for player-name and team-name headers */
+.stats-table th.player-name,
+.stats-table th.team-name {
+    text-align: left;
 }
 
 /* Loading Spinner */

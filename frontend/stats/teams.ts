@@ -118,13 +118,13 @@ class TeamStats {
             { key: 'scores_against', label: isOpponent ? 'Opp SA' : 'SA', sortable: true },
             { key: 'completions', label: `${oppPrefix}C`, sortable: true },
             { key: 'turnovers', label: `${oppPrefix}T`, sortable: true },
-            { key: 'completion_percentage', label: `${oppPrefix}CMP %`, sortable: true }
+            { key: 'completion_percentage', label: `${oppPrefix}C%`, sortable: true }
         ];
 
         // Advanced stats columns
         const advancedColumns: TeamColumn[] = [
             { key: 'hucks_completed', label: `${oppPrefix}H`, sortable: true },
-            { key: 'huck_percentage', label: `${oppPrefix}Huck %`, sortable: true },
+            { key: 'huck_percentage', label: `${oppPrefix}H%`, sortable: true },
             { key: 'hold_percentage', label: `${oppPrefix}HLD %`, sortable: true },
             { key: 'o_line_conversion', label: `${oppPrefix}OLC %`, sortable: true },
             { key: 'blocks', label: `${oppPrefix}B`, sortable: true },
