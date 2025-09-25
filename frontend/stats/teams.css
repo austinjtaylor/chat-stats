@@ -88,3 +88,25 @@
     padding: 10px 8px;
     font-weight: 600;
 }
+
+/* Fix table border styling to match game box score */
+.stats-page[data-page="teams"] .table-section {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+}
+
+.stats-page[data-page="teams"] .table-header {
+    background: transparent !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 1rem 0 !important;
+    border-radius: 0 !important;
+}
+
+.stats-page[data-page="teams"] .table-container {
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px 8px 0 0 !important;
+    margin: 0 !important;
+    background: var(--surface) !important;
+}
