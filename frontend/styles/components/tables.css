@@ -264,18 +264,19 @@
 }
 
 .stats-table th {
-    padding: 12px 8px;
-    text-align: left;
-    font-size: 12px;
+    padding: 6px 2px;
+    text-align: center;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text-secondary);
     cursor: pointer;
     user-select: none;
     position: relative;
+    white-space: nowrap;
 }
 
 .stats-table th.sortable {
-    padding-right: 1.75rem;
+    padding-right: 14px; /* Space for sort arrow to prevent overlap */
 }
 
 .stats-table th:hover {
@@ -305,10 +306,11 @@
 }
 
 .stats-table td {
-    padding: 10px 8px;
-    font-size: 14px;
+    padding: 6px 2px;
+    font-size: 12px;
     color: var(--text-primary);
     border-top: 1px solid var(--border-color);
+    text-align: center;
 }
 
 .stats-table tbody tr:hover {
@@ -319,8 +321,14 @@
     font-weight: 500;
 }
 
+/* Keep player-name and team-name headers left-aligned */
+.stats-table th.player-name,
+.stats-table th.team-name {
+    text-align: left;
+}
+
 /* Numeric columns */
 .stats-table td.numeric {
-    text-align: right;
+    text-align: center;
     font-variant-numeric: tabular-nums;
 }

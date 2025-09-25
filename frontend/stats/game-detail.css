@@ -360,11 +360,90 @@ body.sidebar-open .stats-container {
 /* Player Stats Table - Game Detail Specific Styles */
 /* Base stats-table styles are in components/tables.css */
 
+/* Compact box score table for better column density */
+#box-score .table-container {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+#box-score .stats-table {
+    min-width: 900px;
+    table-layout: fixed !important;
+}
+
+/* Force compact styling for all box score table cells */
+#box-score .stats-table th,
+#box-score .stats-table td {
+    padding: 4px 2px !important;
+    font-size: 11px !important;
+}
+
+#box-score .stats-table td {
+    font-size: 12px !important;
+}
+
+/* Column width optimizations for box score - using !important for specificity */
+#box-score .stats-table th[data-sort="jersey_number"] {
+    width: 22px !important;
+    max-width: 22px !important;
+}
+
+#box-score .stats-table th[data-sort="name"],
+#box-score .stats-table th.player-name {
+    width: 110px !important;
+    max-width: 110px !important;
+    text-align: left !important;
+    padding-left: 4px !important;
+}
+
+/* Narrow columns for stats */
+#box-score .stats-table th[data-sort="points_played"],
+#box-score .stats-table th[data-sort="o_points_played"],
+#box-score .stats-table th[data-sort="d_points_played"],
+#box-score .stats-table th[data-sort="assists"],
+#box-score .stats-table th[data-sort="goals"],
+#box-score .stats-table th[data-sort="blocks"],
+#box-score .stats-table th[data-sort="plus_minus"],
+#box-score .stats-table th[data-sort="completions"],
+#box-score .stats-table th[data-sort="hucks_completed"],
+#box-score .stats-table th[data-sort="hucks_received"],
+#box-score .stats-table th[data-sort="hockey_assists"],
+#box-score .stats-table th[data-sort="turnovers"],
+#box-score .stats-table th[data-sort="stalls"],
+#box-score .stats-table th[data-sort="callahans"],
+#box-score .stats-table th[data-sort="drops"] {
+    width: 26px !important;
+    max-width: 26px !important;
+}
+
+/* Medium columns for yard stats and percentages */
+#box-score .stats-table th[data-sort="yards_received"],
+#box-score .stats-table th[data-sort="yards_thrown"],
+#box-score .stats-table th[data-sort="total_yards"],
+#box-score .stats-table th[data-sort="completion_percentage"],
+#box-score .stats-table th[data-sort="huck_percentage"],
+#box-score .stats-table th[data-sort="yards_per_turn"] {
+    width: 34px !important;
+    max-width: 34px !important;
+}
+
+/* Ensure player name column is left-aligned */
+#box-score .stats-table td:nth-child(1) {
+    text-align: left;
+    padding-left: 6px;
+    font-weight: 500;
+}
+
 /* Player name links in box score */
 .stats-table .player-name a {
     color: var(--primary-color);
     text-decoration: none;
     font-weight: 500;
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .stats-table .player-name a:hover {
