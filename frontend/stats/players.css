@@ -1,0 +1,125 @@
+/* Players Page Specific Styles */
+
+/* Override container for players page - matching teams page */
+.stats-page[data-page="players"] .stats-main {
+    max-width: 1400px;
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
+/* Prevent horizontal scroll on players table */
+.stats-page[data-page="players"] .table-container {
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
+/* Make player stats table fit without scroll */
+.stats-page[data-page="players"] .stats-table {
+    width: 100%;
+    table-layout: auto;
+}
+
+/* Better spacing for player stats columns - matching teams table */
+.stats-page[data-page="players"] .stats-table th,
+.stats-page[data-page="players"] .stats-table td {
+    padding: 8px 8px;
+    font-size: 13px;
+}
+
+/* Player name column - fixed width to prevent overlap */
+.stats-page[data-page="players"] .stats-table th:first-child,
+.stats-page[data-page="players"] .stats-table td:first-child {
+    width: 150px;
+    min-width: 150px;
+    text-align: left;
+    padding-left: 12px;
+    padding-right: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Very narrow columns - 2 digit stats */
+.stats-page[data-page="players"] .stats-table th:nth-child(2), /* GP */
+.stats-page[data-page="players"] .stats-table th:nth-child(3), /* PP */
+.stats-page[data-page="players"] .stats-table th:nth-child(15), /* HA */
+.stats-page[data-page="players"] .stats-table th:nth-child(16), /* T */
+.stats-page[data-page="players"] .stats-table th:nth-child(18), /* S */
+.stats-page[data-page="players"] .stats-table th:nth-child(19), /* D */
+.stats-page[data-page="players"] .stats-table th:nth-child(21), /* H */
+.stats-page[data-page="players"] .stats-table th:nth-child(22), /* HR */
+.stats-page[data-page="players"] .stats-table th:nth-child(24), /* P */
+.stats-page[data-page="players"] .stats-table td:nth-child(2),
+.stats-page[data-page="players"] .stats-table td:nth-child(3),
+.stats-page[data-page="players"] .stats-table td:nth-child(15),
+.stats-page[data-page="players"] .stats-table td:nth-child(16),
+.stats-page[data-page="players"] .stats-table td:nth-child(18),
+.stats-page[data-page="players"] .stats-table td:nth-child(19),
+.stats-page[data-page="players"] .stats-table td:nth-child(21),
+.stats-page[data-page="players"] .stats-table td:nth-child(22),
+.stats-page[data-page="players"] .stats-table td:nth-child(24) {
+    width: 35px;
+    max-width: 40px;
+}
+
+/* Narrow columns - 3 digit stats */
+.stats-page[data-page="players"] .stats-table th:nth-child(4), /* POS */
+.stats-page[data-page="players"] .stats-table th:nth-child(5), /* S */
+.stats-page[data-page="players"] .stats-table th:nth-child(6), /* A */
+.stats-page[data-page="players"] .stats-table th:nth-child(7), /* G */
+.stats-page[data-page="players"] .stats-table th:nth-child(8), /* B */
+.stats-page[data-page="players"] .stats-table th:nth-child(10), /* C */
+.stats-page[data-page="players"] .stats-table th:nth-child(20), /* CAL */
+.stats-page[data-page="players"] .stats-table th:nth-child(25), /* OPP */
+.stats-page[data-page="players"] .stats-table th:nth-child(26), /* DPP */
+.stats-page[data-page="players"] .stats-table th:nth-child(27), /* MPP */
+.stats-page[data-page="players"] .stats-table td:nth-child(4),
+.stats-page[data-page="players"] .stats-table td:nth-child(5),
+.stats-page[data-page="players"] .stats-table td:nth-child(6),
+.stats-page[data-page="players"] .stats-table td:nth-child(7),
+.stats-page[data-page="players"] .stats-table td:nth-child(8),
+.stats-page[data-page="players"] .stats-table td:nth-child(10),
+.stats-page[data-page="players"] .stats-table td:nth-child(20),
+.stats-page[data-page="players"] .stats-table td:nth-child(25),
+.stats-page[data-page="players"] .stats-table td:nth-child(26),
+.stats-page[data-page="players"] .stats-table td:nth-child(27) {
+    width: 45px;
+    max-width: 50px;
+}
+
+/* Medium columns - larger numbers */
+.stats-page[data-page="players"] .stats-table th:nth-child(9), /* +/- */
+.stats-page[data-page="players"] .stats-table th:nth-child(12), /* TOT Y */
+.stats-page[data-page="players"] .stats-table th:nth-child(13), /* TY */
+.stats-page[data-page="players"] .stats-table th:nth-child(14), /* RY */
+.stats-page[data-page="players"] .stats-table th:nth-child(17), /* Y/T */
+.stats-page[data-page="players"] .stats-table td:nth-child(9),
+.stats-page[data-page="players"] .stats-table td:nth-child(12),
+.stats-page[data-page="players"] .stats-table td:nth-child(13),
+.stats-page[data-page="players"] .stats-table td:nth-child(14),
+.stats-page[data-page="players"] .stats-table td:nth-child(17) {
+    width: 55px;
+    max-width: 60px;
+}
+
+/* Percentage columns */
+.stats-page[data-page="players"] .stats-table th:nth-child(11), /* C% */
+.stats-page[data-page="players"] .stats-table th:nth-child(23), /* H% */
+.stats-page[data-page="players"] .stats-table td:nth-child(11),
+.stats-page[data-page="players"] .stats-table td:nth-child(23) {
+    width: 55px;
+    max-width: 60px;
+}
+
+/* OEFF column - wider for 4 digit values */
+.stats-page[data-page="players"] .stats-table th:nth-child(15), /* OEFF */
+.stats-page[data-page="players"] .stats-table td:nth-child(15) {
+    width: 60px;
+    max-width: 65px;
+}
+
+/* Header text */
+.stats-page[data-page="players"] .stats-table thead th {
+    font-size: 12px;
+    padding: 10px 6px;
+}
