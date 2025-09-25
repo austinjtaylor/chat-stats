@@ -175,7 +175,7 @@ body.stats-page {
 }
 
 .table-header {
-    background: var(--surface-hover);
+    background: var(--background);
     padding: 1rem 1.5rem;
     border-bottom: 1px solid var(--border-color);
     display: flex;
@@ -233,7 +233,7 @@ body.stats-page {
     padding: 0.375rem 0.5rem;
     border: 1px solid var(--border-color);
     border-radius: 4px;
-    background: var(--background);
+    background: var(--surface);
     color: var(--text-primary);
     font-size: 0.8125rem;
     min-width: 100px;
