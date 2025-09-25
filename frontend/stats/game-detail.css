@@ -190,13 +190,13 @@ body.sidebar-open .stats-container {
     max-width: 1400px;
     margin: 0 auto;
     width: 100%;
-    padding-top: 60px;
+    padding-top: 20px;
 }
 
 /* Scoreboard Header */
 .game-scoreboard {
     background: var(--bg-secondary);
-    padding: 20px;
+    padding: 0px 20px;
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -285,7 +285,7 @@ body.sidebar-open .stats-container {
 }
 
 .tab-button {
-    padding: 15px 20px;
+    padding: 10px 20px;
     background: none;
     border: none;
     border-bottom: 3px solid transparent;
@@ -307,7 +307,7 @@ body.sidebar-open .stats-container {
 
 /* Tab Content */
 .tab-content {
-    padding: 20px;
+    padding: 0px 20px 20px 20px;
     max-width: 1200px;
     margin: 0 auto;
     width: 100%;

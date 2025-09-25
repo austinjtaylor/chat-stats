@@ -26,7 +26,7 @@ body.stats-page {
 .stats-main {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 4rem 2rem 2rem 2rem; /* Space for fixed menu/settings icons */
+    padding: 1.5rem 2rem 2rem 2rem; /* Space for fixed menu/settings icons */
     min-height: 100vh;
 }
 
