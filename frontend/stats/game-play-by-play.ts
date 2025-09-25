@@ -174,15 +174,18 @@ export class GamePlayByPlay {
                 // So we subtract 90 degrees
                 const rotationAngle = event.direction - 90;
 
+                // Only make goal events green, keep passes white
+                const arrowColor = event.type === 'goal' ? 'color: #4CAF50;' : '';
+
                 iconHtml = `
-                    <span class="event-icon" style="display: inline-block; transform: rotate(${rotationAngle}deg);">
+                    <span class="event-icon" style="display: inline-block; transform: rotate(${rotationAngle}deg); ${arrowColor}">
                         ↑
                     </span>
                 `;
             } else {
                 // Fallback for passes without direction
                 if (event.type === 'goal') {
-                    iconHtml = '<span class="event-icon">⚑</span>';
+                    iconHtml = '<span class="event-icon" style="color: #4CAF50;">⚑</span>';
                 } else {
                     const description = event.description.toLowerCase();
                     if (description.includes('dump')) {
