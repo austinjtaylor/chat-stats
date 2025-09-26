@@ -264,6 +264,14 @@
     border-bottom-color: #424242;
 }
 
+/* Table header tooltips - longer max width for descriptions */
+.table-header-tooltip {
+    max-width: 350px;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.4;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .suggestions-dropdown {

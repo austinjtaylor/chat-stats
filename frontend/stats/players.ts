@@ -2,6 +2,7 @@
 
 import type { PlayerSeasonStats, SortConfig, StatsFilter } from '../types/models';
 import type { StatsResponse, PlayerStatsResponse } from '../types/api';
+import { initializeTableTooltips, playerColumnDescriptions } from '../src/utils/table-tooltips';
 
 interface TeamInfo {
     id: string | number;
@@ -285,6 +286,11 @@ class PlayerStats {
 
             headerRow.appendChild(th);
         });
+
+        // Initialize tooltips for the headers
+        setTimeout(() => {
+            initializeTableTooltips('playersTable', playerColumnDescriptions);
+        }, 0);
     }
 
     async loadPlayerStats(): Promise<void> {

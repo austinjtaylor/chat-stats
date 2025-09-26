@@ -3,6 +3,7 @@
  */
 
 import { PlayerStats } from './game-detail';
+import { initializeTableTooltips, gameBoxScoreColumnDescriptions } from '../src/utils/table-tooltips';
 
 export class GameStatsTable {
     private players: PlayerStats[] = [];
@@ -19,6 +20,11 @@ export class GameStatsTable {
         this.initializeElements();
         this.attachEventListeners();
         this.applyCurrentSortIndicators();
+
+        // Initialize tooltips for the headers
+        setTimeout(() => {
+            initializeTableTooltips('statsTable', gameBoxScoreColumnDescriptions);
+        }, 100);
     }
 
     private initializeElements(): void {

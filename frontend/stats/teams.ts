@@ -2,6 +2,7 @@
 
 import type { TeamSeasonStats, SortConfig, StatsFilter } from '../types/models';
 import type { TeamStatsResponse } from '../types/api';
+import { initializeTableTooltips, teamColumnDescriptions } from '../src/utils/table-tooltips';
 
 interface TeamColumn {
     key: string;
@@ -162,6 +163,11 @@ class TeamStats {
 
             headerRow.appendChild(th);
         });
+
+        // Initialize tooltips for the headers
+        setTimeout(() => {
+            initializeTableTooltips('teamsTable', teamColumnDescriptions);
+        }, 0);
     }
 
     async loadTeamStats(): Promise<void> {
