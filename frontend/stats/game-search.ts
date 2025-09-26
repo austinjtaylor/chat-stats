@@ -156,6 +156,7 @@ export class GameSearch {
             const data = await response.json();
 
             this.gameList = data.games || [];
+            console.log('Loaded games:', this.gameList.length);
             this.updateGameList();
 
             // Return first game if available
@@ -174,8 +175,12 @@ export class GameSearch {
     }
 
     private updateGameList(): void {
-        if (!this.elements.gameList) return;
+        if (!this.elements.gameList) {
+            console.error('gameList element not found');
+            return;
+        }
 
+        console.log('Updating game list with', this.gameList.length, 'games');
         this.elements.gameList.innerHTML = this.gameList.map(game => {
             const date = new Date(game.date).toLocaleDateString('en-US', {
                 month: 'short',
