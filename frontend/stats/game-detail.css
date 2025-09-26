@@ -223,8 +223,9 @@ body.sidebar-open .stats-container {
 .scoreboard-content {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     margin: 0 auto;
+    gap: 80px;
 }
 
 .team-score {
@@ -265,6 +266,7 @@ body.sidebar-open .stats-container {
     background: var(--bg-primary);
     border-radius: 8px;
     padding: 10px;
+    flex-shrink: 0;
 }
 
 .quarter-scores table {
