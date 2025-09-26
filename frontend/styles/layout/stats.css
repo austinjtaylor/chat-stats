@@ -5,8 +5,9 @@
 
 /* Override body constraints for stats pages */
 body.stats-page {
-    overflow: hidden !important;
-    height: 100vh !important;
+    /* Keep body from scrolling - tables scroll internally */
+    overflow: hidden;
+    height: 100vh;
 }
 
 /* Hide the app header on stats pages */
@@ -20,7 +21,7 @@ body.stats-page {
     padding-top: 0;
     background: var(--background);
     color: var(--text-primary);
-    overflow: hidden;
+    overflow: hidden; /* Prevent container scrolling */
     display: flex;
     flex-direction: column;
 }
@@ -31,9 +32,9 @@ body.stats-page {
     margin: 0 auto;
     padding: 1.5rem 2rem 1rem 2rem; /* Reduced bottom padding */
     height: 100vh;
+    overflow: hidden; /* Prevent main area scrolling */
     display: flex;
     flex-direction: column;
-    overflow: hidden;
 }
 
 /* Page Title Style - Similar to Chat Stats title */
@@ -179,11 +180,9 @@ body.stats-page {
     border-radius: 8px;
     padding: 0;
     position: relative;
-    overflow: visible; /* Changed from hidden to allow pagination to show */
+    /* Remove overflow and height constraints for natural scrolling */
     display: flex;
     flex-direction: column;
-    flex: 1;
-    min-height: 0; /* Important for flex children with overflow */
     margin-bottom: 1.5rem;
 }
 
@@ -288,14 +287,12 @@ body.stats-page {
 /* Table Container */
 .table-container {
     overflow-x: auto;
-    overflow-y: auto;
+    /* Remove overflow-y to allow natural page scrolling */
     background: var(--surface);
     /* No borders needed, parent handles them */
     border-radius: 0;
     position: relative;
     margin: 0 -1px 0 -1px; /* Updated margin to not overlap bottom border */
-    flex: 1;
-    min-height: 0; /* Important for flexbox overflow */
 }
 
 

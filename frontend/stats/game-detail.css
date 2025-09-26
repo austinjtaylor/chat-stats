@@ -426,6 +426,17 @@ body.sidebar-open .stats-container {
     border-radius: 0 !important;
 }
 
+/* Ensure sticky headers work in box score */
+#box-score .stats-table thead {
+    position: -webkit-sticky !important; /* Safari support */
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1000 !important; /* Higher z-index */
+    background: var(--bg-primary) !important;
+    /* Ensure opaque background */
+    background-color: var(--bg-primary) !important;
+}
+
 /* Force compact styling for all box score table cells */
 #box-score .stats-table th,
 #box-score .stats-table td {
@@ -521,6 +532,9 @@ body.sidebar-open .stats-container {
 
 .team-stats-table thead {
     background: var(--bg-primary);
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .team-stats-table th {

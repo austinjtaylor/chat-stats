@@ -7,11 +7,7 @@
     padding-right: 2rem;
 }
 
-/* Prevent horizontal scroll on players table */
-.stats-page[data-page="players"] .table-container {
-    overflow-x: auto;
-    overflow-y: auto;
-}
+/* Table container - let stats.css handle overflow */
 
 /* Make player stats table fit without scroll */
 .stats-page[data-page="players"] .stats-table {
@@ -144,4 +140,20 @@
     border-radius: 8px 8px 0 0 !important;
     margin: 0 !important;
     background: var(--surface) !important;
+    /* Add overflow-y and height constraint like box score for sticky headers to work */
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    max-height: calc(100vh - 280px) !important;
+    position: relative !important;
+}
+
+/* Ensure sticky headers work */
+.stats-page[data-page="players"] .stats-table thead {
+    position: -webkit-sticky !important; /* Safari support */
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1000 !important; /* Higher z-index */
+    background: var(--bg-primary) !important;
+    /* Ensure opaque background */
+    background-color: var(--bg-primary) !important;
 }

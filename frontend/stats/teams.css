@@ -10,7 +10,6 @@
 /* Ensure the teams table uses full width */
 .stats-page[data-page="teams"] .table-container {
     width: 100%;
-    overflow-x: auto; /* Allow scroll if needed on smaller screens */
 }
 
 /* Make team stats table fit without scroll */
@@ -109,4 +108,20 @@
     border-radius: 8px !important;
     margin: 0 !important;
     background: var(--surface) !important;
+    /* Add overflow-y and height constraint like box score for sticky headers to work */
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    max-height: calc(100vh - 280px) !important;
+    position: relative !important;
+}
+
+/* Ensure sticky headers work */
+.stats-page[data-page="teams"] .stats-table thead {
+    position: -webkit-sticky !important; /* Safari support */
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1000 !important; /* Higher z-index */
+    background: var(--bg-primary) !important;
+    /* Ensure opaque background */
+    background-color: var(--bg-primary) !important;
 }

@@ -256,11 +256,16 @@
     border-collapse: collapse;
     background: var(--bg-secondary);
     border-radius: 8px;
-    overflow: hidden;
+    /* Remove overflow: hidden as it breaks sticky positioning */
 }
 
 .stats-table thead {
     background: var(--bg-primary);
+    position: -webkit-sticky; /* Safari support */
+    position: sticky;
+    top: 0;
+    z-index: 1000; /* Higher z-index to ensure it stays on top */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .stats-table th {
