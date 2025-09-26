@@ -373,7 +373,7 @@ body.sidebar-open .stats-container {
 
 /* Team Toggle in Box Score Header */
 #box-score .table-header {
-    justify-content: space-between;
+    justify-content: flex-start;
     flex-shrink: 0;
     background: transparent !important;
     border: none !important;
@@ -382,9 +382,7 @@ body.sidebar-open .stats-container {
     border-radius: 0 !important;
 }
 
-#box-score .table-title {
-    margin-right: auto;
-}
+/* Removed table-title as it's no longer used */
 
 .team-toggle {
     display: flex;
