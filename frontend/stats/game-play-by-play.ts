@@ -36,6 +36,8 @@ export class GamePlayByPlay {
     private playByPlayData: PlayByPlayData | null = null;
     private expandedPoints: Set<number> = new Set();
     private playByPlayFilter: 'home' | 'away' = 'home';
+    private homeCity: string | undefined;
+    private awayCity: string | undefined;
 
     // City abbreviations cache
     private getCityAbbreviation: (city: string) => string;
@@ -58,6 +60,10 @@ export class GamePlayByPlay {
         const container = document.getElementById('play-by-play');
         if (!container || !this.playByPlayData) return;
 
+        // Store cities if provided
+        if (homeCity !== undefined) this.homeCity = homeCity;
+        if (awayCity !== undefined) this.awayCity = awayCity;
+
         // Filter points based on team filter
         let points = this.playByPlayData.points;
         points = points.filter(point => point.team === this.playByPlayFilter);
@@ -78,9 +84,9 @@ export class GamePlayByPlay {
                         <span>Filter by team</span>
                         <div class="team-filter-buttons">
                             <button class="team-filter-btn ${this.playByPlayFilter === 'away' ? 'active' : ''}"
-                                    data-team="away">${awayCity ? this.getCityAbbreviation(awayCity) : 'AWAY'}</button>
+                                    data-team="away">${this.awayCity ? this.getCityAbbreviation(this.awayCity) : 'AWAY'}</button>
                             <button class="team-filter-btn ${this.playByPlayFilter === 'home' ? 'active' : ''}"
-                                    data-team="home">${homeCity ? this.getCityAbbreviation(homeCity) : 'HOME'}</button>
+                                    data-team="home">${this.homeCity ? this.getCityAbbreviation(this.homeCity) : 'HOME'}</button>
                         </div>
                     </div>
                     <div class="control-section">
