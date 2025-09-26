@@ -260,8 +260,8 @@ class GameDetailPage {
         const formatStat = (stat?: StatDetail): string => {
             if (!stat) return '-';
             const denominator = stat.attempted !== undefined ? stat.attempted : stat.total;
-            if (denominator === undefined || denominator === 0) return '0% (0/0)';
-            return `${stat.percentage}% (${stat.made}/${denominator})`;
+            if (denominator === undefined || denominator === 0) return '0 (0/0)';
+            return `${stat.percentage} (${stat.made}/${denominator})`;
         };
 
         // Update away team stats

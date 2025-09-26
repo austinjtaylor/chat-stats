@@ -107,15 +107,15 @@ export class GameStatsTable {
                 <td class="numeric">${player.assists}</td>
                 <td class="numeric">${player.goals}</td>
                 <td class="numeric">${player.blocks}</td>
-                <td class="numeric">${player.plus_minus >= 0 ? '+' : ''}${player.plus_minus}</td>
+                <td class="numeric">${player.plus_minus}</td>
                 <td class="numeric">${player.yards_received}</td>
                 <td class="numeric">${player.yards_thrown}</td>
                 <td class="numeric">${player.total_yards}</td>
                 <td class="numeric">${player.completions}</td>
-                <td class="numeric">${player.completion_percentage.toFixed(1)}%</td>
+                <td class="numeric">${player.completion_percentage.toFixed(1)}</td>
                 <td class="numeric">${player.hucks_completed}</td>
                 <td class="numeric">${player.hucks_received}</td>
-                <td class="numeric">${player.huck_percentage.toFixed(1)}%</td>
+                <td class="numeric">${player.huck_percentage.toFixed(1)}</td>
                 <td class="numeric">${player.hockey_assists}</td>
                 <td class="numeric">${player.turnovers}</td>
                 <td class="numeric">${player.yards_per_turn !== null ? player.yards_per_turn.toFixed(1) : '-'}</td>

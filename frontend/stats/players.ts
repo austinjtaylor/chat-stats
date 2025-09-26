@@ -366,15 +366,15 @@ class PlayerStats {
                         value = player.score_total || 0;
                         return `<td class="numeric">${this.formatValue(value)}</td>`;
                     case 'calculated_plus_minus':
-                        return `<td class="numeric">${this.formatValue(player[col.key as keyof PlayerSeasonStats] || 0, true)}</td>`;
+                        return `<td class="numeric">${this.formatValue(player[col.key as keyof PlayerSeasonStats] || 0, false)}</td>`;
                     case 'completion_percentage':
                         // Backend already returns this as a percentage value (e.g., 95.79)
                         const compPct = player[col.key as keyof PlayerSeasonStats] as number;
-                        return `<td class="numeric">${compPct ? `${compPct.toFixed(1)}%` : '-'}</td>`;
+                        return `<td class="numeric">${compPct ? compPct.toFixed(1) : '-'}</td>`;
                     case 'huck_percentage':
                         // Backend calculates this, but we may need to calculate for older data
                         const huckPct = player.huck_percentage || this.calculateHuckPercentage(player);
-                        return `<td class="numeric">${huckPct ? `${huckPct.toFixed(1)}%` : '-'}</td>`;
+                        return `<td class="numeric">${huckPct ? huckPct.toFixed(1) : '-'}</td>`;
                     case 'yards_per_turn':
                         const yPerTurn = player.yards_per_turn;
                         return `<td class="numeric">${yPerTurn !== null && yPerTurn !== undefined ? yPerTurn.toFixed(1) : '-'}</td>`;
@@ -414,7 +414,7 @@ class PlayerStats {
             return window.Format.percentage(value, 1);
         }
         if (value === null || value === undefined || isNaN(value)) return '-';
-        return `${parseFloat(String(value)).toFixed(1)}%`;
+        return parseFloat(String(value)).toFixed(1);
     }
 
     renderPagination(): void {

@@ -143,7 +143,6 @@ class UFAStats {
         // Plus/minus
         if (key === 'plus_minus' || key === 'calculated_plus_minus') {
             const num = Number(value);
-            if (num > 0) return `+${num}`;
             return String(num);
         }
 

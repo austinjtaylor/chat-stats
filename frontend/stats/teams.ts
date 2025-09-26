@@ -247,7 +247,7 @@ class TeamStats {
 
     formatPercentage(value: number | null | undefined): string {
         if (value === null || value === undefined || isNaN(value)) return '-';
-        return `${parseFloat(String(value)).toFixed(1)}%`;
+        return parseFloat(String(value)).toFixed(1);
     }
 
     updateTeamCount(): void {
