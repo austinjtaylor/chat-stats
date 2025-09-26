@@ -111,7 +111,7 @@
     /* Add overflow-y and height constraint like box score for sticky headers to work */
     overflow-x: auto !important;
     overflow-y: auto !important;
-    max-height: calc(100vh - 280px) !important;
+    max-height: calc(100vh - 155px) !important;
     position: relative !important;
 }
 
