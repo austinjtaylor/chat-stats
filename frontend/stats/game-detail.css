@@ -355,9 +355,12 @@ body.sidebar-open .stats-container {
 /* Box Score Table Container Adjustments */
 #box-score {
     flex: 1;
-    display: flex;
     flex-direction: column;
     overflow: hidden;
+}
+
+#box-score.active {
+    display: flex;
 }
 
 #box-score .table-section {
@@ -570,9 +573,21 @@ body.sidebar-open .stats-container {
 }
 
 /* Play-by-Play Styles */
+#play-by-play {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 100%;
+}
+
+#play-by-play.active {
+    display: block;
+}
+
 .play-by-play-container {
     max-width: 1200px;
     margin: 0 auto;
+    padding: 20px 0;
 }
 
 .play-by-play-header {
