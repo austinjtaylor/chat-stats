@@ -60,6 +60,11 @@
     --welcome-border: #2563eb;
     --code-bg: #1e293b;
     --overlay: rgba(0, 0, 0, 0.5);
+
+    /* Additional Background Colors for Stats Tables */
+    --bg-primary: #1e293b;
+    --bg-secondary: #0f172a;
+    --bg-hover: rgba(37, 99, 235, 0.15);
 }
 
 /* Light Theme */
@@ -111,6 +116,11 @@
     --welcome-border: #2563eb;
     --code-bg: #f1f5f9;
     --overlay: rgba(0, 0, 0, 0.3);
+
+    /* Additional Background Colors for Stats Tables */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --bg-hover: rgba(37, 99, 235, 0.08);
 }
 
 /* Apply theme to body */

@@ -318,8 +318,27 @@
     text-align: center;
 }
 
+/* Alternating row colors (zebra striping) */
+.stats-table tbody tr:nth-child(even) {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="dark"] .stats-table tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+[data-theme="light"] .stats-table tbody tr:nth-child(even) {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+/* Enhanced hover effect with smooth transition */
+.stats-table tbody tr {
+    transition: background-color 0.15s ease;
+}
+
 .stats-table tbody tr:hover {
-    background: var(--bg-hover);
+    background: var(--bg-hover) !important;
+    position: relative;
 }
 
 .stats-table .player-name {

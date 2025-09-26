@@ -215,7 +215,7 @@ body.sidebar-open .stats-container {
 
 /* Scoreboard Header */
 .game-scoreboard {
-    background: var(--bg-secondary);
+    background: transparent;
     padding: 0px 20px;
     border-bottom: 1px solid var(--border-color);
 }
@@ -237,7 +237,7 @@ body.sidebar-open .stats-container {
 .team-logo {
     width: 60px;
     height: 60px;
-    background: var(--bg-primary);
+    background: transparent;
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -263,7 +263,7 @@ body.sidebar-open .stats-container {
 }
 
 .quarter-scores {
-    background: var(--bg-primary);
+    background: transparent;
     border-radius: 8px;
     padding: 10px;
     flex-shrink: 0;
