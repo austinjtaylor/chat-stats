@@ -183,7 +183,7 @@ function setupThemeToggle(): void {
         const savedTheme = localStorage.getItem('theme') || 'dark';
         document.documentElement.setAttribute('data-theme', savedTheme);
 
-        // Update switch state
+        // Update switch state (active = dark mode ON, inactive = light mode)
         if (savedTheme === 'dark') {
             themeSwitch.classList.add('active');
         } else {
@@ -198,7 +198,7 @@ function setupThemeToggle(): void {
             document.documentElement.setAttribute('data-theme', newTheme);
             localStorage.setItem('theme', newTheme);
 
-            // Update switch state
+            // Update switch state (active = dark mode ON, inactive = light mode)
             if (newTheme === 'dark') {
                 themeSwitch.classList.add('active');
             } else {

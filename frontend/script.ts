@@ -119,33 +119,6 @@ function setupTryAskingDropdown(buttonId: string, dropdownId: string): void {
     return;
 }
 
-function setupThemeToggleOld(): void {
-    // Theme toggle functionality
-    const themeToggleItem = document.getElementById('themeToggleItem');
-    const themeSwitch = document.getElementById('themeSwitch');
-
-    if (themeToggleItem && themeSwitch) {
-        // Check current theme
-        const currentTheme = localStorage.getItem('theme') || 'dark';
-        if (currentTheme === 'light') {
-            themeSwitch.classList.add('active');
-        }
-
-        themeToggleItem.addEventListener('click', () => {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-
-            if (newTheme === 'light') {
-                themeSwitch.classList.add('active');
-            } else {
-                themeSwitch.classList.remove('active');
-            }
-        });
-    }
-}
 
 
 // Chat Functions

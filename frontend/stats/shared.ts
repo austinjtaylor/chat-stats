@@ -278,33 +278,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedTheme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
 
-    // Dropdown functionality is now handled by dropdown.ts which is imported in the entry files
-    // This provides click-based dropdowns instead of hover-based
-
-    // Theme toggle functionality
-    const themeToggleItem = document.getElementById('themeToggleItem');
-    const themeSwitch = document.getElementById('themeSwitch');
-
-    if (themeToggleItem && themeSwitch) {
-        // Check current theme and update switch
-        if (savedTheme === 'light') {
-            themeSwitch.classList.add('active');
-        }
-
-        themeToggleItem.addEventListener('click', () => {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-
-            if (newTheme === 'light') {
-                themeSwitch.classList.add('active');
-            } else {
-                themeSwitch.classList.remove('active');
-            }
-        });
-    }
+    // Dropdown and theme toggle functionality is now handled by dropdown.ts which is imported in the entry files
+    // This provides click-based dropdowns and proper theme toggle behavior
 });
 
 // Export for use in other scripts

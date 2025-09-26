@@ -18,43 +18,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Theme toggle functionality
-    const themeToggle = document.getElementById('themeToggle');
-    const sunIcon = document.getElementById('sunIcon') as HTMLElement | null;
-    const moonIcon = document.getElementById('moonIcon') as HTMLElement | null;
-
-    // Load saved theme or default to dark
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-
-    // Update icon visibility
-    if (sunIcon && moonIcon) {
-        if (savedTheme === 'light') {
-            sunIcon.style.display = 'block';
-            moonIcon.style.display = 'none';
-        } else {
-            sunIcon.style.display = 'none';
-            moonIcon.style.display = 'block';
-        }
-    }
-
-    // Toggle theme on click
-    themeToggle?.addEventListener('click', () => {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-
-        document.documentElement.setAttribute('data-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
-
-        // Update icon visibility
-        if (sunIcon && moonIcon) {
-            if (newTheme === 'light') {
-                sunIcon.style.display = 'block';
-                moonIcon.style.display = 'none';
-            } else {
-                sunIcon.style.display = 'none';
-                moonIcon.style.display = 'block';
-            }
-        }
-    });
+    // Theme functionality is handled in dropdown.ts
 });
