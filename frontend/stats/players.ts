@@ -360,14 +360,10 @@ class PlayerStats {
                         const name = player.player_name || `${player.first_name || ''} ${player.last_name || ''}`.trim();
                         return `<td class="player-name">${name}</td>`;
                     case 'total_points_played':
-                        value = (player.o_points_for || 0) + (player.d_points_for || 0);
-                        // Round to 1 decimal place to avoid floating point precision issues
-                        value = Math.round(value * 10) / 10;
+                        value = player.total_points_played || 0;
                         return `<td class="numeric">${this.formatValue(value)}</td>`;
                     case 'score_total':
-                        value = (player.goals || 0) + (player.assists || 0);
-                        // Round to 1 decimal place to avoid floating point precision issues
-                        value = Math.round(value * 10) / 10;
+                        value = player.score_total || 0;
                         return `<td class="numeric">${this.formatValue(value)}</td>`;
                     case 'calculated_plus_minus':
                         return `<td class="numeric">${this.formatValue(player[col.key as keyof PlayerSeasonStats] || 0, true)}</td>`;
