@@ -208,7 +208,6 @@ body.sidebar-open .stats-container {
 .stats-main {
     display: flex;
     flex-direction: column;
-    max-width: 1600px;
     margin: 0 auto;
     width: 100%;
     padding-top: 20px;
@@ -225,7 +224,6 @@ body.sidebar-open .stats-container {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    max-width: 1400px;
     margin: 0 auto;
 }
 
@@ -299,7 +297,6 @@ body.sidebar-open .stats-container {
 }
 
 .tabs-container {
-    max-width: 1400px;
     margin: 0 auto;
     display: flex;
     gap: 20px;
@@ -329,7 +326,6 @@ body.sidebar-open .stats-container {
 /* Tab Content */
 .tab-content {
     padding: 0px 20px 0px 20px;
-    max-width: 1400px;
     margin: 0 auto;
     width: 100%;
     flex: 1;
@@ -507,14 +503,14 @@ body.sidebar-open .stats-container {
 }
 
 /* Team Stats Table Styles */
-.team-stats-container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
+#team-stats {
+    padding: 20px 2%;
 }
 
-.team-stats-table {
-    width: 100%;
+#team-stats .team-stats-table {
+    width: 50%;
+    min-width: calc(100vw - 600px);
+    margin: 0 auto;
     border-collapse: collapse;
     background: var(--bg-secondary);
     border-radius: 8px;
@@ -534,11 +530,11 @@ body.sidebar-open .stats-container {
 }
 
 .team-stats-table th.stat-category {
-    width: 40%;
+    width: 25%;
 }
 
 .team-stats-table th.team-column {
-    width: 30%;
+    width: 25%;
     text-align: center;
     color: var(--primary-color);
 }
