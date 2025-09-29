@@ -1,15 +1,15 @@
 """
-Tests for the play-by-play service v2.
+Tests for the play-by-play service.
 """
 
 from unittest.mock import Mock
 
 import pytest
-from services.play_by_play_service_v2 import calculate_play_by_play
+from services.play_by_play_service import calculate_play_by_play
 
 
-class TestPlayByPlayServiceV2:
-    """Test suite for play-by-play service v2 functionality."""
+class TestPlayByPlayService:
+    """Test suite for play-by-play service functionality."""
 
     @pytest.fixture
     def mock_stats_system(self):
