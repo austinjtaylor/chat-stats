@@ -71,7 +71,9 @@ def mock_sequential_anthropic_client():
 @pytest.fixture
 def ai_generator_with_mock_client(mock_anthropic_client):
     """AIGenerator instance with mocked Anthropic client"""
-    with patch("ai_generator.anthropic.Anthropic", return_value=mock_anthropic_client):
+    with patch(
+        "core.ai_generator.anthropic.Anthropic", return_value=mock_anthropic_client
+    ):
         generator = AIGenerator("test-key", "test-model")
         generator.client = mock_anthropic_client
         return generator
@@ -534,7 +536,7 @@ class TestSequentialToolCalling:
         # Include conversation history
         conversation_history = "User: Previous question\nAssistant: Previous answer"
 
-        result = generator.generate_response(
+        generator.generate_response(
             "Current question",
             conversation_history=conversation_history,
             tools=tool_manager.get_tool_definitions(),
@@ -564,7 +566,7 @@ class TestSequentialToolCalling:
             ]
         )
 
-        result = generator.generate_response(
+        generator.generate_response(
             "Compare the MCP course with the Chroma course - what are the key differences?",
             tools=tool_manager.get_tool_definitions(),
             tool_manager=tool_manager,

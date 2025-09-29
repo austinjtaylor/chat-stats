@@ -11,7 +11,9 @@ from typing import Any
 
 # Add both parent directory and backend to path for proper import resolution
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))  # For backend.* imports
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "backend"))  # For internal backend imports
+sys.path.append(
+    os.path.join(os.path.dirname(__file__), "..", "backend")
+)  # For internal backend imports
 
 from backend.data.database import get_db
 
@@ -82,7 +84,7 @@ class GameEventsVerifier:
             return ""
 
         query = """
-        SELECT full_name FROM players 
+        SELECT full_name FROM players
         WHERE player_id = :player_id AND (team_id = :team_id OR :team_id IS NULL)
         LIMIT 1
         """
@@ -149,18 +151,14 @@ class GameEventsVerifier:
         first_point_home = []
         first_point_away = []
 
-        goal_found = False
         for event in home_events:
             first_point_home.append(event)
             if event["event_type"] == 19:  # Goal
-                goal_found = True
                 break
 
-        goal_found = False
         for event in away_events:
             first_point_away.append(event)
             if event["event_type"] == 19:  # Goal
-                goal_found = True
                 break
 
         return first_point_home, first_point_away
@@ -267,9 +265,7 @@ class GameEventsVerifier:
                 print(f"▼ {current_score}  {line_type}  {time_str}")
                 print(f"    {description}")
             else:
-                time_info = (
-                    f"{event.get('event_time', '')}s" if event.get("event_time") else ""
-                )
+                (f"{event.get('event_time', '')}s" if event.get("event_time") else "")
                 print(f"{icon}  {yard_line}  {description}")
 
         # Display Home Team Perspective (like BOS in the screenshot)
@@ -293,9 +289,7 @@ class GameEventsVerifier:
                 print(f"▼ {current_score}  {line_type}  {time_str}")
                 print(f"    {description}")
             else:
-                time_info = (
-                    f"{event.get('event_time', '')}s" if event.get("event_time") else ""
-                )
+                (f"{event.get('event_time', '')}s" if event.get("event_time") else "")
                 print(f"{icon}  {yard_line}  {description}")
 
 

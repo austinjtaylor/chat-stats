@@ -13,7 +13,9 @@ from datetime import datetime, timedelta
 
 # Add both parent directory and backend to path for proper import resolution
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))  # For backend.* imports
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "backend"))  # For internal backend imports
+sys.path.append(
+    os.path.join(os.path.dirname(__file__), "..", "backend")
+)  # For internal backend imports
 
 from backend.config import config
 from backend.data.database import get_db
@@ -86,7 +88,7 @@ class DatabaseSetup:
             year INTEGER,
             UNIQUE(team_id, year)
         );
-        
+
         CREATE TABLE IF NOT EXISTS players (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             player_id VARCHAR(50),
@@ -99,7 +101,7 @@ class DatabaseSetup:
             year INTEGER,
             UNIQUE(player_id, year)
         );
-        
+
         CREATE TABLE IF NOT EXISTS games (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             game_id VARCHAR(100),
@@ -113,7 +115,7 @@ class DatabaseSetup:
             year INTEGER,
             UNIQUE(game_id)
         );
-        
+
         CREATE TABLE IF NOT EXISTS player_game_stats (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             player_id VARCHAR(50),
@@ -131,7 +133,7 @@ class DatabaseSetup:
             year INTEGER,
             UNIQUE(player_id, game_id)
         );
-        
+
         CREATE TABLE IF NOT EXISTS player_season_stats (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             player_id VARCHAR(50),
@@ -146,7 +148,7 @@ class DatabaseSetup:
             avg_assists_per_game REAL DEFAULT 0.0,
             UNIQUE(player_id, year)
         );
-        
+
         CREATE TABLE IF NOT EXISTS team_season_stats (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             team_id VARCHAR(50),
@@ -185,7 +187,7 @@ class DatabaseSetup:
 
         try:
             with open(sample_file) as f:
-                data = json.load(f)
+                json.load(f)
 
             # Import using stats processor
             result = self.stats_processor.import_from_json(sample_file)
@@ -423,8 +425,8 @@ class DatabaseSetup:
 
                     self.db.execute_query(
                         """
-                        INSERT INTO player_game_stats 
-                        (player_id, game_id, team_id, goals, assists, blocks, turnovers, 
+                        INSERT INTO player_game_stats
+                        (player_id, game_id, team_id, goals, assists, blocks, turnovers,
                          catches, completions, throwaways, drops, stalls, year)
                         VALUES (:player_id, :game_id, :team_id, :goals, :assists, :blocks, :turnovers,
                                 :catches, :completions, :throwaways, :drops, :stalls, :year)

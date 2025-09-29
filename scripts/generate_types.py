@@ -7,32 +7,30 @@ ensuring frontend-backend type consistency.
 """
 
 import json
-import subprocess
+import re
 import sys
 from pathlib import Path
-from typing import Dict, Any, List, Optional
-import tempfile
-import re
+from typing import Any
 
 # Add backend to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from backend.models.db import (
-    Team,
-    Player,
-    Game,
-    PlayerGameStats,
-    PlayerSeasonStats,
-    TeamSeasonStats,
-    StatsQuery,
-)
 from backend.models.api import (
+    DataPoint,
+    PlayerSearchResponse,
     QueryRequest,
     QueryResponse,
     StatsResponse,
-    PlayerSearchResponse,
     TeamSearchResponse,
-    DataPoint,
+)
+from backend.models.db import (
+    Game,
+    Player,
+    PlayerGameStats,
+    PlayerSeasonStats,
+    StatsQuery,
+    Team,
+    TeamSeasonStats,
 )
 
 # Map of Pydantic models to TypeScript file names
@@ -85,7 +83,7 @@ def python_type_to_typescript(python_type: str) -> str:
 
     # Handle list types
     if "List[" in python_type or "list[" in python_type:
-        inner_type = re.search(r'\[(.*?)\]', python_type).group(1)
+        inner_type = re.search(r"\[(.*?)\]", python_type).group(1)
         return f"{python_type_to_typescript(inner_type)}[]"
 
     # Handle dict types
@@ -105,9 +103,9 @@ def generate_typescript_from_pydantic(model) -> str:
 
     # Start building the interface
     lines = []
-    lines.append(f"/**")
+    lines.append("/**")
     lines.append(f" * {description}")
-    lines.append(f" */")
+    lines.append(" */")
     lines.append(f"export interface {model_name} {{")
 
     # Process properties
@@ -177,7 +175,7 @@ def generate_typescript_from_pydantic(model) -> str:
     return "\n".join(lines)
 
 
-def generate_types_for_group(group_name: str, group_config: Dict[str, Any]):
+def generate_types_for_group(group_name: str, group_config: dict[str, Any]):
     """Generate TypeScript types for a group of models."""
     models = group_config["models"]
     output_path = Path("frontend/types") / group_config["output"]
@@ -234,16 +232,18 @@ def add_npm_script():
     package_json_path = Path("frontend/package.json")
 
     if package_json_path.exists():
-        with open(package_json_path, 'r') as f:
+        with open(package_json_path) as f:
             package_data = json.load(f)
 
         # Check if script already exists
         if "generate-types" not in package_data.get("scripts", {}):
-            package_data["scripts"]["generate-types"] = "cd .. && uv run python scripts/generate_types.py"
+            package_data["scripts"][
+                "generate-types"
+            ] = "cd .. && uv run python scripts/generate_types.py"
 
-            with open(package_json_path, 'w') as f:
+            with open(package_json_path, "w") as f:
                 json.dump(package_data, f, indent=2)
-                f.write('\n')  # Add newline at end of file
+                f.write("\n")  # Add newline at end of file
 
             print("✓ Added 'generate-types' script to package.json")
 

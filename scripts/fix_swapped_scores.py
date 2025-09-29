@@ -10,7 +10,9 @@ import sys
 
 # Add both parent directory and backend to path for proper import resolution
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))  # For backend.* imports
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "backend"))  # For internal backend imports
+sys.path.append(
+    os.path.join(os.path.dirname(__file__), "..", "backend")
+)  # For internal backend imports
 
 from backend.data.database import get_db
 
@@ -26,8 +28,8 @@ def fix_swapped_scores():
     try:
         # First, let's verify the issue exists by checking a known game
         test_query = """
-        SELECT game_id, home_team_id, away_team_id, home_score, away_score 
-        FROM games 
+        SELECT game_id, home_team_id, away_team_id, home_score, away_score
+        FROM games
         WHERE game_id = '2025-08-23-BOS-MIN'
         """
 
@@ -44,7 +46,7 @@ def fix_swapped_scores():
         logger.info("Swapping home_score and away_score for all games...")
 
         swap_query = """
-        UPDATE games 
+        UPDATE games
         SET home_score = away_score,
             away_score = home_score
         """
@@ -64,7 +66,7 @@ def fix_swapped_scores():
 
         # Show some recent games to verify
         verify_query = """
-        SELECT g.game_id, 
+        SELECT g.game_id,
                ht.name as home_team_name, g.home_score,
                at.name as away_team_name, g.away_score
         FROM games g

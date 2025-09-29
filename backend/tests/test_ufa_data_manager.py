@@ -468,7 +468,7 @@ class TestImportFromAPI:
         data_manager._import_players_from_api = Mock(return_value=0)
         data_manager._import_games_from_api = Mock(return_value=0)
 
-        result = data_manager.import_from_api()  # No years specified
+        data_manager.import_from_api()  # No years specified
 
         # Should use default years (2012-2025 excluding 2020)
         teams_call = data_manager._mock_api_client.get_teams.call_args[1]["years"]
@@ -534,7 +534,7 @@ class TestImportHelpers:
         ]
         years = [2024]
 
-        result = data_manager._import_teams_from_api(teams_data, years)
+        data_manager._import_teams_from_api(teams_data, years)
 
         # Should call database execute_query for each team/year combo
         assert data_manager._mock_db.execute_query.call_count >= 1
@@ -565,7 +565,7 @@ class TestImportHelpers:
             }
         ]
 
-        result = data_manager._import_players_from_api(players_data)
+        data_manager._import_players_from_api(players_data)
 
         # Should insert player into database
         assert data_manager._mock_db.execute_query.call_count >= 1
@@ -594,7 +594,7 @@ class TestImportHelpers:
             }
         ]
 
-        result = data_manager._import_games_from_api(games_data)
+        data_manager._import_games_from_api(games_data)
 
         # Should insert game into database
         assert data_manager._mock_db.execute_query.call_count >= 1

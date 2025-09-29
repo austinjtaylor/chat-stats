@@ -2,8 +2,15 @@
 SQL query building helpers and data conversion utilities.
 """
 
+from typing import Any
 
-def get_sort_column(sort_key, is_career=False, per_game=False, team=None):
+
+def get_sort_column(
+    sort_key: str,
+    is_career: bool = False,
+    per_game: bool = False,
+    team: str | None = None,
+) -> str:
     """Map sort keys to actual database columns with proper table prefixes"""
 
     if is_career:
@@ -54,10 +61,10 @@ def get_sort_column(sort_key, is_career=False, per_game=False, team=None):
             team_filter = (
                 f" AND pgs_sub.team_id = '{team}'" if team and team != "all" else ""
             )
-            games_played_expr = f"""(SELECT COUNT(DISTINCT pgs_sub.game_id) 
-                 FROM player_game_stats pgs_sub 
+            games_played_expr = f"""(SELECT COUNT(DISTINCT pgs_sub.game_id)
+                 FROM player_game_stats pgs_sub
                  JOIN games g_sub ON pgs_sub.game_id = g_sub.game_id
-                 WHERE pgs_sub.player_id = pss.player_id 
+                 WHERE pgs_sub.player_id = pss.player_id
                  AND (pgs_sub.o_points_played > 0 OR pgs_sub.d_points_played > 0 OR pgs_sub.seconds_played > 0 OR pgs_sub.goals > 0 OR pgs_sub.assists > 0){team_filter})"""
             return f"CASE WHEN {games_played_expr} > 0 THEN CAST({base_column} AS REAL) / {games_played_expr} ELSE 0 END"
 
@@ -114,7 +121,7 @@ def get_sort_column(sort_key, is_career=False, per_game=False, team=None):
     return base_column
 
 
-def convert_to_per_game_stats(players):
+def convert_to_per_game_stats(players: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Convert player statistics to per-game averages."""
     for player in players:
         games = player["games_played"]

@@ -9,9 +9,9 @@ from utils.stats import get_current_season
 
 
 def get_player_stats(
-    db,
+    db: Any,
     player_name: str,
-    season: str | None = None,
+    season: int | None = None,
     stat_type: str = "season",
     game_date: str | None = None,
 ) -> dict[str, Any]:
@@ -99,7 +99,7 @@ def get_player_stats(
 
 
 def get_league_leaders(
-    db, category: str, season: str | None = None, limit: int = 3
+    db: Any, category: str, season: int | None = None, limit: int = 3
 ) -> dict[str, Any]:
     """Get league leaders in a statistical category."""
     # Get season if not provided
@@ -182,9 +182,9 @@ def get_league_leaders(
 
 
 def compare_players(
-    db,
+    db: Any,
     player_names: list[str],
-    season: str | None = None,
+    season: int | None = None,
     categories: list[str] | None = None,
 ) -> dict[str, Any]:
     """Compare multiple players."""
@@ -244,7 +244,7 @@ def compare_players(
 
 
 def search_players(
-    db,
+    db: Any,
     search_term: str | None = None,
     team_name: str | None = None,
     position: str | None = None,
@@ -279,7 +279,7 @@ def search_players(
 
 
 def get_worst_performers(
-    db, category: str, season: str | None = None, limit: int = 10
+    db: Any, category: str, season: int | None = None, limit: int = 10
 ) -> dict[str, Any]:
     """Get players with worst performance in a category."""
     # Get season if not provided

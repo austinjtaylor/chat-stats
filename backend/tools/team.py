@@ -9,7 +9,7 @@ from utils.stats import get_current_season
 
 
 def get_team_stats(
-    db, team_name: str, season: str | None = None, include_roster: bool = False
+    db: Any, team_name: str, season: int | None = None, include_roster: bool = False
 ) -> dict[str, Any]:
     """Get team statistics."""
     # Find team
@@ -108,8 +108,8 @@ def get_team_stats(
 
 
 def get_standings(
-    db,
-    season: str | None = None,
+    db: Any,
+    season: int | None = None,
     conference: str | None = None,
     division: str | None = None,
 ) -> dict[str, Any]:
@@ -125,7 +125,7 @@ def get_standings(
     JOIN teams t ON tss.team_id = t.team_id AND tss.year = t.year
     WHERE tss.year = :season
     """
-    params = {"season": season}
+    params: dict[str, Any] = {"season": season}
 
     if division:
         query += " AND LOWER(t.division_name) = LOWER(:division)"

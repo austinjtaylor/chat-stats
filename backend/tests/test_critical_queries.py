@@ -38,7 +38,7 @@ class TestCriticalQueries:
         from tools.manager import StatsToolManager
 
         # Create tool manager
-        tool_manager = StatsToolManager(stats_system.db)
+        StatsToolManager(stats_system.db)
 
         # Mock a simple game query
         with patch.object(stats_system.db, "execute_query") as mock_query:
@@ -247,7 +247,7 @@ class TestCriticalQueries:
 
         # Query for redzone goals
         query = """
-        SELECT 
+        SELECT
             team,
             COUNT(*) as total_goals,
             SUM(CASE WHEN thrower_y >= 80 AND thrower_y < 100 THEN 1 ELSE 0 END) as redzone_goals

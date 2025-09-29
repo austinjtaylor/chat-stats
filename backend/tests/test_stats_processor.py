@@ -226,7 +226,7 @@ class TestImportPlayers:
             [{"id": "test-team"}],  # Team lookup returns string ID
         ]
 
-        count = stats_processor.import_players(player_data)
+        stats_processor.import_players(player_data)
 
         # Verify team_id was set correctly
         insert_call = mock_db.insert_data.call_args[0][1]

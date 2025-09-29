@@ -2,10 +2,8 @@
 Quarter score service for calculating quarterly game progression.
 """
 
-from typing import Dict, List
 
-
-def calculate_quarter_scores(stats_system, game_id: str) -> Dict[str, List[int]]:
+def calculate_quarter_scores(stats_system, game_id: str) -> dict[str, list[int]]:
     """
     Calculate quarter-by-quarter scores from game events.
     Returns individual scores for each quarter.
@@ -73,7 +71,4 @@ def calculate_quarter_scores(stats_system, game_id: str) -> Dict[str, List[int]]
     else:
         away_quarters = [0, 0, 0, 0]
 
-    return {
-        "home": home_quarters,
-        "away": away_quarters
-    }
+    return {"home": home_quarters, "away": away_quarters}

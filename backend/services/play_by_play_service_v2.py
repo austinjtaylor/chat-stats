@@ -4,10 +4,12 @@ This version processes each team's events separately to maintain complete detail
 """
 
 import math
-from typing import List, Dict, Any
+from typing import Any
 
 
-def process_team_events(events: List[Dict], team: str, game_year: int, stats_system) -> List[Dict[str, Any]]:
+def process_team_events(
+    events: list[dict], team: str, game_year: int, stats_system
+) -> list[dict[str, Any]]:
     """
     Process events for a single team to build their play-by-play perspective.
 
@@ -48,7 +50,9 @@ def process_team_events(events: List[Dict], team: str, game_year: int, stats_sys
                 if quarter_end_time is not None:
                     current_point["end_time"] = quarter_end_time
                     if current_point["start_time"] is not None:
-                        current_point["duration_seconds"] = max(0, quarter_end_time - current_point["start_time"])
+                        current_point["duration_seconds"] = max(
+                            0, quarter_end_time - current_point["start_time"]
+                        )
 
                 current_point["events"] = current_point_events
                 points.append(current_point)
@@ -75,12 +79,18 @@ def process_team_events(events: List[Dict], team: str, game_year: int, stats_sys
                     absolute_time = quarter_offset + event["event_time"]
                     current_point["end_time"] = absolute_time
                     if current_point["start_time"] is not None:
-                        current_point["duration_seconds"] = max(0, absolute_time - current_point["start_time"])
+                        current_point["duration_seconds"] = max(
+                            0, absolute_time - current_point["start_time"]
+                        )
                 current_point["events"] = current_point_events
                 points.append(current_point)
 
             point_number += 1
-            point_start_time = (quarter_offset + event["event_time"]) if event["event_time"] is not None else quarter_offset
+            point_start_time = (
+                (quarter_offset + event["event_time"])
+                if event["event_time"] is not None
+                else quarter_offset
+            )
 
             # Determine line type and who pulls/receives
             if team == "home":
@@ -106,21 +116,30 @@ def process_team_events(events: List[Dict], team: str, game_year: int, stats_sys
             line_players = []
             if event["line_players"]:
                 import json
+
                 try:
                     player_ids = json.loads(event["line_players"])
                     if player_ids and len(player_ids) > 0:
                         # Build query for multiple player IDs
-                        placeholders = ', '.join([f':p{i}' for i in range(len(player_ids))])
+                        placeholders = ", ".join(
+                            [f":p{i}" for i in range(len(player_ids))]
+                        )
                         players_query = f"""
                         SELECT DISTINCT last_name
                         FROM players
                         WHERE player_id IN ({placeholders})
                           AND year = :year
                         """
-                        params = {f'p{i}': pid for i, pid in enumerate(player_ids)}
-                        params['year'] = game_year
-                        player_results = stats_system.db.execute_query(players_query, params)
-                        line_players = [p["last_name"] for p in player_results if p and p.get("last_name")]
+                        params = {f"p{i}": pid for i, pid in enumerate(player_ids)}
+                        params["year"] = game_year
+                        player_results = stats_system.db.execute_query(
+                            players_query, params
+                        )
+                        line_players = [
+                            p["last_name"]
+                            for p in player_results
+                            if p and p.get("last_name")
+                        ]
                 except Exception as e:
                     print(f"Error parsing line players: {e}")
 
@@ -139,7 +158,7 @@ def process_team_events(events: List[Dict], team: str, game_year: int, stats_sys
                 "players": line_players,
                 "pulling_team": pulling_team,
                 "receiving_team": receiving_team,
-                "scoring_team": None
+                "scoring_team": None,
             }
             current_point_events = []
 
@@ -150,19 +169,23 @@ def process_team_events(events: List[Dict], team: str, game_year: int, stats_sys
                     pull_event = {
                         "type": "pull",
                         "description": f"Pull by {puller_name}",
-                        "yard_line": None
+                        "yard_line": None,
                     }
                 else:
                     pull_event = {
                         "type": "pull",
                         "description": "Pull",
-                        "yard_line": None
+                        "yard_line": None,
                     }
                 current_point_events.append(pull_event)
 
         # Pull inbounds/out of bounds (detailed pull data)
         elif event_type in [7, 8]:  # PULL_INBOUNDS or PULL_OUT_OF_BOUNDS
-            if current_point and current_point["pulling_team"] == team and event["puller_last"]:
+            if (
+                current_point
+                and current_point["pulling_team"] == team
+                and event["puller_last"]
+            ):
                 # Calculate pull distance
                 pull_distance = None
                 if event["pull_y"] is not None:
@@ -175,7 +198,7 @@ def process_team_events(events: List[Dict], team: str, game_year: int, stats_sys
                 detailed_pull_event = {
                     "type": "pull",
                     "description": pull_description,
-                    "yard_line": None
+                    "yard_line": None,
                 }
 
                 # Replace generic pull with detailed one
@@ -188,8 +211,12 @@ def process_team_events(events: List[Dict], team: str, game_year: int, stats_sys
         elif event_type == 18:  # PASS
             if event["receiver_last"] and event["thrower_last"]:
                 # Calculate pass details
-                if (event["thrower_y"] is not None and event["receiver_y"] is not None and
-                    event["thrower_x"] is not None and event["receiver_x"] is not None):
+                if (
+                    event["thrower_y"] is not None
+                    and event["receiver_y"] is not None
+                    and event["thrower_x"] is not None
+                    and event["receiver_x"] is not None
+                ):
                     vertical_yards = event["receiver_y"] - event["thrower_y"]
                     horizontal_yards = event["receiver_x"] - event["thrower_x"]
                     actual_distance = math.sqrt(horizontal_yards**2 + vertical_yards**2)
@@ -207,13 +234,13 @@ def process_team_events(events: List[Dict], team: str, game_year: int, stats_sys
                         "type": "pass",
                         "description": f"{pass_type} from {event['thrower_last']} to {event['receiver_last']}",
                         "yard_line": int(actual_distance),
-                        "direction": angle_degrees
+                        "direction": angle_degrees,
                     }
                 else:
                     pass_event = {
                         "type": "pass",
                         "description": f"Pass from {event['thrower_last']} to {event['receiver_last']}",
-                        "yard_line": None
+                        "yard_line": None,
                     }
                 current_point_events.append(pass_event)
 
@@ -226,14 +253,20 @@ def process_team_events(events: List[Dict], team: str, game_year: int, stats_sys
 
             if current_point:
                 current_point["scoring_team"] = team
-                current_point["score"] = f"{current_score['away']}-{current_score['home']}"
+                current_point["score"] = (
+                    f"{current_score['away']}-{current_score['home']}"
+                )
                 current_point["home_score"] = current_score["home"]
                 current_point["away_score"] = current_score["away"]
 
             # Add goal event
             if event["receiver_last"] and event["thrower_last"]:
-                if (event["thrower_y"] is not None and event["receiver_y"] is not None and
-                    event["thrower_x"] is not None and event["receiver_x"] is not None):
+                if (
+                    event["thrower_y"] is not None
+                    and event["receiver_y"] is not None
+                    and event["thrower_x"] is not None
+                    and event["receiver_x"] is not None
+                ):
                     vertical_yards = event["receiver_y"] - event["thrower_y"]
                     horizontal_yards = event["receiver_x"] - event["thrower_x"]
                     actual_distance = math.sqrt(horizontal_yards**2 + vertical_yards**2)
@@ -247,13 +280,13 @@ def process_team_events(events: List[Dict], team: str, game_year: int, stats_sys
                         "type": "goal",
                         "description": f"{pass_type}Score from {event['thrower_last']} to {event['receiver_last']}",
                         "yard_line": int(actual_distance),
-                        "direction": angle_degrees
+                        "direction": angle_degrees,
                     }
                 else:
                     goal_event = {
                         "type": "goal",
                         "description": f"Score from {event['thrower_last']} to {event['receiver_last']}",
-                        "yard_line": None
+                        "yard_line": None,
                     }
                 current_point_events.append(goal_event)
 
@@ -267,99 +300,129 @@ def process_team_events(events: List[Dict], team: str, game_year: int, stats_sys
 
             if current_point:
                 current_point["scoring_team"] = scoring_team
-                current_point["score"] = f"{current_score['away']}-{current_score['home']}"
+                current_point["score"] = (
+                    f"{current_score['away']}-{current_score['home']}"
+                )
                 current_point["home_score"] = current_score["home"]
                 current_point["away_score"] = current_score["away"]
 
-            current_point_events.append({
-                "type": "opponent_score",
-                "description": "They scored",
-                "yard_line": None
-            })
+            current_point_events.append(
+                {
+                    "type": "opponent_score",
+                    "description": "They scored",
+                    "yard_line": None,
+                }
+            )
 
         # Block events
         elif event_type == 11:  # BLOCK (this team got a block)
             if event["defender_last"]:
-                yard_line = int(event["turnover_y"]) if event["turnover_y"] is not None else None
+                yard_line = (
+                    int(event["turnover_y"])
+                    if event["turnover_y"] is not None
+                    else None
+                )
                 block_event = {
                     "type": "block",
                     "description": f"Block by {event['defender_last']}",
-                    "yard_line": yard_line
+                    "yard_line": yard_line,
                 }
                 current_point_events.append(block_event)
 
         elif event_type == 12:  # BLOCK_BY_OPPOSING (opponent got a block)
             defender_name = event["defender_last"] if event["defender_last"] else None
-            yard_line = int(event["turnover_y"]) if event["turnover_y"] is not None else None
+            yard_line = (
+                int(event["turnover_y"]) if event["turnover_y"] is not None else None
+            )
             if defender_name:
-                current_point_events.append({
-                    "type": "opponent_turnover",
-                    "description": f"Opponent turnover (Blocked by {defender_name})",
-                    "yard_line": yard_line
-                })
+                current_point_events.append(
+                    {
+                        "type": "opponent_turnover",
+                        "description": f"Opponent turnover (Blocked by {defender_name})",
+                        "yard_line": yard_line,
+                    }
+                )
             else:
-                current_point_events.append({
-                    "type": "opponent_turnover",
-                    "description": "Opponent turnover (Block)",
-                    "yard_line": yard_line
-                })
+                current_point_events.append(
+                    {
+                        "type": "opponent_turnover",
+                        "description": "Opponent turnover (Block)",
+                        "yard_line": yard_line,
+                    }
+                )
 
         # Other turnovers
         elif event_type == 20:  # DROP
             if event["receiver_last"]:
-                yard_line = int(event["turnover_y"]) if event["turnover_y"] is not None else None
+                yard_line = (
+                    int(event["turnover_y"])
+                    if event["turnover_y"] is not None
+                    else None
+                )
                 drop_event = {
                     "type": "drop",
                     "description": f"Drop by {event['receiver_last']}",
-                    "yard_line": yard_line
+                    "yard_line": yard_line,
                 }
                 current_point_events.append(drop_event)
 
         elif event_type == 22:  # THROWAWAY
             if event["thrower_last"]:
                 # Calculate throwaway details if available
-                if (event["thrower_y"] is not None and event["turnover_y"] is not None and
-                    event["thrower_x"] is not None and event["turnover_x"] is not None):
+                if (
+                    event["thrower_y"] is not None
+                    and event["turnover_y"] is not None
+                    and event["thrower_x"] is not None
+                    and event["turnover_x"] is not None
+                ):
                     vertical_yards = event["turnover_y"] - event["thrower_y"]
                     horizontal_yards = event["turnover_x"] - event["thrower_x"]
                     actual_distance = math.sqrt(horizontal_yards**2 + vertical_yards**2)
                     angle_radians = math.atan2(vertical_yards, -horizontal_yards)
                     angle_degrees = math.degrees(angle_radians)
 
-                    throwaway_type = "Huck throwaway" if vertical_yards >= 40 else "Throwaway"
+                    throwaway_type = (
+                        "Huck throwaway" if vertical_yards >= 40 else "Throwaway"
+                    )
 
                     throwaway_event = {
                         "type": "throwaway",
                         "description": f"{throwaway_type} by {event['thrower_last']}",
                         "yard_line": int(actual_distance),
-                        "direction": angle_degrees
+                        "direction": angle_degrees,
                     }
                 else:
                     throwaway_event = {
                         "type": "throwaway",
                         "description": f"Throwaway by {event['thrower_last']}",
-                        "yard_line": None
+                        "yard_line": None,
                     }
                 current_point_events.append(throwaway_event)
 
         elif event_type == 24:  # STALL
-            yard_line = int(event["turnover_y"]) if event["turnover_y"] is not None else None
+            yard_line = (
+                int(event["turnover_y"]) if event["turnover_y"] is not None else None
+            )
             stall_event = {
                 "type": "stall",
                 "description": "Stall",
-                "yard_line": yard_line
+                "yard_line": yard_line,
             }
             current_point_events.append(stall_event)
 
         # Opponent turnovers
         elif event_type in [13, 14]:  # THROWAWAY_BY_OPPOSING or STALL_ON_OPPOSING
             turnover_type = "Throwaway" if event_type == 13 else "Stall"
-            yard_line = int(event["turnover_y"]) if event["turnover_y"] is not None else None
-            current_point_events.append({
-                "type": "opponent_turnover",
-                "description": f"Opponent turnover ({turnover_type})",
-                "yard_line": yard_line
-            })
+            yard_line = (
+                int(event["turnover_y"]) if event["turnover_y"] is not None else None
+            )
+            current_point_events.append(
+                {
+                    "type": "opponent_turnover",
+                    "description": f"Opponent turnover ({turnover_type})",
+                    "yard_line": yard_line,
+                }
+            )
 
     # Save last point if exists
     if current_point:
@@ -400,7 +463,7 @@ def process_team_events(events: List[Dict], team: str, game_year: int, stats_sys
     return points
 
 
-def calculate_play_by_play(stats_system, game_id: str) -> List[Dict[str, Any]]:
+def calculate_play_by_play(stats_system, game_id: str) -> list[dict[str, Any]]:
     """
     Calculate play-by-play data from game events.
     Returns a list of points with their events and metadata.
@@ -444,7 +507,9 @@ def calculate_play_by_play(stats_system, game_id: str) -> List[Dict[str, Any]]:
     ORDER BY e.team, e.event_index
     """
 
-    events = stats_system.db.execute_query(events_query, {"game_id": game_id, "year": game_year})
+    events = stats_system.db.execute_query(
+        events_query, {"game_id": game_id, "year": game_year}
+    )
     if not events:
         return []
 

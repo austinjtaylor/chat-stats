@@ -7,7 +7,7 @@ from typing import Any
 
 
 def get_game_results(
-    db,
+    db: Any,
     date: str | None = None,
     team_name: str | None = None,
     include_stats: bool = False,

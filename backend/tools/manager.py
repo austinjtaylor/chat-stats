@@ -6,9 +6,6 @@ Main orchestrator that coordinates all stats tool modules.
 import json
 from typing import Any
 
-from utils.game import get_game_details
-
-from data.database import SQLDatabase
 from tools.game import get_game_results
 from tools.player import (
     compare_players,
@@ -19,6 +16,9 @@ from tools.player import (
 )
 from tools.query import execute_custom_query
 from tools.team import get_standings, get_team_stats
+from utils.game import get_game_details
+
+from data.database import SQLDatabase
 
 
 class StatsToolManager:

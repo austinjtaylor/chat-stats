@@ -216,7 +216,7 @@ def test_app():
             answer, sources = mock_chat_system.query(request.query, session_id)
             return QueryResponse(answer=answer, sources=sources, session_id=session_id)
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     @app.get("/api/stats", response_model=StatsResponse)
     async def get_stats():
@@ -224,7 +224,7 @@ def test_app():
             stats = mock_chat_system.get_database_stats()
             return StatsResponse(**stats)
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     @app.get("/api/players/search", response_model=PlayerSearchResponse)
     async def search_players(q: str):

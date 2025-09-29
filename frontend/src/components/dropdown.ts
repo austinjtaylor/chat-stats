@@ -69,8 +69,6 @@ function setupDropdownPair(buttonId: string, dropdownId: string): void {
     const suggestionsDropdown = document.getElementById(dropdownId) as HTMLElement;
 
     if (tryAskingButton && suggestionsDropdown) {
-        let originalParent = suggestionsDropdown.parentElement; // Store original parent
-
         // Toggle dropdown on click
         tryAskingButton.addEventListener('click', (e) => {
             e.stopPropagation();

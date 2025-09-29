@@ -2,7 +2,6 @@
 API routes for sports statistics endpoints.
 """
 
-from typing import Optional
 from config import config
 from fastapi import APIRouter, HTTPException
 from models.api import (
@@ -39,7 +38,7 @@ def create_basic_routes(stats_system):
 
             return QueryResponse(answer=answer, data=data, session_id=session_id)
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     @router.get("/api/stats", response_model=StatsResponse)
     async def get_stats_summary():
@@ -54,7 +53,7 @@ def create_basic_routes(stats_system):
                 team_standings=summary["team_standings"],
             )
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     @router.get("/api/players/search", response_model=PlayerSearchResponse)
     async def search_players(q: str):
@@ -63,10 +62,10 @@ def create_basic_routes(stats_system):
             players = stats_system.search_player(q)
             return PlayerSearchResponse(players=players, count=len(players))
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     @router.get("/api/teams")
-    async def get_all_teams(year: Optional[int] = None):
+    async def get_all_teams(year: int | None = None):
         """Get all teams for dropdowns, optionally filtered by year"""
         try:
             if year:
@@ -99,7 +98,7 @@ def create_basic_routes(stats_system):
                 teams = stats_system.db.execute_query(query)
             return teams
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     @router.get("/api/teams/search", response_model=TeamSearchResponse)
     async def search_teams(q: str):
@@ -108,7 +107,7 @@ def create_basic_routes(stats_system):
             teams = stats_system.search_team(q)
             return TeamSearchResponse(teams=teams, count=len(teams))
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     @router.get("/api/cache/stats")
     async def get_cache_stats():
@@ -139,7 +138,7 @@ def create_basic_routes(stats_system):
             games = stats_system.get_recent_games(limit)
             return {"games": games, "count": len(games)}
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     @router.get("/api/database/info")
     async def get_database_info():
@@ -148,7 +147,7 @@ def create_basic_routes(stats_system):
             info = stats_system.get_database_info()
             return {"tables": info}
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     @router.post("/api/data/import")
     async def import_data(file_path: str, data_type: str = "json"):
@@ -164,29 +163,31 @@ def create_basic_routes(stats_system):
             result = stats_system.import_data(file_path, data_type)
             return {"status": "success", "imported": result}
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     @router.get("/api/teams/stats")
     async def get_team_stats(
-        season: str = "2025", 
-        view: str = "total", 
+        season: str = "2025",
+        view: str = "total",
         perspective: str = "team",
         sort: str = "wins",
-        order: str = "desc"
+        order: str = "desc",
     ):
         """Get comprehensive team statistics with all UFA-style columns"""
         try:
-            teams = stats_system.get_comprehensive_team_stats(season, view, perspective, sort, order)
+            teams = stats_system.get_comprehensive_team_stats(
+                season, view, perspective, sort, order
+            )
             return {
-                "teams": teams, 
-                "total": len(teams), 
-                "season": season, 
+                "teams": teams,
+                "total": len(teams),
+                "season": season,
                 "view": view,
-                "perspective": perspective
+                "perspective": perspective,
             }
 
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     @router.get("/api/games/by-date")
     async def get_games_by_date(year: str = "all", team: str = "all"):
@@ -235,7 +236,7 @@ def create_basic_routes(stats_system):
             return {"games_by_date": games_by_date, "total_games": len(games)}
 
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     return (
         router,

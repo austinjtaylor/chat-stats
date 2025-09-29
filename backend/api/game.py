@@ -15,7 +15,7 @@ def create_game_routes(stats_system):
         try:
             # Get game information
             game_query = """
-            SELECT 
+            SELECT
                 g.game_id,
                 g.home_team_id,
                 g.away_team_id,
@@ -68,7 +68,7 @@ def create_game_routes(stats_system):
 
             # Get team statistics for this game
             team_stats_query = """
-            SELECT 
+            SELECT
                 pgs.team_id,
                 SUM(pgs.o_opportunities) as total_o_opportunities,
                 SUM(pgs.o_opportunity_scores) as total_o_opportunity_scores,
@@ -171,7 +171,7 @@ def create_game_routes(stats_system):
 
             # Get top players for each team
             player_stats_query = """
-            SELECT 
+            SELECT
                 p.full_name,
                 pgs.team_id,
                 pgs.goals,
@@ -227,6 +227,6 @@ def create_game_routes(stats_system):
         except HTTPException:
             raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     return router

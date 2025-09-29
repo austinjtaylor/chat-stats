@@ -55,7 +55,7 @@ def format_results(
             formatted_row[key] = format_numeric_value(key, value)
         formatted_results.append(formatted_row)
 
-    metadata = {"row_count": len(formatted_results)}
+    metadata: dict[str, Any] = {"row_count": len(formatted_results)}
     if len(results) > max_rows:
         metadata["note"] = f"Results limited to first {max_rows} rows"
 
@@ -99,7 +99,7 @@ def validate_query_safety(query: str) -> tuple[bool, str]:
     return True, ""
 
 
-def get_current_season(db) -> int:
+def get_current_season(db: Any) -> int:
     """
     Get the current/latest season from the database.
 

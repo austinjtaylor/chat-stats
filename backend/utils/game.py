@@ -13,7 +13,7 @@ from data.possession import (
 
 
 def get_game_details(
-    db,
+    db: Any,
     game_id: str | None = None,
     date: str | None = None,
     teams: str | None = None,
@@ -119,12 +119,14 @@ def get_game_details(
     }
 
 
-def get_individual_leaders(db, game_id: str, game: dict[str, Any]) -> dict[str, Any]:
+def get_individual_leaders(
+    db: Any, game_id: str, game: dict[str, Any]
+) -> dict[str, Any]:
     """Get individual stat leaders for a game."""
     leaders = {}
 
     # Helper function to get top player(s) for a stat - includes ties
-    def get_stat_leader(stat_column, stat_name):
+    def get_stat_leader(stat_column: str, stat_name: str) -> dict[str, Any]:
         # Query to get all players with the maximum value for the stat
         query = f"""
         WITH max_stat AS (
@@ -155,7 +157,7 @@ def get_individual_leaders(db, game_id: str, game: dict[str, Any]) -> dict[str, 
         )
 
         # Format multiple leaders with comma separation
-        def format_leaders(leaders_list):
+        def format_leaders(leaders_list: list[dict[str, Any]]) -> dict[str, Any] | None:
             if not leaders_list:
                 return None
             if len(leaders_list) == 1:
@@ -166,7 +168,7 @@ def get_individual_leaders(db, game_id: str, game: dict[str, Any]) -> dict[str, 
                 "full_name": names,
                 "value": leaders_list[0]["value"],  # All have the same value
                 "team_id": leaders_list[0]["team_id"],
-                "team_name": leaders_list[0]["team_name"]
+                "team_name": leaders_list[0]["team_name"],
             }
 
         return {
@@ -213,7 +215,7 @@ def get_individual_leaders(db, game_id: str, game: dict[str, Any]) -> dict[str, 
     )
 
     # Format multiple leaders with comma separation
-    def format_leaders(leaders_list):
+    def format_leaders(leaders_list: list[dict[str, Any]]) -> dict[str, Any] | None:
         if not leaders_list:
             return None
         if len(leaders_list) == 1:
@@ -224,7 +226,7 @@ def get_individual_leaders(db, game_id: str, game: dict[str, Any]) -> dict[str, 
             "full_name": names,
             "value": leaders_list[0]["value"],  # All have the same value
             "team_id": leaders_list[0]["team_id"],
-            "team_name": leaders_list[0]["team_name"]
+            "team_name": leaders_list[0]["team_name"],
         }
 
     leaders["plus_minus"] = {
@@ -235,10 +237,10 @@ def get_individual_leaders(db, game_id: str, game: dict[str, Any]) -> dict[str, 
     return leaders
 
 
-def get_team_statistics(db, game_id: str) -> list[dict[str, Any]]:
+def get_team_statistics(db: Any, game_id: str) -> list[dict[str, Any]]:
     """Get basic team statistics for a game."""
     team_stats_query = """
-    SELECT 
+    SELECT
         team_id,
         SUM(completions) as total_completions,
         SUM(throw_attempts) as total_attempts,

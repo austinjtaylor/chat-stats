@@ -9,7 +9,7 @@ from typing import Any
 class ResponseHandler:
     """Handles response validation and processing."""
 
-    def __init__(self, make_api_call):
+    def __init__(self, make_api_call: Any) -> None:
         """
         Initialize response handler.
 
@@ -19,7 +19,7 @@ class ResponseHandler:
         self.make_api_call = make_api_call
 
     def check_and_enforce_tool_use(
-        self, direct_response: str, api_params: dict[str, Any], tool_manager
+        self, direct_response: str, api_params: dict[str, Any], tool_manager: Any
     ) -> str:
         """
         Check if response should have used tools and enforce it if necessary.
@@ -65,7 +65,7 @@ class ResponseHandler:
             retry_response = self.make_api_call(**retry_params)
 
             if retry_response.stop_reason == "tool_use" and tool_manager:
-                from tool_executor import ToolExecutor
+                from core.tool_executor import ToolExecutor
 
                 executor = ToolExecutor(api_params, self.make_api_call)
                 return executor.handle_sequential_tool_execution(
@@ -77,7 +77,7 @@ class ResponseHandler:
 
         return direct_response
 
-    def extract_text_from_response(self, response) -> str:
+    def extract_text_from_response(self, response: Any) -> str:
         """
         Extract text content from a Claude response.
 
@@ -134,7 +134,7 @@ import re
 from typing import Any
 
 
-def format_game_details_response(answer: str, data: list) -> str:
+def format_game_details_response(answer: str, data: list[Any]) -> str:
     """
     Enhance game details response to include all available statistics.
 

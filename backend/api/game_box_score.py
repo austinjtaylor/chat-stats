@@ -3,7 +3,6 @@ Game box score API endpoint with detailed player and team statistics.
 """
 
 from fastapi import APIRouter, HTTPException
-from typing import List, Dict, Any
 from services.box_score_service import calculate_team_stats
 from services.play_by_play_service_v2 import calculate_play_by_play
 from services.quarter_score_service import calculate_quarter_scores
@@ -181,14 +180,18 @@ def create_box_score_routes(stats_system):
         except HTTPException:
             raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     @router.get("/api/games")
     async def get_games(year: int = None, team_id: str = None, limit: int = 500):
         """Get list of games with optional filters - compatible with frontend"""
         try:
             year_filter = f"AND g.year = {year}" if year else ""
-            team_filter = f"AND (g.home_team_id = '{team_id}' OR g.away_team_id = '{team_id}')" if team_id and team_id != 'all' else ""
+            team_filter = (
+                f"AND (g.home_team_id = '{team_id}' OR g.away_team_id = '{team_id}')"
+                if team_id and team_id != "all"
+                else ""
+            )
 
             query = f"""
             SELECT
@@ -215,22 +218,21 @@ def create_box_score_routes(stats_system):
 
             games = stats_system.db.execute_query(query, {"limit": limit})
 
-            return {
-                "games": games,
-                "total": len(games),
-                "page": 1,
-                "pages": 1
-            }
+            return {"games": games, "total": len(games), "page": 1, "pages": 1}
 
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     @router.get("/api/games/list")
     async def get_games_list(year: int = None, team_id: str = None, limit: int = 500):
         """Get list of all games for the game selection dropdown"""
         try:
             year_filter = f"AND g.year = {year}" if year else ""
-            team_filter = f"AND (g.home_team_id = :team_id OR g.away_team_id = :team_id)" if team_id else ""
+            team_filter = (
+                "AND (g.home_team_id = :team_id OR g.away_team_id = :team_id)"
+                if team_id
+                else ""
+            )
 
             query = f"""
             SELECT
@@ -279,7 +281,7 @@ def create_box_score_routes(stats_system):
             }
 
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     @router.get("/api/games/{game_id}/play-by-play")
     async def get_game_play_by_play(game_id: str):
@@ -290,7 +292,7 @@ def create_box_score_routes(stats_system):
         except HTTPException:
             raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     return router
 

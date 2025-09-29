@@ -1,16 +1,16 @@
+from typing import Any
 
 import anthropic
+from core.tool_executor import ToolExecutor
 from prompts import SYSTEM_PROMPT
 from utils.response import ResponseHandler
 from utils.retry import with_rate_limit_retry
-
-from core.tool_executor import ToolExecutor
 
 
 class AIGenerator:
     """Handles interactions with Anthropic's Claude API for generating responses"""
 
-    def __init__(self, api_key: str, model: str):
+    def __init__(self, api_key: str, model: str) -> None:
         self.client = anthropic.Anthropic(api_key=api_key)
         self.model = model
 
@@ -21,7 +21,7 @@ class AIGenerator:
         self.response_handler = ResponseHandler(self._make_api_call)
 
     @with_rate_limit_retry(max_retries=4, base_delay=2.0, max_delay=32.0)
-    def _make_api_call(self, **params):
+    def _make_api_call(self, **params: Any) -> Any:
         """Make an API call to Claude with automatic retry on rate limits."""
         return self.client.messages.create(**params)
 
@@ -29,8 +29,8 @@ class AIGenerator:
         self,
         query: str,
         conversation_history: str | None = None,
-        tools: list | None = None,
-        tool_manager=None,
+        tools: list[dict[str, Any]] | None = None,
+        tool_manager: Any = None,
     ) -> str:
         """
         Generate AI response with optional tool usage and conversation context.

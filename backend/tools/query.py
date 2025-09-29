@@ -9,7 +9,7 @@ from utils.stats import format_results, validate_query_safety
 
 
 def execute_custom_query(
-    db,
+    db: Any,
     query: str,
     parameters: dict[str, Any] | None = None,
     explanation: str | None = None,

@@ -112,7 +112,7 @@ def create_player_stats_route(stats_system):
             else:
                 # Single season stats - existing query
                 query = f"""
-                SELECT 
+                SELECT
                     p.full_name,
                     p.first_name,
                     p.last_name,
@@ -143,10 +143,10 @@ def create_player_stats_route(stats_system):
                     pss.total_o_opportunity_scores,
                     t.name as team_name,
                     t.full_name as team_full_name,
-                    COUNT(DISTINCT CASE 
+                    COUNT(DISTINCT CASE
                         WHEN (pgs.o_points_played > 0 OR pgs.d_points_played > 0 OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0)
-                        THEN pgs.game_id 
-                        ELSE NULL 
+                        THEN pgs.game_id
+                        ELSE NULL
                     END) as games_played,
                     pss.total_o_opportunities as possessions,
                     (pss.total_goals + pss.total_assists) as score_total,
@@ -273,6 +273,6 @@ def create_player_stats_route(stats_system):
 
         except Exception as e:
             print(f"Error in get_player_stats: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     return router

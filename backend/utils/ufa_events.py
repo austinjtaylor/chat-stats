@@ -59,26 +59,26 @@ POSSESSION_EVENTS = {18, 19}  # PASS, GOAL
 QUARTER_END_EVENTS = {28, 29, 30, 31}  # Quarter/half/regulation ends
 
 
-def get_event_name(event_type_id):
+def get_event_name(event_type_id: int) -> str:
     """Get the name of an event type by its ID"""
     return EVENT_TYPES.get(event_type_id, f"UNKNOWN_{event_type_id}")
 
 
-def is_point_start(event_type_id):
+def is_point_start(event_type_id: int) -> bool:
     """Check if an event starts a new point"""
     return event_type_id in POINT_START_EVENTS
 
 
-def is_point_end(event_type_id):
+def is_point_end(event_type_id: int) -> bool:
     """Check if an event ends a point"""
     return event_type_id in POINT_END_EVENTS
 
 
-def is_turnover(event_type_id):
+def is_turnover(event_type_id: int) -> bool:
     """Check if an event is a turnover"""
     return event_type_id in TURNOVER_EVENTS
 
 
-def is_possession_event(event_type_id):
+def is_possession_event(event_type_id: int) -> bool:
     """Check if an event indicates possession (pass or goal)"""
     return event_type_id in POSSESSION_EVENTS

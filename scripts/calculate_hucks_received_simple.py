@@ -4,12 +4,13 @@ Simple script to calculate and populate hucks_received statistics directly.
 A huck is defined as a completed pass of 40+ vertical yards.
 """
 
-import sqlite3
 import logging
+import sqlite3
 from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 def main():
     """Calculate hucks received and update database directly"""
@@ -28,12 +29,14 @@ def main():
     conn.commit()
 
     # Get all games with event data
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT DISTINCT game_id
         FROM game_events
         WHERE thrower_y IS NOT NULL AND receiver_y IS NOT NULL
         ORDER BY game_id
-    """)
+    """
+    )
     games = cursor.fetchall()
     logger.info(f"Found {len(games)} games with yardage data")
 
@@ -43,7 +46,8 @@ def main():
             logger.info(f"Processing game {idx}/{len(games)}...")
 
         # Calculate hucks received for this game
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT receiver_id, COUNT(*) as hucks_count
             FROM game_events
             WHERE game_id = ?
@@ -53,24 +57,30 @@ def main():
                 AND receiver_y IS NOT NULL
                 AND ABS(receiver_y - thrower_y) >= 40
             GROUP BY receiver_id
-        """, (game_id,))
+        """,
+            (game_id,),
+        )
 
         hucks_data = cursor.fetchall()
 
         # Update player_game_stats for each player
         for receiver_id, hucks_count in hucks_data:
-            cursor.execute("""
+            cursor.execute(
+                """
                 UPDATE player_game_stats
                 SET hucks_received = ?
                 WHERE game_id = ? AND player_id = ?
-            """, (hucks_count, game_id, receiver_id))
+            """,
+                (hucks_count, game_id, receiver_id),
+            )
 
     conn.commit()
     logger.info("Game-level hucks received updated")
 
     # Update season statistics
     logger.info("Updating season statistics...")
-    cursor.execute("""
+    cursor.execute(
+        """
         UPDATE player_season_stats
         SET total_hucks_received = (
             SELECT SUM(hucks_received)
@@ -85,11 +95,13 @@ def main():
                 AND player_game_stats.year = player_season_stats.year
                 AND player_game_stats.hucks_received > 0
         )
-    """)
+    """
+    )
     conn.commit()
 
     # Validate the calculation
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT COUNT(*)
         FROM game_events
         WHERE event_type IN (18, 19)
@@ -97,19 +109,21 @@ def main():
             AND thrower_y IS NOT NULL
             AND receiver_y IS NOT NULL
             AND ABS(receiver_y - thrower_y) >= 40
-    """)
+    """
+    )
     total_events = cursor.fetchone()[0]
 
     cursor.execute("SELECT SUM(hucks_received) FROM player_game_stats")
     total_recorded = cursor.fetchone()[0] or 0
 
-    logger.info(f"\nValidation Results:")
+    logger.info("\nValidation Results:")
     logger.info(f"Total huck events: {total_events}")
     logger.info(f"Total hucks received recorded: {total_recorded}")
     logger.info(f"Match: {total_events == total_recorded}")
 
     # Get top receivers for 2024
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT p.full_name, t.name, pss.total_hucks_received
         FROM player_season_stats pss
         JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
@@ -117,15 +131,17 @@ def main():
         WHERE pss.year = 2024 AND pss.total_hucks_received > 0
         ORDER BY pss.total_hucks_received DESC
         LIMIT 10
-    """)
+    """
+    )
 
     top_2024 = cursor.fetchall()
-    logger.info(f"\nTop 10 Hucks Receivers for 2024:")
+    logger.info("\nTop 10 Hucks Receivers for 2024:")
     for name, team, hucks in top_2024:
         logger.info(f"  {name} ({team}): {hucks}")
 
     # Get all-time top receivers
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT p.full_name, SUM(pss.total_hucks_received) as total
         FROM player_season_stats pss
         JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
@@ -133,15 +149,17 @@ def main():
         GROUP BY p.player_id, p.full_name
         ORDER BY total DESC
         LIMIT 10
-    """)
+    """
+    )
 
     top_all_time = cursor.fetchall()
-    logger.info(f"\nTop 10 All-Time Hucks Receivers:")
+    logger.info("\nTop 10 All-Time Hucks Receivers:")
     for name, hucks in top_all_time:
         logger.info(f"  {name}: {hucks}")
 
     conn.close()
     logger.info("\nHucks received calculation completed!")
+
 
 if __name__ == "__main__":
     main()

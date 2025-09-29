@@ -2,10 +2,12 @@
 Box score service for calculating team statistics.
 """
 
-from typing import Dict, Any
+from typing import Any
 
 
-def calculate_team_stats(stats_system, game_id: str, team_id: str, is_home: bool) -> Dict[str, Any]:
+def calculate_team_stats(
+    stats_system, game_id: str, team_id: str, is_home: bool
+) -> dict[str, Any]:
     """
     Calculate team statistics for a single game.
 
@@ -51,31 +53,39 @@ def calculate_team_stats(stats_system, game_id: str, team_id: str, is_home: bool
 
     hucks_completed = team_stats["total_hucks_completed"] or 0
     hucks_attempted = team_stats["total_hucks_attempted"] or 0
-    huck_pct = round((hucks_completed / hucks_attempted * 100), 1) if hucks_attempted > 0 else 0
+    huck_pct = (
+        round((hucks_completed / hucks_attempted * 100), 1)
+        if hucks_attempted > 0
+        else 0
+    )
 
     blocks = team_stats["total_blocks"] or 0
-    turnovers = (team_stats["total_throwaways"] or 0) + (team_stats["total_stalls"] or 0)
+    turnovers = (team_stats["total_throwaways"] or 0) + (
+        team_stats["total_stalls"] or 0
+    )
 
     # Calculate possession stats from game_events
     possession_stats = calculate_possessions(stats_system.db, game_id, team_id, is_home)
 
     # Calculate red zone stats
-    redzone_stats = calculate_redzone_stats_for_team(stats_system.db, game_id, team_id, is_home)
+    redzone_stats = calculate_redzone_stats_for_team(
+        stats_system.db, game_id, team_id, is_home
+    )
 
     # Build result dictionary
     result = {
         "completions": {
             "percentage": completion_pct,
             "made": completions,
-            "attempted": attempts
+            "attempted": attempts,
         },
         "hucks": {
             "percentage": huck_pct,
             "made": hucks_completed,
-            "attempted": hucks_attempted
+            "attempted": hucks_attempted,
         },
         "blocks": blocks,
-        "turnovers": turnovers
+        "turnovers": turnovers,
     }
 
     # Add possession stats if available
@@ -111,22 +121,22 @@ def calculate_team_stats(stats_system, game_id: str, team_id: str, is_home: bool
         result["hold"] = {
             "percentage": hold_pct,
             "made": hold_made,
-            "total": hold_total
+            "total": hold_total,
         }
         result["o_line_conversion"] = {
             "percentage": o_conv_pct,
             "made": o_conv_made,
-            "total": o_conv_total
+            "total": o_conv_total,
         }
         result["break"] = {
             "percentage": break_pct,
             "made": break_made,
-            "total": break_total
+            "total": break_total,
         }
         result["d_line_conversion"] = {
             "percentage": d_conv_pct,
             "made": d_conv_made,
-            "total": d_conv_total
+            "total": d_conv_total,
         }
 
     # Add red zone stats if available
@@ -134,7 +144,7 @@ def calculate_team_stats(stats_system, game_id: str, team_id: str, is_home: bool
         result["redzone_conversion"] = {
             "percentage": redzone_stats.get("percentage", 0),
             "made": redzone_stats.get("goals", 0),
-            "total": redzone_stats.get("possessions", 0)
+            "total": redzone_stats.get("possessions", 0),
         }
 
     return result

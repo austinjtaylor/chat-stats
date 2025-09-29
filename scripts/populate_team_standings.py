@@ -35,9 +35,9 @@ def populate_team_season_stats(db_path: str = "./db/sports_stats.db") -> int:
 
         # Insert data from teams table (excluding all-star teams)
         insert_query = """
-        INSERT INTO team_season_stats 
+        INSERT INTO team_season_stats
             (team_id, year, wins, losses, ties, standing, division_id, division_name, points_for, points_against)
-        SELECT 
+        SELECT
             team_id,
             year,
             wins,
@@ -59,25 +59,25 @@ def populate_team_season_stats(db_path: str = "./db/sports_stats.db") -> int:
         # Calculate points for/against from games table if available
         update_points_query = """
         WITH team_points AS (
-            SELECT 
+            SELECT
                 team_id,
                 year,
                 SUM(points_for) as total_points_for,
                 SUM(points_against) as total_points_against
             FROM (
                 -- Home games
-                SELECT 
+                SELECT
                     home_team_id as team_id,
                     year,
                     home_score as points_for,
                     away_score as points_against
                 FROM games
                 WHERE status = 'Final'
-                
+
                 UNION ALL
-                
+
                 -- Away games
-                SELECT 
+                SELECT
                     away_team_id as team_id,
                     year,
                     away_score as points_for,
@@ -88,23 +88,23 @@ def populate_team_season_stats(db_path: str = "./db/sports_stats.db") -> int:
             GROUP BY team_id, year
         )
         UPDATE team_season_stats
-        SET 
+        SET
             points_for = (
-                SELECT total_points_for 
-                FROM team_points tp 
-                WHERE tp.team_id = team_season_stats.team_id 
+                SELECT total_points_for
+                FROM team_points tp
+                WHERE tp.team_id = team_season_stats.team_id
                 AND tp.year = team_season_stats.year
             ),
             points_against = (
-                SELECT total_points_against 
-                FROM team_points tp 
-                WHERE tp.team_id = team_season_stats.team_id 
+                SELECT total_points_against
+                FROM team_points tp
+                WHERE tp.team_id = team_season_stats.team_id
                 AND tp.year = team_season_stats.year
             )
         WHERE EXISTS (
-            SELECT 1 
-            FROM team_points tp 
-            WHERE tp.team_id = team_season_stats.team_id 
+            SELECT 1
+            FROM team_points tp
+            WHERE tp.team_id = team_season_stats.team_id
             AND tp.year = team_season_stats.year
         )
         """
@@ -124,10 +124,10 @@ def populate_team_season_stats(db_path: str = "./db/sports_stats.db") -> int:
 
         cursor.execute(
             """
-            SELECT year, COUNT(*) as team_count 
-            FROM team_season_stats 
-            GROUP BY year 
-            ORDER BY year DESC 
+            SELECT year, COUNT(*) as team_count
+            FROM team_season_stats
+            GROUP BY year
+            ORDER BY year DESC
             LIMIT 5
         """
         )

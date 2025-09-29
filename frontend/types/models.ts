@@ -254,6 +254,10 @@ export interface PlayerSeasonStats {
   calculated_plus_minus?: number;
   /** Yards per turn ((total_yards_thrown + total_yards_received) / (total_throwaways + total_stalls + total_drops)) - Available from 2021 onwards */
   yards_per_turn?: number | null;
+  /** Total points played (offensive + defensive) - calculated field */
+  total_points_played?: number;
+  /** Score total (goals + assists) - calculated field */
+  score_total?: number;
 }
 
 /**

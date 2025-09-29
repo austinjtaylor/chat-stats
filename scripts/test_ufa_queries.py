@@ -8,7 +8,9 @@ import sys
 
 # Add both parent directory and backend to path for proper import resolution
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))  # For backend.* imports
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "backend"))  # For internal backend imports
+sys.path.append(
+    os.path.join(os.path.dirname(__file__), "..", "backend")
+)  # For internal backend imports
 
 import logging
 
@@ -120,7 +122,7 @@ def test_database():
                pss.total_completions, pss.total_throw_attempts
         FROM player_season_stats pss
         JOIN players p ON pss.player_id = p.id
-        WHERE pss.season = '2024' 
+        WHERE pss.season = '2024'
           AND pss.total_throw_attempts >= 100
           AND pss.completion_percentage IS NOT NULL
         ORDER BY pss.completion_percentage DESC

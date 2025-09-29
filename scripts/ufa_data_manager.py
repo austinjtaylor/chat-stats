@@ -18,7 +18,9 @@ import requests
 
 # Add both parent directory and backend to path for proper import resolution
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))  # For backend.* imports
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "backend"))  # For internal backend imports
+sys.path.append(
+    os.path.join(os.path.dirname(__file__), "..", "backend")
+)  # For internal backend imports
 
 from backend.data.database import get_db
 from backend.data.processor import StatsProcessor
@@ -46,7 +48,7 @@ def _import_game_stats_chunk(game_chunk_data: tuple[list[dict], int]) -> dict[st
 
     count = 0
     skipped_allstar = 0
-    for i, game in enumerate(games_chunk, 1):
+    for _i, game in enumerate(games_chunk, 1):
         game_id = game.get("gameID", "")
         if not game_id:
             continue
@@ -766,7 +768,7 @@ class UFADataManager:
                 # Insert team using database schema structure
                 self.db.execute_query(
                     """
-                    INSERT OR IGNORE INTO teams 
+                    INSERT OR IGNORE INTO teams
                     (team_id, year, city, name, full_name, abbrev, wins, losses, ties, standing, division_id, division_name)
                     VALUES (:team_id, :year, :city, :name, :full_name, :abbrev, :wins, :losses, :ties, :standing, :division_id, :division_name)
                 """,
@@ -800,7 +802,7 @@ class UFADataManager:
                 # Insert player using database schema structure
                 self.db.execute_query(
                     """
-                    INSERT OR IGNORE INTO players 
+                    INSERT OR IGNORE INTO players
                     (player_id, first_name, last_name, full_name, team_id, active, year, jersey_number)
                     VALUES (:player_id, :first_name, :last_name, :full_name, :team_id, :active, :year, :jersey_number)
                 """,
@@ -855,8 +857,8 @@ class UFADataManager:
                 # Insert game using database schema structure
                 self.db.execute_query(
                     """
-                    INSERT OR IGNORE INTO games 
-                    (game_id, away_team_id, home_team_id, away_score, home_score, status, 
+                    INSERT OR IGNORE INTO games
+                    (game_id, away_team_id, home_team_id, away_score, home_score, status,
                      start_timestamp, start_timezone, streaming_url, update_timestamp, week, location, year)
                     VALUES (:game_id, :away_team_id, :home_team_id, :away_score, :home_score, :status,
                             :start_timestamp, :start_timezone, :streaming_url, :update_timestamp, :week, :location, :year)

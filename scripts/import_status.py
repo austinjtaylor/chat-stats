@@ -32,15 +32,15 @@ class ImportStatusMonitor:
         total_games = self.db.execute_query(total_games_query)[0]["count"]
 
         imported_games_query = """
-        SELECT COUNT(DISTINCT game_id) as count 
-        FROM player_game_stats 
+        SELECT COUNT(DISTINCT game_id) as count
+        FROM player_game_stats
         WHERE game_id NOT LIKE '%season_summary%'
         """
         imported_games = self.db.execute_query(imported_games_query)[0]["count"]
 
         total_player_records_query = """
-        SELECT COUNT(*) as count 
-        FROM player_game_stats 
+        SELECT COUNT(*) as count
+        FROM player_game_stats
         WHERE game_id NOT LIKE '%season_summary%'
         """
         total_player_records = self.db.execute_query(total_player_records_query)[0][
@@ -49,13 +49,13 @@ class ImportStatusMonitor:
 
         # Coverage by year
         year_coverage_query = """
-        SELECT 
+        SELECT
             g.year,
             COUNT(DISTINCT g.game_id) as total_games,
             COUNT(DISTINCT pgs.game_id) as games_with_stats,
             ROUND(COUNT(DISTINCT pgs.game_id) * 100.0 / COUNT(DISTINCT g.game_id), 1) as coverage_percent
         FROM games g
-        LEFT JOIN player_game_stats pgs ON g.game_id = pgs.game_id 
+        LEFT JOIN player_game_stats pgs ON g.game_id = pgs.game_id
             AND pgs.game_id NOT LIKE '%season_summary%'
         WHERE g.year >= 2012
         GROUP BY g.year
@@ -94,7 +94,7 @@ class ImportStatusMonitor:
     def get_sample_imported_games(self, limit: int = 5) -> list[dict[str, Any]]:
         """Get sample of successfully imported games."""
         query = """
-        SELECT 
+        SELECT
             pgs.game_id,
             COUNT(*) as player_count,
             MIN(pgs.year) as year,
