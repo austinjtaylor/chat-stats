@@ -30,7 +30,7 @@ body.stats-page {
 .stats-main {
     max-width: 1600px;
     margin: 0 auto;
-    padding: 1.5rem 2rem 1rem 2rem; /* Reduced bottom padding */
+    padding: 3rem 2rem 1rem 2rem; /* Increased top padding to avoid logo overlap */
     height: 100vh;
     overflow: hidden; /* Prevent main area scrolling */
     display: flex;

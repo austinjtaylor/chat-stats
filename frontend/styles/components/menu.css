@@ -129,6 +129,15 @@
     transform: translateY(-1px);  /* Slight upward adjustment for better alignment */
 }
 
+/* Page Title next to Logo */
+.menu-wrapper.with-logo .page-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    white-space: nowrap;
+}
+
 /* Logo visibility based on theme */
 /* Default: show light logo for dark theme (default theme) */
 .logo-wrapper .logo-light {
