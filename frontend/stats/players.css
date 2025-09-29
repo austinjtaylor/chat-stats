@@ -1,10 +1,13 @@
 /* Players Page Specific Styles */
 
-/* Override container for players page - matching teams page */
+/* Override container for players page */
 .stats-page[data-page="players"] .stats-main {
-    max-width: 1400px;
+    max-width: min(1400px, calc(100vw - 40px)); /* Responsive: never exceed viewport - THIS IS THE FIX */
+    /* Keep padding on larger screens */
     padding-left: 2rem;
     padding-right: 2rem;
+    /* Keep overflow hidden to contain content */
+    overflow: hidden;
 }
 
 /* Table container - let stats.css handle overflow */
@@ -127,11 +130,13 @@
     padding: 0 !important;
 }
 
+/* Pagination styling handled by media queries below */
+
 .stats-page[data-page="players"] .table-header {
     background: transparent !important;
     border: none !important;
     margin: 0 !important;
-    padding: 1rem 0 !important;
+    padding: 1rem 0 !important; /* Header padding handled by parent */
     border-radius: 0 !important;
 }
 
@@ -139,6 +144,7 @@
     border: 1px solid var(--border-color) !important;
     border-radius: 8px 8px 0 0 !important;
     margin: 0 !important;
+    padding: 0 !important;
     background: var(--surface) !important;
     /* Add overflow-y and height constraint like box score for sticky headers to work */
     overflow-x: auto !important;
@@ -157,3 +163,4 @@
     /* Ensure opaque background */
     background-color: var(--bg-primary) !important;
 }
+
