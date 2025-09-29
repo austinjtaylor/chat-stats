@@ -94,23 +94,23 @@ code, pre {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(128, 128, 128, 0.3);
+    background: var(--border-color);
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(128, 128, 128, 0.5);
+    background: var(--border-light);
 }
 
 /* Focus Styles */
 :focus-visible {
-    outline: 2px solid var(--primary-color, #2563eb);
+    outline: 2px solid var(--primary-color);
     outline-offset: 2px;
 }
 
 /* Selection */
 ::selection {
-    background-color: var(--primary-color, #2563eb);
+    background-color: var(--primary-color);
     color: white;
 }
 
