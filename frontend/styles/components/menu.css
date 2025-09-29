@@ -67,3 +67,92 @@
     right: 0;
     margin-top: 0.5rem;
 }
+
+/* Logo Styles */
+.logo-wrapper {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+}
+
+.logo-wrapper img {
+    height: 36px;
+    width: auto;
+    display: block;
+    border: none;
+    outline: none;
+    box-shadow: none;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    image-rendering: crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+    transform: translateY(8px);  /* Slight downward adjustment for vertical centering */
+}
+
+/* Logo on main chat page - next to title */
+.chat-title-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 1rem;
+}
+
+.chat-title-wrapper .logo-wrapper img {
+    height: 45px;
+    border: none;
+    outline: none;
+    box-shadow: none;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    image-rendering: crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+    transform: translateY(8px);  /* Slight downward adjustment for vertical centering */
+}
+
+/* Logo on stats pages - next to menu button */
+.menu-wrapper.with-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.menu-wrapper.with-logo .logo-wrapper img {
+    height: 36px;
+    border: none;
+    outline: none;
+    box-shadow: none;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    image-rendering: crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+    transform: translateY(-1px);  /* Slight upward adjustment for better alignment */
+}
+
+/* Logo visibility based on theme */
+/* Default: show light logo for dark theme (default theme) */
+.logo-wrapper .logo-light {
+    display: block !important;
+}
+
+.logo-wrapper .logo-dark {
+    display: none !important;
+}
+
+/* Light theme: show dark logo (dark logo on light background) */
+:root[data-theme="light"] .logo-wrapper .logo-dark {
+    display: block !important;
+}
+
+:root[data-theme="light"] .logo-wrapper .logo-light {
+    display: none !important;
+}
+
+/* Dark theme: show light logo (light logo on dark background) */
+:root[data-theme="dark"] .logo-wrapper .logo-light {
+    display: block !important;
+}
+
+:root[data-theme="dark"] .logo-wrapper .logo-dark {
+    display: none !important;
+}
