@@ -77,7 +77,7 @@ export interface BoxScoreData {
 
 class GameDetailPage {
     private currentGame: BoxScoreData | null = null;
-    private currentTeam: 'home' | 'away' = 'away';
+    private currentTeam: 'home' | 'away' | 'both' = 'both';
 
     // Components
     private gameSearch: GameSearch;
@@ -162,7 +162,7 @@ class GameDetailPage {
         // Team toggle
         document.querySelectorAll('input[name="teamSelect"]').forEach(radio => {
             radio.addEventListener('change', (e) => {
-                this.currentTeam = (e.target as HTMLInputElement).value as 'home' | 'away';
+                this.currentTeam = (e.target as HTMLInputElement).value as 'home' | 'away' | 'both';
                 this.updateStatsTable();
             });
         });
@@ -219,8 +219,18 @@ class GameDetailPage {
     private updateStatsTable(): void {
         if (!this.currentGame) return;
 
-        const team = this.currentTeam === 'home' ? this.currentGame.home_team : this.currentGame.away_team;
-        this.gameStatsTable.updatePlayers(team.players);
+        let players: PlayerStats[];
+        if (this.currentTeam === 'both') {
+            // Combine players from both teams
+            players = [
+                ...this.currentGame.away_team.players,
+                ...this.currentGame.home_team.players
+            ];
+        } else {
+            const team = this.currentTeam === 'home' ? this.currentGame.home_team : this.currentGame.away_team;
+            players = team.players;
+        }
+        this.gameStatsTable.updatePlayers(players);
     }
 
     private switchTab(tabId: string): void {
