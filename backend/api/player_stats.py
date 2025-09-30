@@ -5,6 +5,7 @@ Player statistics API endpoint with complex query logic.
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import text
 from utils.query import convert_to_per_game_stats, get_sort_column
+from data.cache import get_cache, cache_key_for_endpoint
 
 
 def create_player_stats_route(stats_system):
@@ -23,89 +24,72 @@ def create_player_stats_route(stats_system):
     ):
         """Get paginated player statistics with filtering and sorting"""
         try:
+            # Check cache first
+            cache = get_cache()
+            cache_key = cache_key_for_endpoint(
+                'player_stats',
+                season=season,
+                team=team,
+                page=page,
+                per_page=per_page,
+                sort=sort,
+                order=order,
+                per=per
+            )
+
+            cached_result = cache.get(cache_key)
+            if cached_result is not None:
+                return cached_result
             # Query for player season stats directly from database
             team_filter = f" AND pss.team_id = '{team}'" if team != "all" else ""
             season_filter = f" AND pss.year = {season}" if season != "career" else ""
 
             if season == "career":
-                # Career stats - aggregate across all years
+                # Use pre-computed career stats table for much faster queries
+                team_filter_career = f" AND most_recent_team_id = '{team}'" if team != "all" else ""
                 query = f"""
                 SELECT
-                    p.full_name,
-                    p.first_name,
-                    p.last_name,
-                    p.most_recent_team_id as team_id,
+                    full_name,
+                    first_name,
+                    last_name,
+                    most_recent_team_id as team_id,
                     NULL as year,
-                    SUM(pss.total_goals) as total_goals,
-                    SUM(pss.total_assists) as total_assists,
-                    SUM(pss.total_hockey_assists) as total_hockey_assists,
-                    SUM(pss.total_blocks) as total_blocks,
-                    (SUM(pss.total_goals) + SUM(pss.total_assists) + SUM(pss.total_blocks) -
-                     SUM(pss.total_throwaways) - SUM(pss.total_drops)) as calculated_plus_minus,
-                    SUM(pss.total_completions) as total_completions,
-                    CASE
-                        WHEN SUM(pss.total_throw_attempts) > 0
-                        THEN ROUND(SUM(pss.total_completions) * 100.0 / SUM(pss.total_throw_attempts), 1)
-                        ELSE 0
-                    END as completion_percentage,
-                    SUM(pss.total_yards_thrown) as total_yards_thrown,
-                    SUM(pss.total_yards_received) as total_yards_received,
-                    SUM(pss.total_throwaways) as total_throwaways,
-                    SUM(pss.total_stalls) as total_stalls,
-                    SUM(pss.total_drops) as total_drops,
-                    SUM(pss.total_callahans) as total_callahans,
-                    SUM(pss.total_hucks_completed) as total_hucks_completed,
-                    SUM(pss.total_hucks_attempted) as total_hucks_attempted,
-                    SUM(pss.total_hucks_received) as total_hucks_received,
-                    SUM(pss.total_pulls) as total_pulls,
-                    SUM(pss.total_o_points_played) as total_o_points_played,
-                    SUM(pss.total_d_points_played) as total_d_points_played,
-                    SUM(pss.total_seconds_played) as total_seconds_played,
-                    SUM(pss.total_o_opportunities) as total_o_opportunities,
-                    SUM(pss.total_d_opportunities) as total_d_opportunities,
-                    SUM(pss.total_o_opportunity_scores) as total_o_opportunity_scores,
-                    p.most_recent_team_name as team_name,
-                    p.most_recent_team_full_name as team_full_name,
-                    (SELECT COUNT(DISTINCT pgs_sub.game_id)
-                     FROM player_game_stats pgs_sub
-                     JOIN games g_sub ON pgs_sub.game_id = g_sub.game_id
-                     WHERE pgs_sub.player_id = pss.player_id
-                     AND (pgs_sub.o_points_played > 0 OR pgs_sub.d_points_played > 0 OR pgs_sub.seconds_played > 0 OR pgs_sub.goals > 0 OR pgs_sub.assists > 0)
-                     {team_filter.replace('pss.', 'pgs_sub.')}
-                    ) as games_played,
-                    SUM(pss.total_o_opportunities) as possessions,
-                    (SUM(pss.total_goals) + SUM(pss.total_assists)) as score_total,
-                    (SUM(pss.total_o_points_played) + SUM(pss.total_d_points_played)) as total_points_played,
-                    (SUM(pss.total_yards_thrown) + SUM(pss.total_yards_received)) as total_yards,
-                    ROUND(SUM(pss.total_seconds_played) / 60.0, 0) as minutes_played,
-                    CASE
-                        WHEN SUM(pss.total_hucks_attempted) > 0
-                        THEN ROUND(SUM(pss.total_hucks_completed) * 100.0 / SUM(pss.total_hucks_attempted), 1)
-                        ELSE 0
-                    END as huck_percentage,
-                    CASE
-                        WHEN SUM(pss.total_o_opportunities) >= 20
-                        THEN ROUND(SUM(pss.total_o_opportunity_scores) * 100.0 / SUM(pss.total_o_opportunities), 1)
-                        ELSE NULL
-                    END as offensive_efficiency,
-                    CASE
-                        WHEN (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops)) > 0
-                        THEN ROUND((SUM(pss.total_yards_thrown) + SUM(pss.total_yards_received)) * 1.0 / (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops)), 1)
-                        ELSE NULL
-                    END as yards_per_turn
-                FROM player_season_stats pss
-                JOIN (SELECT DISTINCT pss2.player_id,
-                             FIRST_VALUE(pl.full_name) OVER (PARTITION BY pss2.player_id ORDER BY pss2.year DESC) as full_name,
-                             FIRST_VALUE(pl.first_name) OVER (PARTITION BY pss2.player_id ORDER BY pss2.year DESC) as first_name,
-                             FIRST_VALUE(pl.last_name) OVER (PARTITION BY pss2.player_id ORDER BY pss2.year DESC) as last_name,
-                             FIRST_VALUE(pss2.team_id) OVER (PARTITION BY pss2.player_id ORDER BY pss2.year DESC) as most_recent_team_id,
-                             FIRST_VALUE(t2.name) OVER (PARTITION BY pss2.player_id ORDER BY pss2.year DESC) as most_recent_team_name,
-                             FIRST_VALUE(t2.full_name) OVER (PARTITION BY pss2.player_id ORDER BY pss2.year DESC) as most_recent_team_full_name
-                      FROM player_season_stats pss2
-                      JOIN players pl ON pss2.player_id = pl.player_id AND pss2.year = pl.year
-                      LEFT JOIN teams t2 ON pss2.team_id = t2.team_id AND pss2.year = t2.year) p ON pss.player_id = p.player_id
-                WHERE 1=1{team_filter}
-                GROUP BY pss.player_id, p.full_name, p.first_name, p.last_name, p.most_recent_team_id, p.most_recent_team_name, p.most_recent_team_full_name
+                    total_goals,
+                    total_assists,
+                    total_hockey_assists,
+                    total_blocks,
+                    calculated_plus_minus,
+                    total_completions,
+                    completion_percentage,
+                    total_yards_thrown,
+                    total_yards_received,
+                    total_throwaways,
+                    total_stalls,
+                    total_drops,
+                    total_callahans,
+                    total_hucks_completed,
+                    total_hucks_attempted,
+                    total_hucks_received,
+                    total_pulls,
+                    total_o_points_played,
+                    total_d_points_played,
+                    total_seconds_played,
+                    total_o_opportunities,
+                    total_d_opportunities,
+                    total_o_opportunity_scores,
+                    most_recent_team_name as team_name,
+                    most_recent_team_full_name as team_full_name,
+                    games_played,
+                    possessions,
+                    score_total,
+                    total_points_played,
+                    total_yards,
+                    minutes_played,
+                    huck_percentage,
+                    offensive_efficiency,
+                    yards_per_turn
+                FROM player_career_stats
+                WHERE 1=1{team_filter_career}
                 ORDER BY {get_sort_column(sort, is_career=True, per_game=(per == "game"), team=team)} {order.upper()}
                 LIMIT {per_page} OFFSET {(page-1) * per_page}
                 """
@@ -178,11 +162,9 @@ def create_player_stats_route(stats_system):
             # Get total count for pagination
             if season == "career":
                 count_query = f"""
-                SELECT COUNT(DISTINCT pss.player_id) as total
-                FROM player_season_stats pss
-                LEFT JOIN player_game_stats pgs ON pss.player_id = pgs.player_id AND pss.year = pgs.year AND pss.team_id = pgs.team_id
-                LEFT JOIN games g ON pgs.game_id = g.game_id
-                WHERE 1=1{team_filter}
+                SELECT COUNT(*) as total
+                FROM player_career_stats
+                WHERE 1=1{team_filter_career if season == "career" else team_filter}
                 """
             else:
                 count_query = f"""
@@ -263,13 +245,18 @@ def create_player_stats_route(stats_system):
 
             total_pages = (total + per_page - 1) // per_page
 
-            return {
+            result = {
                 "players": players,
                 "total": total,
                 "page": page,
                 "per_page": per_page,
                 "total_pages": total_pages,
             }
+
+            # Cache the result
+            cache.set(cache_key, result, ttl=300)  # 5 minute TTL
+
+            return result
 
         except Exception as e:
             print(f"Error in get_player_stats: {e}")

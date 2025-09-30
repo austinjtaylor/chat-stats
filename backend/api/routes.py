@@ -3,6 +3,7 @@ API routes for sports statistics endpoints.
 """
 
 from config import config
+from data.cache import get_cache, cache_key_for_endpoint
 from fastapi import APIRouter, HTTPException
 from models.api import (
     PlayerSearchResponse,
@@ -175,16 +176,37 @@ def create_basic_routes(stats_system):
     ):
         """Get comprehensive team statistics with all UFA-style columns"""
         try:
+            # Check cache first
+            cache = get_cache()
+            cache_key = cache_key_for_endpoint(
+                'team_stats',
+                season=season,
+                view=view,
+                perspective=perspective,
+                sort=sort,
+                order=order
+            )
+
+            cached_result = cache.get(cache_key)
+            if cached_result is not None:
+                return cached_result
+
             teams = stats_system.get_comprehensive_team_stats(
                 season, view, perspective, sort, order
             )
-            return {
+
+            result = {
                 "teams": teams,
                 "total": len(teams),
                 "season": season,
                 "view": view,
                 "perspective": perspective,
             }
+
+            # Cache the result
+            cache.set(cache_key, result, ttl=300)  # 5 minute TTL
+
+            return result
 
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e)) from e

@@ -21,16 +21,18 @@ class TeamStats {
     filters: TeamFilters;
     teams: TeamSeasonStats[];
     totalTeams: number;
+    cache: Map<string, { data: any; timestamp: number }>;
 
     constructor() {
         this.currentSort = { key: 'wins', direction: 'desc' };
         this.filters = {
-            season: '2025',
+            season: 'career',
             view: 'total',
             perspective: 'team'
         };
         this.teams = [];
         this.totalTeams = 0;
+        this.cache = new Map();
 
         this.init();
     }
@@ -172,6 +174,25 @@ class TeamStats {
 
     async loadTeamStats(): Promise<void> {
         try {
+            // Generate cache key
+            const cacheKey = JSON.stringify({
+                season: this.filters.season,
+                view: this.filters.view,
+                perspective: this.filters.perspective,
+                sort: this.currentSort.key,
+                order: this.currentSort.direction
+            });
+
+            // Check cache (5 minute TTL)
+            const cached = this.cache.get(cacheKey);
+            if (cached && Date.now() - cached.timestamp < 5 * 60 * 1000) {
+                this.teams = cached.data.teams || [];
+                this.totalTeams = cached.data.total || 0;
+                this.renderTeamsTable();
+                this.updateTeamCount();
+                return;
+            }
+
             window.ufaStats.showLoading('#teamsTableBody', 'Loading team statistics...');
 
             const response = await window.ufaStats.fetchData<TeamStatsResponse>('/teams/stats', {
@@ -185,6 +206,12 @@ class TeamStats {
             if (response && response.teams) {
                 this.teams = response.teams;
                 this.totalTeams = response.total || response.teams.length || 0;
+
+                // Store in cache
+                this.cache.set(cacheKey, {
+                    data: response,
+                    timestamp: Date.now()
+                });
             } else {
                 this.teams = [];
                 this.totalTeams = 0;

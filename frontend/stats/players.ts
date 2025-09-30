@@ -32,6 +32,7 @@ class PlayerStats {
     totalPages: number;
     totalPlayers: number;
     teams: TeamInfo[];
+    cache: Map<string, { data: any; timestamp: number }>;
 
     constructor() {
         this.currentPage = 1;
@@ -46,6 +47,7 @@ class PlayerStats {
         this.totalPages = 0;
         this.totalPlayers = 0;
         this.teams = [];
+        this.cache = new Map();
 
         this.init();
     }
@@ -295,6 +297,33 @@ class PlayerStats {
 
     async loadPlayerStats(): Promise<void> {
         try {
+            // Generate cache key
+            const cacheKey = JSON.stringify({
+                season: this.filters.season,
+                team: this.filters.team,
+                per: this.filters.per,
+                page: this.currentPage,
+                per_page: this.pageSize,
+                sort: this.currentSort.key,
+                order: this.currentSort.direction
+            });
+
+            // Check cache (5 minute TTL)
+            const cached = this.cache.get(cacheKey);
+            if (cached && Date.now() - cached.timestamp < 5 * 60 * 1000) {
+                this.players = cached.data.players || [];
+                this.totalPlayers = cached.data.total || 0;
+                this.totalPages = cached.data.total_pages || cached.data.pages || 0;
+
+                this.renderPlayersTable();
+                this.renderPagination();
+                this.updatePlayerCount();
+
+                // Prefetch adjacent pages in background
+                this.prefetchPages();
+                return;
+            }
+
             window.ufaStats.showLoading('#playersTableBody', 'Loading player statistics...');
 
             // Use the new dedicated API endpoint
@@ -312,12 +341,18 @@ class PlayerStats {
                 this.players = response.players || [];
                 this.totalPlayers = response.total || 0;
                 // Fix: API returns 'total_pages' not 'pages'
-                this.totalPages = response.total_pages || response.pages || 0;
+                this.totalPages = response.total_pages || 0;
 
                 // Fallback: calculate totalPages if not provided
                 if (!this.totalPages && this.totalPlayers > 0) {
                     this.totalPages = Math.ceil(this.totalPlayers / this.pageSize);
                 }
+
+                // Store in cache
+                this.cache.set(cacheKey, {
+                    data: response,
+                    timestamp: Date.now()
+                });
 
                 console.log('API Response:', {
                     playersCount: this.players.length,
@@ -335,6 +370,9 @@ class PlayerStats {
             this.renderPlayersTable();
             this.renderPagination();
             this.updatePlayerCount();
+
+            // Prefetch adjacent pages
+            this.prefetchPages();
 
         } catch (error) {
             console.error('Failed to load player stats:', error);
@@ -458,6 +496,57 @@ class PlayerStats {
         const countElement = document.getElementById('playerCount');
         if (countElement) {
             countElement.textContent = window.Format ? window.Format.number(this.totalPlayers) : this.totalPlayers.toLocaleString();
+        }
+    }
+
+    async prefetchPages(): Promise<void> {
+        // Prefetch next and previous pages in the background
+        const pagesToPrefetch = [];
+
+        if (this.currentPage > 1) {
+            pagesToPrefetch.push(this.currentPage - 1);
+        }
+        if (this.currentPage < this.totalPages) {
+            pagesToPrefetch.push(this.currentPage + 1);
+        }
+
+        // Prefetch each page silently
+        for (const page of pagesToPrefetch) {
+            const cacheKey = JSON.stringify({
+                season: this.filters.season,
+                team: this.filters.team,
+                per: this.filters.per,
+                page: page,
+                per_page: this.pageSize,
+                sort: this.currentSort.key,
+                order: this.currentSort.direction
+            });
+
+            // Skip if already cached
+            if (this.cache.has(cacheKey)) {
+                continue;
+            }
+
+            // Fetch in background without awaiting
+            window.ufaStats.fetchData<PlayerStatsResponse>('/players/stats', {
+                season: this.filters.season,
+                team: this.filters.team,
+                per: this.filters.per,
+                page: page,
+                per_page: this.pageSize,
+                sort: this.currentSort.key,
+                order: this.currentSort.direction
+            }).then(response => {
+                if (response) {
+                    this.cache.set(cacheKey, {
+                        data: response,
+                        timestamp: Date.now()
+                    });
+                }
+            }).catch(err => {
+                // Silently ignore prefetch errors
+                console.debug('Prefetch failed:', err);
+            });
         }
     }
 }
