@@ -149,7 +149,14 @@ Database Schema (UFA API Compatible):
   - Plus/Minus: calculated_plus_minus (goals + assists + blocks - throwaways - stalls - drops)
 - **player_game_stats**:
   - player_id (UFA string), game_id (UFA string), team_id (UFA string), year (integer)
-  - Same stats as season but for individual games: goals, assists, hucks_completed, hucks_attempted, etc.
+  - **CRITICAL DIFFERENCE**: Uses field names WITHOUT "total_" prefix (unlike player_season_stats)
+  - Offense: goals, assists, hockey_assists, completions, throw_attempts
+  - Defense: blocks, catches, drops, callahans
+  - Errors: throwaways, stalls
+  - Throwing: yards_thrown, yards_received (NOT total_yards_thrown/total_yards_received)
+  - Hucks: hucks_completed, hucks_attempted, hucks_received
+  - Playing Time: o_points_played, o_points_scored, d_points_played, d_points_scored
+  - **EXAMPLE**: For player yards in a game → yards_thrown + yards_received (NOT total_yards_thrown + total_yards_received)
 - **team_season_stats**: team_id (UFA string), year (integer), wins, losses, ties, standing
 
 SQL Query Guidelines:
@@ -178,11 +185,17 @@ SQL Query Guidelines:
   - Player names: p.full_name (NOT p.name)
   - Time periods: WHERE year = 2023 (NOT season = '2023')
   - Statistics: hucks_completed, goals, assists (NOT total_completions, total_goals)
-- **Team name matching**: When users refer to teams by partial names:
-  - "Carolina" = "Carolina Flyers" with team_id "flyers"
-  - "Austin" = "Austin Sol" with team_id "sol"
+- **Team name matching**: Teams can be referred to by CITY or NAME:
+  - **CRITICAL**: Search BOTH city and name columns for team matching
+  - Pattern: `(t.city LIKE '%search%' OR t.name LIKE '%search%' OR t.full_name LIKE '%search%')`
+  - Examples:
+    - "San Diego" (city) = San Diego Growlers with team_id "growlers"
+    - "Growlers" (name) = San Diego Growlers with team_id "growlers"
+    - "Carolina" (city) = Carolina Flyers with team_id "flyers"
+    - "Austin" (city) = Austin Sol with team_id "sol"
+    - "DC" (city) = DC Breeze with team_id "breeze"
+    - "Atlanta" (city) = Atlanta Hustle with team_id "hustle"
   - Austin Taylor plays for "Atlanta Hustle" (team_id "hustle") in 2025
-  - Use LIKE '%team_name%' for flexible team matching
   - Check both home_team_id and away_team_id when finding games between teams
 - Use WHERE clauses for filtering (e.g., WHERE year = 2023)
 - **Game type filtering**: Use game_type for specific contexts:
