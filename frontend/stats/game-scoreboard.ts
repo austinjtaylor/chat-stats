@@ -73,6 +73,23 @@ export class GameScoreboard {
         return city.substring(0, 3).toUpperCase();
     }
 
+    private getTeamLogoPath(city: string, teamName: string): string {
+        // Convert city and team name to logo filename format
+        // Format: city_teamname.png (all lowercase, spaces replaced with underscores)
+        const cityFormatted = city.toLowerCase().replace(/\s+/g, '_');
+        const teamFormatted = teamName.toLowerCase().replace(/\s+/g, '_');
+
+        // Special case for LA (in data) which should map to los_angeles in filename
+        const cityMapping: Record<string, string> = {
+            'la': 'los_angeles',
+            'dc': 'dc'
+        };
+
+        const finalCity = cityMapping[cityFormatted] || cityFormatted;
+
+        return `/images/teams/${finalCity}_${teamFormatted}.png`;
+    }
+
     public updateScoreboard(homeTeam: TeamData, awayTeam: TeamData): void {
         // Update team names and scores
         if (this.elements.awayName) this.elements.awayName.textContent = awayTeam.full_name;
@@ -80,9 +97,15 @@ export class GameScoreboard {
         if (this.elements.homeName) this.elements.homeName.textContent = homeTeam.full_name;
         if (this.elements.homeScore) this.elements.homeScore.textContent = String(homeTeam.final_score);
 
-        // Update team logos (first letter of team name)
-        if (this.elements.awayLogo) this.elements.awayLogo.textContent = awayTeam.name.charAt(0);
-        if (this.elements.homeLogo) this.elements.homeLogo.textContent = homeTeam.name.charAt(0);
+        // Update team logos
+        if (this.elements.awayLogo) {
+            const awayLogoPath = this.getTeamLogoPath(awayTeam.city, awayTeam.name);
+            this.elements.awayLogo.innerHTML = `<img src="${awayLogoPath}" alt="${awayTeam.full_name} logo" onerror="this.style.display='none'; this.parentElement.textContent='${awayTeam.name.charAt(0)}'">`;
+        }
+        if (this.elements.homeLogo) {
+            const homeLogoPath = this.getTeamLogoPath(homeTeam.city, homeTeam.name);
+            this.elements.homeLogo.innerHTML = `<img src="${homeLogoPath}" alt="${homeTeam.full_name} logo" onerror="this.style.display='none'; this.parentElement.textContent='${homeTeam.name.charAt(0)}'">`;
+        }
 
         // Update team abbreviations in quarter table
         if (this.elements.awayTeamAbbrev) {
