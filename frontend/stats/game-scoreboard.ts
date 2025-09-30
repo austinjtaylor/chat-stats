@@ -85,9 +85,15 @@ export class GameScoreboard {
             'dc': 'dc'
         };
 
-        const finalCity = cityMapping[cityFormatted] || cityFormatted;
+        // Special case for team names that don't match their logo filenames
+        const teamMapping: Record<string, string> = {
+            'alleycats': 'alley_cats'
+        };
 
-        return `/images/team_logos/${finalCity}_${teamFormatted}.png`;
+        const finalCity = cityMapping[cityFormatted] || cityFormatted;
+        const finalTeam = teamMapping[teamFormatted] || teamFormatted;
+
+        return `/images/team_logos/${finalCity}_${finalTeam}.png`;
     }
 
     public updateScoreboard(homeTeam: TeamData, awayTeam: TeamData): void {
