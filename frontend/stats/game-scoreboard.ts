@@ -87,7 +87,7 @@ export class GameScoreboard {
 
         const finalCity = cityMapping[cityFormatted] || cityFormatted;
 
-        return `/images/teams/${finalCity}_${teamFormatted}.png`;
+        return `/images/team_logos/${finalCity}_${teamFormatted}.png`;
     }
 
     public updateScoreboard(homeTeam: TeamData, awayTeam: TeamData): void {
