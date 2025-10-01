@@ -215,7 +215,7 @@ body.chat-page {
     height: calc(100vh - 74px);
     overflow-y: auto;
     padding: 2rem calc(50vw - 384px); /* Center content with dynamic padding */
-    padding-bottom: calc(100vh - 200px); /* Extra padding to allow scrolling messages to top */
+    padding-bottom: calc(100vh - 300px); /* Extra padding to allow scrolling messages to top */
     position: relative;
     width: 100vw; /* Full viewport width for scrollbar positioning */
     margin-left: calc(50% - 50vw); /* Offset to extend to edges */

@@ -8,6 +8,9 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "serve": "python3 -m http.server 8080",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint:css": "stylelint \"styles/**/*.css\"",
     "lint:js": "eslint \"js/**/*.{js,ts}\" \"*.{js,ts}\" \"stats/**/*.{js,ts}\" \"types/**/*.ts\"",
@@ -20,8 +23,10 @@
     "@types/node": "^24.4.0",
     "@typescript-eslint/eslint-plugin": "^8.43.0",
     "@typescript-eslint/parser": "^8.43.0",
+    "@vitest/ui": "^3.2.4",
     "autoprefixer": "^10.4.16",
     "eslint": "^8.56.0",
+    "jsdom": "^27.0.0",
     "json-schema-to-typescript": "^15.0.4",
     "postcss": "^8.4.33",
     "postcss-import": "^16.0.0",
@@ -31,7 +36,8 @@
     "stylelint-config-standard": "^36.0.0",
     "terser": "^5.44.0",
     "typescript": "^5.9.2",
-    "vite": "^5.0.11"
+    "vite": "^5.0.11",
+    "vitest": "^3.2.4"
   },
   "browserslist": [
     "> 1%",
