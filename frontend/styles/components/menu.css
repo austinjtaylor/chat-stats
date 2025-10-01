@@ -73,9 +73,11 @@
     display: inline-flex;
     align-items: center;
     vertical-align: middle;
+    cursor: default;
 }
 
-.logo-wrapper img {
+.logo-wrapper img,
+.logo-wrapper svg {
     height: 36px;
     width: auto;
     display: block;
@@ -87,6 +89,19 @@
     image-rendering: crisp-edges;
     image-rendering: -webkit-optimize-contrast;
     transform: translateY(8px);  /* Slight downward adjustment for vertical centering */
+    overflow: visible; /* Ensure tail doesn't get clipped */
+}
+
+/* Smooth transitions for logo animations */
+.logo-wrapper svg path,
+.logo-wrapper svg rect,
+.logo-wrapper svg polygon {
+    transition: d 0.15s ease-out, y 0.15s ease-out, height 0.15s ease-out, points 0.15s ease-out;
+}
+
+/* Active state when cursor is near */
+.logo-wrapper.logo-active {
+    /* Optional: add subtle glow or scale effect */
 }
 
 /* Logo on main chat page - next to title */
@@ -98,7 +113,8 @@
     margin-bottom: 1rem;
 }
 
-.chat-title-wrapper .logo-wrapper img {
+.chat-title-wrapper .logo-wrapper img,
+.chat-title-wrapper .logo-wrapper svg {
     height: 45px;
     border: none;
     outline: none;
@@ -117,7 +133,8 @@
     gap: 12px;
 }
 
-.menu-wrapper.with-logo .logo-wrapper img {
+.menu-wrapper.with-logo .logo-wrapper img,
+.menu-wrapper.with-logo .logo-wrapper svg {
     height: 36px;
     border: none;
     outline: none;

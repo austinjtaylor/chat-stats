@@ -9,6 +9,9 @@ import './src/utils/format';
 // Import dropdown module and its initialization function
 import { initDropdowns } from './src/components/dropdown';
 
+// Import logo animation
+import { initLogoAnimation } from './src/components/logo-animation';
+
 // Import main application script
 import './script';  // Now TypeScript
 
@@ -21,9 +24,13 @@ if (document.readyState === 'loading') {
     console.log('Chat Stats application initialized');
     // Initialize the dropdown functionality from dropdown.ts
     initDropdowns();
+    // Initialize the interactive logo animation
+    initLogoAnimation();
   });
 } else {
   console.log('Chat Stats application initialized');
   // Initialize the dropdown functionality from dropdown.ts
   initDropdowns();
+  // Initialize the interactive logo animation
+  initLogoAnimation();
 }

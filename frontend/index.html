@@ -84,9 +84,58 @@
         <main class="chat-main-full">
             <!-- Chat Title with Logo -->
             <div class="chat-title-wrapper">
-                <div class="logo-wrapper">
-                    <img src="/images/logo/chat-stats-logo-light.svg" alt="Chat Stats Logo" class="logo-light">
-                    <img src="/images/logo/chat-stats-logo-dark.svg" alt="Chat Stats Logo" class="logo-dark">
+                <div class="logo-wrapper" id="logoWrapper">
+                    <!-- Light theme logo (dark colored) -->
+                    <svg class="logo-dark" width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Static circle bubble -->
+                        <circle id="logoBubbleDark" cx="100" cy="100" r="75" fill="#31363F"/>
+                        <!-- Animated tail -->
+                        <polygon id="logoTailDark" points="62.71,165.09 34.89,137.26 29.72,173.93" fill="#31363F"/>
+                        <!-- Stat bars -->
+                        <rect id="logoBar1Dark" x="50" y="95" width="25.2403" height="30" rx="7" fill="url(#paint0_linear_dark)"/>
+                        <rect id="logoBar2Dark" x="87.3799" y="75" width="25.2403" height="50" rx="7" fill="url(#paint1_linear_dark)"/>
+                        <path id="logoBar3Dark" d="M124.76 92C124.76 88.134 127.894 85 131.76 85H143C146.866 85 150 88.134 150 92V118C150 121.866 146.866 125 143 125H131.76C127.894 125 124.76 121.866 124.76 118V92Z" fill="url(#paint2_linear_dark)"/>
+                        <defs>
+                            <linearGradient id="paint0_linear_dark" x1="62.6201" y1="95" x2="62.6201" y2="125" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#76ABAE"/>
+                                <stop offset="1" stop-color="#DFC883"/>
+                            </linearGradient>
+                            <linearGradient id="paint1_linear_dark" x1="100" y1="75" x2="100" y2="125" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#76ABAE"/>
+                                <stop offset="1" stop-color="#DFC883"/>
+                            </linearGradient>
+                            <linearGradient id="paint2_linear_dark" x1="137.38" y1="85" x2="137.38" y2="125" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#76ABAE"/>
+                                <stop offset="1" stop-color="#DFC883"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+
+                    <!-- Dark theme logo (light colored) -->
+                    <svg class="logo-light" width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Static circle bubble -->
+                        <circle id="logoBubbleLight" cx="100" cy="100" r="75" fill="#EEEEEE"/>
+                        <!-- Animated tail -->
+                        <polygon id="logoTailLight" points="62.71,165.09 34.89,137.26 29.72,173.93" fill="#EEEEEE"/>
+                        <!-- Stat bars -->
+                        <rect id="logoBar1Light" x="50" y="95" width="25.0581" height="30" rx="7" fill="url(#paint0_linear_light)"/>
+                        <rect id="logoBar2Light" x="87.4709" y="75" width="25.0581" height="50" rx="7" fill="url(#paint1_linear_light)"/>
+                        <path id="logoBar3Light" d="M124.942 92C124.942 88.134 128.076 85 131.942 85H143C146.866 85 150 88.134 150 92V118C150 121.866 146.866 125 143 125H131.942C128.076 125 124.942 121.866 124.942 118V92Z" fill="url(#paint2_linear_light)"/>
+                        <defs>
+                            <linearGradient id="paint0_linear_light" x1="62.5291" y1="95" x2="62.5291" y2="125" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#76ABAE"/>
+                                <stop offset="1" stop-color="#DFC883"/>
+                            </linearGradient>
+                            <linearGradient id="paint1_linear_light" x1="100" y1="75" x2="100" y2="125" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#76ABAE"/>
+                                <stop offset="1" stop-color="#DFC883"/>
+                            </linearGradient>
+                            <linearGradient id="paint2_linear_light" x1="137.471" y1="85" x2="137.471" y2="125" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#76ABAE"/>
+                                <stop offset="1" stop-color="#DFC883"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
                 </div>
                 <h1 class="chat-title">Chat Stats</h1>
             </div>
