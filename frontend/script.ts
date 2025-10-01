@@ -140,13 +140,18 @@ async function sendMessage(): Promise<void> {
     chatInput.disabled = true;
     sendButton.disabled = true;
 
-    // Add user message
-    addMessage(query, 'user');
+    // Add user message and store its ID
+    const userMessageId = addMessage(query, 'user');
 
-    // Add loading message - create a unique container for it
+    // Add loading message below the user query
     const loadingMessage = createLoadingMessage();
     chatMessages.appendChild(loadingMessage);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    // Scroll to position the user query at the top of the viewport
+    const userMessageDiv = document.getElementById(`message-${userMessageId}`);
+    if (userMessageDiv) {
+        chatMessages.scrollTop = userMessageDiv.offsetTop - 32;
+    }
 
     try {
         // Use the centralized API client
@@ -243,7 +248,6 @@ function addMessage(content: string, type: 'user' | 'assistant', sources: Messag
 
     messageDiv.innerHTML = html;
     chatMessages.appendChild(messageDiv);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
 
     return messageId;
 }
