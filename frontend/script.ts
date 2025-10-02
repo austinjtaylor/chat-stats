@@ -147,10 +147,23 @@ async function sendMessage(): Promise<void> {
     const loadingMessage = createLoadingMessage();
     chatMessages.appendChild(loadingMessage);
 
-    // Scroll to position the user query at the top of the viewport
+    // Smart scroll to keep messages visible above chat bar
     const userMessageDiv = document.getElementById(`message-${userMessageId}`);
     if (userMessageDiv) {
-        chatMessages.scrollTop = userMessageDiv.offsetTop - 32;
+        // Calculate the maximum scroll to keep message visible above chat bar
+        const containerHeight = chatMessages.offsetHeight;
+        const messageBottom = userMessageDiv.offsetTop + userMessageDiv.offsetHeight;
+        const chatBarHeight = 74; // Height of chat input area from CSS
+        const gradientBuffer = 120; // Additional buffer for gradient fade effect
+
+        // Calculate the maximum scroll position that keeps content visible
+        // This prevents the bottom of the message from going below the top of the chat bar
+        const maxScroll = Math.max(0, messageBottom - containerHeight + chatBarHeight + gradientBuffer);
+
+        // Try to scroll the message to the top, but not beyond the max scroll limit
+        const targetScroll = Math.min(userMessageDiv.offsetTop - 32, maxScroll);
+
+        chatMessages.scrollTop = targetScroll;
     }
 
     try {
@@ -165,6 +178,28 @@ async function sendMessage(): Promise<void> {
         // Replace loading message with response
         loadingMessage.remove();
         addMessage(data.answer, 'assistant', data.data);
+
+        // After adding assistant message, adjust scroll to keep it fully visible
+        if (chatMessages) {
+            const assistantMessage = chatMessages.lastElementChild as HTMLElement;
+            if (assistantMessage) {
+                // Small delay to ensure DOM is updated
+                setTimeout(() => {
+                    const messageBottom = assistantMessage.offsetTop + assistantMessage.offsetHeight;
+                    const containerHeight = chatMessages.offsetHeight;
+                    const visibleBottom = chatMessages.scrollTop + containerHeight;
+
+                    // If message extends below visible area, scroll to show it
+                    // 150px buffer accounts for the gradient fade effect
+                    if (messageBottom > visibleBottom - 150) {
+                        chatMessages.scrollTo({
+                            top: messageBottom - containerHeight + 150,
+                            behavior: 'smooth'
+                        });
+                    }
+                }, 50);
+            }
+        }
 
     } catch (error) {
         // Replace loading message with error
