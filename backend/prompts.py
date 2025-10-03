@@ -135,7 +135,7 @@ Database Schema (UFA API Compatible):
   - id (internal), game_id (UFA gameID string), year (integer)
   - away_team_id, home_team_id (UFA team strings), away_score, home_score
   - status, start_timestamp, week, location
-  - game_type: 'regular', 'playoffs_r1', 'playoffs_div', 'playoffs_championship'
+  - game_type: 'regular', 'playoffs_r1', 'playoffs_div', 'playoffs_semi', 'playoffs_championship'
 - **player_season_stats**:
   - player_id (UFA string), team_id (UFA string), year (integer)
   - Offense: total_goals, total_assists, total_hockey_assists, total_completions, total_throw_attempts
@@ -160,6 +160,34 @@ Database Schema (UFA API Compatible):
 - **team_season_stats**: team_id (UFA string), year (integer), wins, losses, ties, standing
 
 SQL Query Guidelines:
+
+**CRITICAL QUERY VALIDATION - CHECK BEFORE EVERY QUERY EXECUTION:**
+
+Before executing ANY query, validate these items:
+
+1. **Temporal Consistency Check**:
+   - If the user's question contains "this year", "this season", "current" → VERIFY: WHERE clause MUST include "AND g.year = 2025" or "AND year = 2025"
+   - If the user's question contains "last year", "previous season" → VERIFY: WHERE clause MUST include "AND g.year = 2024" or "AND year = 2024"
+   - If your explanation mentions a specific year → VERIFY: That exact year appears in the WHERE clause
+
+2. **Playoff Participation Check**:
+   - If finding teams that "made it to" or "played in" any playoff round → VERIFY: You are joining on BOTH home AND away teams
+   - WRONG: JOIN teams t ON t.team_id = g.home_team_id (only gets half the teams)
+   - CORRECT: JOIN teams t ON (t.team_id = g.home_team_id OR t.team_id = g.away_team_id)
+   - Alternative CORRECT: Use UNION to combine home and away teams
+
+3. **Completeness Check**:
+   - If the question asks for "teams" (plural) in playoffs → VERIFY: Using DISTINCT to avoid duplicates
+   - If the question asks about semifinals specifically → VERIFY: WHERE game_type = 'playoffs_semi'
+   - If the question asks about championship → VERIFY: WHERE game_type = 'playoffs_championship'
+
+4. **Logical Consistency Check**:
+   - VERIFY: If your explanation says "2025 UFA season", the query MUST have "year = 2025" in it
+   - VERIFY: If counting teams in a round, you need BOTH teams from each game
+   - VERIFY: The SQL query actually matches what you described in the explanation
+
+SELF-CORRECTION: If any validation fails, FIX the query before execution.
+
 - **CRITICAL: Database is SQLite - Use SQLite syntax, NOT PostgreSQL**:
   - Date extraction: DATE(timestamp_column) NOT timestamp_column::date
   - String functions: Use SQLite functions (SUBSTR, LENGTH, etc.)
@@ -200,8 +228,12 @@ SQL Query Guidelines:
 - Use WHERE clauses for filtering (e.g., WHERE year = 2023)
 - **Game type filtering**: Use game_type for specific contexts:
   - Regular season stats: WHERE game_type = 'regular'
-  - Playoff stats: WHERE game_type LIKE 'playoffs_%'
-  - Championship games only: WHERE game_type = 'playoffs_championship'
+  - All playoff stats: WHERE game_type LIKE 'playoffs_%'
+  - Round 1: WHERE game_type = 'playoffs_r1'
+  - Division finals: WHERE game_type = 'playoffs_div'
+  - Semifinals only: WHERE game_type = 'playoffs_semi'
+  - Championship game only: WHERE game_type = 'playoffs_championship'
+  - Championship weekend (semis + final): WHERE game_type IN ('playoffs_semi', 'playoffs_championship')
 - **CRITICAL**: Use proper games played counting that matches the frontend API logic:
   - WRONG: COUNT(DISTINCT pgs.game_id) - counts all games where player appeared on roster
   - CORRECT: COUNT(DISTINCT CASE WHEN (pgs.o_points_played > 0 OR pgs.d_points_played > 0 OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0) THEN pgs.game_id ELSE NULL END)
