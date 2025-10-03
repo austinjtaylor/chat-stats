@@ -27,7 +27,7 @@ let historyIndex: number = -1;
 
 // DOM elements
 let chatMessages: HTMLElement | null;
-let chatInput: HTMLInputElement | null;
+let chatInput: HTMLTextAreaElement | null;
 let sendButton: HTMLButtonElement | null;
 let totalPlayers: HTMLElement | null;
 let totalTeams: HTMLElement | null;
@@ -38,7 +38,7 @@ let newChatButton: HTMLElement | null;
 document.addEventListener('DOMContentLoaded', () => {
     // Get DOM elements using DOM utility
     chatMessages = DOM.$('#chatMessages') as HTMLElement | null;
-    chatInput = DOM.$('#chatInput') as HTMLInputElement | null;
+    chatInput = DOM.$('#chatInput') as HTMLTextAreaElement | null;
     sendButton = DOM.$('#sendButton') as HTMLButtonElement | null;
     totalPlayers = DOM.$('#totalPlayers') as HTMLElement | null;
     totalTeams = DOM.$('#totalTeams') as HTMLElement | null;
@@ -52,12 +52,44 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSportsStats();
 });
 
+// Auto-resize textarea based on content
+function autoResizeTextarea(textarea: HTMLTextAreaElement): void {
+    // Reset height to auto to get the correct scrollHeight
+    textarea.style.height = 'auto';
+    // Set height to scrollHeight to fit content
+    textarea.style.height = textarea.scrollHeight + 'px';
+
+    // Update chat input area height CSS variable if in active chat mode
+    updateChatInputHeight();
+}
+
+// Update the CSS variable for chat input height
+function updateChatInputHeight(): void {
+    const chatInputArea = document.querySelector('.chat-input-area') as HTMLElement;
+    if (chatInputArea && document.body.classList.contains('chat-active')) {
+        const height = chatInputArea.offsetHeight;
+        document.documentElement.style.setProperty('--chat-input-height', `${height}px`);
+    }
+}
+
 // Event Listeners
 function setupEventListeners(): void {
     // Chat functionality
     sendButton?.addEventListener('click', sendMessage);
+
+    // Auto-resize textarea on input
+    chatInput?.addEventListener('input', () => {
+        if (chatInput) {
+            autoResizeTextarea(chatInput);
+        }
+    });
+
     chatInput?.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') sendMessage();
+        // Enter sends message, Shift+Enter creates new line
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
     });
 
     // Query history navigation with arrow keys
@@ -68,6 +100,7 @@ function setupEventListeners(): void {
                 historyIndex++;
                 if (chatInput) {
                     chatInput.value = queryHistory[queryHistory.length - 1 - historyIndex];
+                    autoResizeTextarea(chatInput);
                 }
             }
         } else if (e.key === 'ArrowDown') {
@@ -76,11 +109,14 @@ function setupEventListeners(): void {
                 historyIndex--;
                 if (chatInput) {
                     chatInput.value = queryHistory[queryHistory.length - 1 - historyIndex];
+                    autoResizeTextarea(chatInput);
                 }
             } else if (historyIndex === 0) {
                 historyIndex = -1;
                 if (chatInput) {
                     chatInput.value = '';
+                    chatInput.style.height = 'auto';
+                    updateChatInputHeight();
                 }
             }
         }
@@ -135,10 +171,14 @@ async function sendMessage(): Promise<void> {
     // Add chat-active class to transform the layout
     document.body.classList.add('chat-active');
 
-    // Disable input
+    // Disable input and reset height
     chatInput.value = '';
+    chatInput.style.height = 'auto';
     chatInput.disabled = true;
     sendButton.disabled = true;
+
+    // Update chat input height after resetting textarea
+    updateChatInputHeight();
 
     // Add user message and store its ID
     const userMessageId = addMessage(query, 'user');
@@ -317,10 +357,12 @@ function startNewChat(): void {
 
     // Try Asking container now always visible in the input area
 
-    // Re-enable input and focus
+    // Re-enable input, reset height, and focus
     if (chatInput) {
         chatInput.disabled = false;
+        chatInput.style.height = 'auto';
         chatInput.focus();
+        updateChatInputHeight();
     }
     if (sendButton) {
         sendButton.disabled = false;
