@@ -28,6 +28,89 @@ from config import Config
 from fastapi.testclient import TestClient
 
 
+# Expected Data Constants
+# These values represent the current state of the test database.
+# Update these if the underlying data changes.
+
+EXPECTED_DATA = {
+    "top_goal_scorer_2024": {
+        "name": "Alec Wilson Holliday",
+        "team": "Legion",
+        "goals": 60,
+    },
+    "top_goal_scorer_2025": {
+        "name": "Anthony Gutowsky",
+        "team": "Radicals",
+        "goals": 56,
+    },
+    # Single-season records (best one-year performance)
+    "single_season_record_goals": {
+        "name": "Mischa Freystaetter",
+        "team": "Cannons",
+        "goals": 95,
+        "year": 2016,
+    },
+    "single_season_record_assists": {
+        "name": "Pawel Janas",
+        "team": "Union",
+        "assists": 97,
+        "year": 2018,
+    },
+    "single_season_record_blocks": {
+        "name": "Peter Graffy",
+        "team": "Radicals",
+        "blocks": 54,
+        "year": 2014,
+    },
+    # Career leaders (all-time cumulative stats)
+    "career_leader_goals": {
+        "name": "Cameron Brock",
+        "goals": 660,
+    },
+    "career_leader_assists": {
+        "name": "Pawel Janas",
+        "assists": 533,
+    },
+    "career_leader_blocks": {
+        "name": "Ryan Drost",
+        "blocks": 207,
+    },
+    # Current season leaders
+    "top_assist_leaders_2025": [
+        {"name": "Allan Laviolette", "team": "Flyers", "assists": 67},
+        {"name": "Jake Felton", "team": "Mechanix", "assists": 62},
+    ],
+    "top_teams_2025": [
+        {"name": "Union", "wins": 12, "losses": 1},
+        {"name": "Shred", "wins": 12, "losses": 2},
+        {"name": "Glory", "wins": 12, "losses": 3},
+    ],
+    "recent_games": [
+        {
+            "home_team": "Wind Chill",
+            "away_team": "Glory",
+            "home_score": 15,
+            "away_score": 17,
+            "date": "2025-08-23",
+        },
+        {
+            "home_team": "Wind Chill",
+            "away_team": "Hustle",
+            "home_score": 23,
+            "away_score": 21,
+            "date": "2025-08-22",
+        },
+        {
+            "home_team": "Shred",
+            "away_team": "Glory",
+            "home_score": 17,
+            "away_score": 21,
+            "date": "2025-08-22",
+        },
+    ],
+}
+
+
 class ClaudeModel(DeepEvalBaseLLM):
     """Custom DeepEval model using Anthropic Claude."""
 
@@ -79,7 +162,9 @@ class ChatTestHelper:
         input_query: str,
         retrieval_context: list[str] | None = None,
         expected_keywords: list[str] | None = None,
-    ) -> LLMTestCase:
+        expected_output: str | None = None,
+        expected_values: list[str] | None = None,
+    ) -> tuple[LLMTestCase, dict[str, Any]]:
         """
         Create a DeepEval test case from a query.
 
@@ -87,9 +172,21 @@ class ChatTestHelper:
             input_query: The user's question
             retrieval_context: Expected context/facts that should inform the answer
             expected_keywords: Keywords that should appear in a good response
+            expected_output: Ground truth statement for semantic comparison
+            expected_values: Specific values that must appear in the response (for assertions)
+
+        Returns:
+            tuple: (LLMTestCase, response dict) - test case and raw response for assertions
         """
         response = self.query(input_query)
         actual_output = response.get("answer", "")
+
+        # If expected_values provided, assert they appear in the response
+        if expected_values:
+            for value in expected_values:
+                assert (
+                    value in actual_output
+                ), f"Expected value '{value}' not found in response: {actual_output}"
 
         # Extract data/tool results as context for faithfulness/hallucination checking
         context = []
@@ -115,12 +212,15 @@ class ChatTestHelper:
             # This makes the test more lenient but still catches major issues
             context = [actual_output]
 
-        return LLMTestCase(
-            input=input_query,
-            actual_output=actual_output,
-            retrieval_context=context,
-            expected_output=None,  # We don't expect exact matches
-            context=expected_keywords,  # Use context field for keywords
+        return (
+            LLMTestCase(
+                input=input_query,
+                actual_output=actual_output,
+                retrieval_context=context,  # For Faithfulness metric
+                expected_output=expected_output,  # Ground truth for semantic comparison
+                context=context,  # For Hallucination metric (same as retrieval_context)
+            ),
+            response,
         )
 
 
@@ -141,8 +241,16 @@ class TestPlayerQueries:
 
     def test_player_season_stats(self, chat_helper, claude_model):
         """Test query about a player's season statistics."""
-        test_case = chat_helper.create_test_case(
+        data = EXPECTED_DATA["top_goal_scorer_2024"]
+
+        test_case, response = chat_helper.create_test_case(
             input_query="How many goals did the top scorer get in 2024?",
+            expected_output=f"{data['name']} scored {data['goals']} goals in 2024",
+            expected_values=[str(data["goals"]), data["name"]],
+            retrieval_context=[
+                f"{data['name']} scored {data['goals']} goals in the 2024 season",
+                f"{data['name']} plays for the {data['team']}",
+            ],
             expected_keywords=["goals", "2024", "scorer"],
         )
 
@@ -156,9 +264,17 @@ class TestPlayerQueries:
 
     def test_player_game_stats(self, chat_helper, claude_model):
         """Test query about player performance in a specific game."""
-        test_case = chat_helper.create_test_case(
-            input_query="Show me top performers from the recent Boston vs Minnesota game",
-            expected_keywords=["Boston", "Minnesota", "goals", "assists"],
+        # Using recent game data from Glory vs Wind Chill
+        game = EXPECTED_DATA["recent_games"][0]
+
+        test_case, response = chat_helper.create_test_case(
+            input_query=f"Show me top performers from the recent {game['away_team']} vs {game['home_team']} game",
+            expected_values=[game["away_team"], game["home_team"]],
+            retrieval_context=[
+                f"{game['away_team']} played against {game['home_team']}",
+                f"Final score: {game['away_team']} {game['away_score']}, {game['home_team']} {game['home_score']}",
+            ],
+            expected_keywords=[game["away_team"], game["home_team"], "goals", "assists"],
         )
 
         relevancy_metric = AnswerRelevancyMetric(threshold=0.7, model=claude_model)
@@ -168,9 +284,18 @@ class TestPlayerQueries:
 
     def test_player_comparison(self, chat_helper, claude_model):
         """Test query comparing multiple players."""
-        test_case = chat_helper.create_test_case(
+        leaders = EXPECTED_DATA["top_assist_leaders_2025"]
+        leader1, leader2 = leaders[0], leaders[1]
+
+        test_case, response = chat_helper.create_test_case(
             input_query="Who has more assists this season between the top two assist leaders?",
-            expected_keywords=["assists", "season"],
+            expected_values=[leader1["name"], str(leader1["assists"])],
+            retrieval_context=[
+                f"{leader1['name']} has {leader1['assists']} assists",
+                f"{leader2['name']} has {leader2['assists']} assists",
+                f"{leader1['name']} has more assists than {leader2['name']}",
+            ],
+            expected_keywords=["assists", "season", leader1["name"]],
         )
 
         relevancy_metric = AnswerRelevancyMetric(threshold=0.7, model=claude_model)
@@ -184,8 +309,15 @@ class TestTeamQueries:
 
     def test_team_standings(self, chat_helper, claude_model):
         """Test query about league standings."""
-        test_case = chat_helper.create_test_case(
+        top_team = EXPECTED_DATA["top_teams_2025"][0]
+
+        test_case, response = chat_helper.create_test_case(
             input_query="What are the current standings?",
+            expected_values=[top_team["name"], str(top_team["wins"])],
+            retrieval_context=[
+                f"{top_team['name']} has {top_team['wins']} wins and {top_team['losses']} losses",
+                f"{top_team['name']} is one of the top teams in the standings",
+            ],
             expected_keywords=["standings", "wins", "losses"],
         )
 
@@ -196,9 +328,16 @@ class TestTeamQueries:
 
     def test_team_season_stats(self, chat_helper, claude_model):
         """Test query about team performance."""
-        test_case = chat_helper.create_test_case(
-            input_query="How is Boston Glory performing this season?",
-            expected_keywords=["Boston", "Glory", "season"],
+        # Glory is in top_teams_2025 with 12 wins, 3 losses
+        glory_data = next(t for t in EXPECTED_DATA["top_teams_2025"] if t["name"] == "Glory")
+
+        test_case, response = chat_helper.create_test_case(
+            input_query="How is Glory performing this season?",
+            expected_values=["Glory", str(glory_data["wins"])],
+            retrieval_context=[
+                f"Glory has {glory_data['wins']} wins and {glory_data['losses']} losses this season",
+            ],
+            expected_keywords=["Glory", "season", "wins"],
         )
 
         relevancy_metric = AnswerRelevancyMetric(threshold=0.7, model=claude_model)
@@ -212,8 +351,19 @@ class TestGameQueries:
 
     def test_recent_games(self, chat_helper, claude_model):
         """Test query about recent game results."""
-        test_case = chat_helper.create_test_case(
+        recent_game = EXPECTED_DATA["recent_games"][0]
+
+        test_case, response = chat_helper.create_test_case(
             input_query="What were the scores of the most recent games?",
+            expected_values=[
+                recent_game["away_team"],
+                recent_game["home_team"],
+                str(recent_game["away_score"]),
+                str(recent_game["home_score"]),
+            ],
+            retrieval_context=[
+                f"{recent_game['away_team']} {recent_game['away_score']}, {recent_game['home_team']} {recent_game['home_score']}",
+            ],
             expected_keywords=["score", "game"],
         )
 
@@ -231,11 +381,24 @@ class TestGameQueries:
         - Individual player leaders
         - Team statistics (completion %, possession stats)
         """
-        test_case = chat_helper.create_test_case(
-            input_query="Show me details about the recent Boston vs Minnesota game",
+        # Using Glory vs Wind Chill game
+        game = EXPECTED_DATA["recent_games"][0]
+
+        test_case, response = chat_helper.create_test_case(
+            input_query=f"Show me details about the recent {game['away_team']} vs {game['home_team']} game",
+            expected_values=[
+                game["away_team"],
+                game["home_team"],
+                str(game["away_score"]),
+                str(game["home_score"]),
+            ],
+            retrieval_context=[
+                f"{game['away_team']} played {game['home_team']}",
+                f"Final score: {game['away_team']} {game['away_score']}, {game['home_team']} {game['home_score']}",
+            ],
             expected_keywords=[
-                "Boston",
-                "Minnesota",
+                game["away_team"],
+                game["home_team"],
                 "completion",
                 "goals",
                 "assists",
@@ -257,9 +420,17 @@ class TestGameQueries:
 
     def test_team_head_to_head(self, chat_helper, claude_model):
         """Test query about head-to-head matchups."""
-        test_case = chat_helper.create_test_case(
-            input_query="What is Boston's record against Minnesota this season?",
-            expected_keywords=["Boston", "Minnesota", "record"],
+        # Using Glory vs Wind Chill since we have game data for them
+        team1 = "Glory"
+        team2 = "Wind Chill"
+
+        test_case, response = chat_helper.create_test_case(
+            input_query=f"What is {team1}'s record against {team2} this season?",
+            expected_values=[team1, team2],
+            retrieval_context=[
+                f"{team1} played against {team2} this season",
+            ],
+            expected_keywords=[team1, team2, "record"],
         )
 
         relevancy_metric = AnswerRelevancyMetric(threshold=0.7, model=claude_model)
@@ -273,8 +444,15 @@ class TestLeagueLeaderQueries:
 
     def test_goals_leaders(self, chat_helper, claude_model):
         """Test query about goal scoring leaders."""
-        test_case = chat_helper.create_test_case(
+        top_scorer = EXPECTED_DATA["top_goal_scorer_2025"]
+
+        test_case, response = chat_helper.create_test_case(
             input_query="Who are the top goal scorers this season?",
+            expected_values=[top_scorer["name"], str(top_scorer["goals"])],
+            retrieval_context=[
+                f"{top_scorer['name']} has {top_scorer['goals']} goals this season",
+                f"{top_scorer['name']} plays for {top_scorer['team']}",
+            ],
             expected_keywords=["goals", "top", "season"],
         )
 
@@ -285,8 +463,15 @@ class TestLeagueLeaderQueries:
 
     def test_assists_leaders(self, chat_helper, claude_model):
         """Test query about assist leaders."""
-        test_case = chat_helper.create_test_case(
+        top_assist = EXPECTED_DATA["top_assist_leaders_2025"][0]
+
+        test_case, response = chat_helper.create_test_case(
             input_query="Show me the assist leaders",
+            expected_values=[top_assist["name"], str(top_assist["assists"])],
+            retrieval_context=[
+                f"{top_assist['name']} has {top_assist['assists']} assists",
+                f"{top_assist['name']} plays for {top_assist['team']}",
+            ],
             expected_keywords=["assists", "leaders"],
         )
 
@@ -296,9 +481,16 @@ class TestLeagueLeaderQueries:
         assert_test(test_case, [relevancy_metric, hallucination_metric])
 
     def test_blocks_leaders(self, chat_helper, claude_model):
-        """Test query about defensive leaders."""
-        test_case = chat_helper.create_test_case(
-            input_query="Who has the most blocks?",
+        """Test query about career defensive leaders."""
+        career_blocks = EXPECTED_DATA["career_leader_blocks"]
+
+        test_case, response = chat_helper.create_test_case(
+            input_query="Who has the most career blocks?",
+            expected_values=[career_blocks["name"], str(career_blocks["blocks"])],
+            retrieval_context=[
+                f"{career_blocks['name']} has {career_blocks['blocks']} career blocks",
+                f"{career_blocks['name']} is the all-time blocks leader",
+            ],
             expected_keywords=["blocks"],
         )
 
@@ -313,9 +505,17 @@ class TestComplexQueries:
 
     def test_player_team_context(self, chat_helper, claude_model):
         """Test query requiring both player and team context."""
-        test_case = chat_helper.create_test_case(
-            input_query="How did Boston's top scorer perform in their last game?",
-            expected_keywords=["Boston", "scorer", "game"],
+        # Using Glory's top scorer from 2025 data
+        team = "Glory"
+
+        test_case, response = chat_helper.create_test_case(
+            input_query=f"How did {team}'s top scorer perform in their last game?",
+            expected_values=[team],
+            retrieval_context=[
+                f"Searching for {team}'s top scorer",
+                f"Finding {team}'s most recent game",
+            ],
+            expected_keywords=[team, "scorer", "game"],
         )
 
         relevancy_metric = AnswerRelevancyMetric(threshold=0.7, model=claude_model)
@@ -325,7 +525,7 @@ class TestComplexQueries:
 
     def test_statistical_comparison(self, chat_helper, claude_model):
         """Test query requiring statistical analysis."""
-        test_case = chat_helper.create_test_case(
+        test_case, response = chat_helper.create_test_case(
             input_query="Which team has better offensive efficiency this season?",
             expected_keywords=["team", "offensive", "efficiency", "season"],
         )
@@ -341,7 +541,7 @@ class TestResponseQuality:
 
     def test_helpful_response_when_no_data(self, chat_helper, claude_model):
         """Test that system gives helpful response when data isn't available."""
-        test_case = chat_helper.create_test_case(
+        test_case, response = chat_helper.create_test_case(
             input_query="What were the scores from games in the year 3000?",
             expected_keywords=["no", "not", "available"],
         )
@@ -353,7 +553,7 @@ class TestResponseQuality:
 
     def test_handles_ambiguous_query(self, chat_helper, claude_model):
         """Test that system handles ambiguous queries gracefully."""
-        test_case = chat_helper.create_test_case(
+        test_case, response = chat_helper.create_test_case(
             input_query="Tell me about the game",
             expected_keywords=["game"],
         )
@@ -372,18 +572,60 @@ def test_run_all_regression_tests():
     helper = ChatTestHelper()
     claude_model = ClaudeModel()
 
-    # Define critical queries that should always work well
-    critical_queries = [
-        "How many goals did the top scorer get this season?",
-        "What are the current standings?",
-        "Show me details about the recent Boston vs Minnesota game",
-        "Who are the top goal scorers?",
-        "Which team has the best record?",
+    # Define critical queries that should always work well with expected data
+    top_scorer = EXPECTED_DATA["top_goal_scorer_2025"]
+    top_team = EXPECTED_DATA["top_teams_2025"][0]
+    recent_game = EXPECTED_DATA["recent_games"][0]
+
+    critical_test_data = [
+        {
+            "query": "How many goals did the top scorer get this season?",
+            "expected_values": [str(top_scorer["goals"]), top_scorer["name"]],
+            "retrieval_context": [
+                f"{top_scorer['name']} scored {top_scorer['goals']} goals this season"
+            ],
+        },
+        {
+            "query": "What are the current standings?",
+            "expected_values": [top_team["name"], str(top_team["wins"])],
+            "retrieval_context": [
+                f"{top_team['name']} has {top_team['wins']} wins"
+            ],
+        },
+        {
+            "query": f"Show me details about the recent {recent_game['away_team']} vs {recent_game['home_team']} game",
+            "expected_values": [
+                recent_game["away_team"],
+                recent_game["home_team"],
+                str(recent_game["away_score"]),
+            ],
+            "retrieval_context": [
+                f"{recent_game['away_team']} played {recent_game['home_team']}"
+            ],
+        },
+        {
+            "query": "Who are the top goal scorers?",
+            "expected_values": [top_scorer["name"]],
+            "retrieval_context": [
+                f"{top_scorer['name']} is a top goal scorer with {top_scorer['goals']} goals"
+            ],
+        },
+        {
+            "query": "Which team has the best record?",
+            "expected_values": [top_team["name"]],
+            "retrieval_context": [
+                f"{top_team['name']} has one of the best records"
+            ],
+        },
     ]
 
     test_cases = [
-        helper.create_test_case(query, expected_keywords=query.split())
-        for query in critical_queries
+        helper.create_test_case(
+            test["query"],
+            expected_values=test["expected_values"],
+            retrieval_context=test["retrieval_context"],
+        )[0]  # Extract just the test case from the tuple
+        for test in critical_test_data
     ]
 
     # Evaluate all at once
