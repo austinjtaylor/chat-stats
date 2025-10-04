@@ -1,17 +1,5 @@
 # Nixpacks configuration for Railway deployment
-
-[phases.setup]
-nixPkgs = ["python313"]
-
-[phases.install]
-cmds = ["pip install -r requirements.txt"]
-
-[phases.build]
-cmds = []
+# Let Nixpacks auto-detect Python setup from requirements.txt
 
 [start]
 cmd = "./start.sh"
-
-[variables]
-PYTHONUNBUFFERED = "1"
-PYTHONDONTWRITEBYTECODE = "1"
