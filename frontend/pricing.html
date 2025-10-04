@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Pricing - UFA Statistics</title>
+    <!-- New modular CSS structure -->
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body class="pricing-page">
+    <!-- Menu Icon -->
+    <div class="menu-wrapper">
+        <button class="icon-button menu-icon" id="menuIcon" aria-label="Menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </button>
+        <div class="dropdown menu-dropdown" id="menuDropdown">
+            <a href="/index.html" class="dropdown-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                Chat
+            </a>
+            <div class="dropdown-divider"></div>
+            <a href="/stats/players.html" class="dropdown-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="8" r="3"></circle>
+                    <path d="M12 11c3.5 0 6.5 1.5 8 4-1.5 2.5-4.5 4-8 4s-6.5-1.5-8-4c1.5-2.5 4.5-4 8-4z"></path>
+                </svg>
+                Players
+            </a>
+            <a href="/stats/teams.html" class="dropdown-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                Teams
+            </a>
+            <a href="/stats/game-detail.html" class="dropdown-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                Games
+            </a>
+        </div>
+    </div>
+
+    <!-- Auth Buttons (shown when not authenticated) -->
+    <div class="auth-buttons-wrapper" style="display: flex; gap: 8px; align-items: center;">
+        <button class="auth-button login-button" id="loginButton" aria-label="Log In">
+            Log In
+        </button>
+        <button class="auth-button signup-button" id="signupButton" aria-label="Sign Up">
+            Sign Up
+        </button>
+    </div>
+
+    <!-- User Menu (shown when authenticated) -->
+    <div id="userMenuContainer"></div>
+
+    <!-- Settings Icon -->
+    <div class="settings-wrapper">
+        <button class="icon-button settings-icon" id="settingsIcon" aria-label="Settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"></path>
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"></path>
+            </svg>
+        </button>
+        <div class="dropdown settings-dropdown" id="settingsDropdown">
+            <div class="theme-toggle-item" id="themeToggleItem">
+                <div class="theme-toggle-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    Dark Mode
+                </div>
+                <div class="theme-toggle-switch" id="themeSwitch">
+                    <div class="theme-toggle-slider"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="page-container">
+        <div id="pricingPageContainer"></div>
+    </div>
+
+    <!-- Vite entry point -->
+    <script type="module">
+        import { initDropdowns } from './src/components/dropdown.ts';
+        import { initPricingPage } from './components/pricing/PricingPage.ts';
+        import { onAuthStateChange, getSession } from './lib/auth.ts';
+        import { showLoginModal } from './components/auth/LoginModal.ts';
+        import { showSignupModal } from './components/auth/SignupModal.ts';
+        import { initUserMenu, destroyUserMenu } from './components/auth/UserMenu.ts';
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Initialize dropdowns
+            initDropdowns();
+
+            // Initialize pricing page
+            initPricingPage('pricingPageContainer');
+
+            // Initialize auth
+            await initAuth();
+        });
+
+        /**
+         * Initialize authentication
+         */
+        async function initAuth() {
+            // Check current auth state
+            const session = await getSession();
+            await updateUIForAuthState(session.session);
+
+            // Listen for auth state changes
+            onAuthStateChange(async (session) => {
+                await updateUIForAuthState(session);
+            });
+
+            // Set up event listeners for auth buttons
+            const loginButton = document.getElementById('loginButton');
+            loginButton?.addEventListener('click', () => {
+                showLoginModal(async () => {
+                    const session = await getSession();
+                    await updateUIForAuthState(session.session);
+                    // Reload pricing page to update current tier
+                    window.location.reload();
+                });
+            });
+
+            const signupButton = document.getElementById('signupButton');
+            signupButton?.addEventListener('click', () => {
+                showSignupModal(async () => {
+                    const session = await getSession();
+                    await updateUIForAuthState(session.session);
+                    // Reload pricing page to update current tier
+                    window.location.reload();
+                });
+            });
+
+            // Set up event listeners for modal events
+            window.addEventListener('show-login-modal', () => {
+                showLoginModal(async () => {
+                    const session = await getSession();
+                    await updateUIForAuthState(session.session);
+                });
+            });
+
+            window.addEventListener('show-signup-modal', () => {
+                showSignupModal(async () => {
+                    const session = await getSession();
+                    await updateUIForAuthState(session.session);
+                });
+            });
+
+            window.addEventListener('auth-required', () => {
+                showLoginModal(async () => {
+                    const session = await getSession();
+                    await updateUIForAuthState(session.session);
+                });
+            });
+        }
+
+        /**
+         * Update UI based on authentication state
+         */
+        async function updateUIForAuthState(session) {
+            const isAuthenticated = !!session;
+
+            const loginButton = document.getElementById('loginButton');
+            if (loginButton) {
+                loginButton.style.display = isAuthenticated ? 'none' : 'flex';
+            }
+
+            const signupButton = document.getElementById('signupButton');
+            if (signupButton) {
+                signupButton.style.display = isAuthenticated ? 'none' : 'flex';
+            }
+
+            if (isAuthenticated) {
+                await initUserMenu('userMenuContainer', async () => {
+                    await updateUIForAuthState(null);
+                });
+            } else {
+                destroyUserMenu();
+            }
+        }
+    </script>
+
+    <!-- Legacy fallback for non-module browsers -->
+    <script nomodule>
+        console.warn('Your browser does not support ES modules. Some features may not work correctly.');
+    </script>
+</body>
+</html>
