@@ -90,5 +90,8 @@
         }
       ]
     }
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.58.0"
   }
 }

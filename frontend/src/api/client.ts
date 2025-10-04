@@ -69,15 +69,39 @@ class APIClient {
     }
 
     /**
+     * Get the current auth token from Supabase
+     * @private
+     */
+    private async getAuthToken(): Promise<string | null> {
+        try {
+            // Dynamically import to avoid circular dependencies
+            const { getAccessToken } = await import('../../lib/auth');
+            return await getAccessToken();
+        } catch (error) {
+            console.warn('Failed to get auth token:', error);
+            return null;
+        }
+    }
+
+    /**
      * Make an API request
      * @private
      */
     protected async request<T = any>(endpoint: string, options: RequestOptions = {}): Promise<T | null> {
         const url = `${this.baseURL}${endpoint}`;
+
+        // Get auth token and add to headers if available
+        const token = await this.getAuthToken();
+        const authHeaders: Record<string, string> = {};
+        if (token) {
+            authHeaders['Authorization'] = `Bearer ${token}`;
+        }
+
         const config: RequestOptions = {
             ...options,
             headers: {
                 ...this.defaultHeaders,
+                ...authHeaders,
                 ...(options.headers as Record<string, string>)
             }
         };
@@ -86,6 +110,14 @@ class APIClient {
             const response = await fetch(url, config);
 
             if (!response.ok) {
+                // Handle 401 Unauthorized errors
+                if (response.status === 401) {
+                    // Dispatch event to show login modal
+                    if (typeof window !== 'undefined') {
+                        window.dispatchEvent(new CustomEvent('auth-required'));
+                    }
+                }
+
                 const error = await response.json().catch(() => ({}));
                 throw new APIError(
                     error.detail || `HTTP ${response.status}: ${response.statusText}`,

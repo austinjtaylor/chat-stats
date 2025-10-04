@@ -1,0 +1,361 @@
+/**
+ * Profile Page Styles
+ */
+
+/* Container */
+.profile-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* Header */
+.profile-header {
+  margin-bottom: 32px;
+}
+
+.profile-header h1 {
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* Sections */
+.profile-section {
+  margin-bottom: 32px;
+}
+
+.profile-section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 16px 0;
+}
+
+/* Cards */
+.profile-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+/* Fields */
+.profile-field {
+  margin-bottom: 16px;
+}
+
+.profile-field:last-child {
+  margin-bottom: 0;
+}
+
+.profile-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.profile-value {
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.profile-value-mono {
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  display: inline-block;
+}
+
+/* Subscription */
+.subscription-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.subscription-tier {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.subscription-limit {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.subscription-status {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.subscription-status.status-active {
+  background: rgba(34, 197, 94, 0.15);
+  color: rgb(34, 197, 94);
+}
+
+.subscription-status.status-canceled {
+  background: rgba(239, 68, 68, 0.15);
+  color: rgb(239, 68, 68);
+}
+
+.subscription-status.status-past_due {
+  background: rgba(251, 191, 36, 0.15);
+  color: rgb(251, 191, 36);
+}
+
+/* Usage Stats */
+.usage-stats {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.usage-number {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.usage-number.usage-warning {
+  color: rgb(251, 191, 36);
+}
+
+.usage-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.usage-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.usage-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-primary);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.usage-bar-fill {
+  height: 100%;
+  background: var(--accent-color);
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+
+.usage-bar-fill.usage-warning {
+  background: rgb(251, 191, 36);
+}
+
+.usage-percentage {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 45px;
+  text-align: right;
+}
+
+.usage-warning-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 12px;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 8px;
+  color: rgb(217, 119, 6);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.usage-warning-message svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Quick Actions */
+.profile-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.profile-action-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.profile-action-card:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-color);
+  transform: translateY(-2px);
+}
+
+.profile-action-card svg {
+  color: var(--accent-color);
+  flex-shrink: 0;
+}
+
+.profile-action-content {
+  flex: 1;
+}
+
+.profile-action-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.profile-action-description {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* Unauthenticated State */
+.profile-unauthenticated {
+  text-align: center;
+  padding: 80px 24px;
+}
+
+.profile-unauthenticated svg {
+  color: var(--text-tertiary);
+  margin-bottom: 24px;
+}
+
+.profile-unauthenticated h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+}
+
+.profile-unauthenticated p {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin: 0 0 24px 0;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Buttons */
+.btn-primary,
+.btn-secondary {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--accent-color);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-secondary {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-color);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .profile-container {
+    padding: 16px;
+  }
+
+  .profile-header h1 {
+    font-size: 24px;
+  }
+
+  .profile-section-title {
+    font-size: 16px;
+  }
+
+  .profile-card {
+    padding: 20px;
+  }
+
+  .subscription-header {
+    flex-direction: column;
+  }
+
+  .subscription-header button {
+    width: 100%;
+  }
+
+  .usage-number {
+    font-size: 28px;
+  }
+
+  .profile-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-unauthenticated {
+    padding: 60px 16px;
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .usage-warning-message {
+    background: rgba(251, 191, 36, 0.15);
+    color: rgb(251, 191, 36);
+  }
+
+  .subscription-status.status-active {
+    background: rgba(34, 197, 94, 0.2);
+  }
+
+  .subscription-status.status-canceled {
+    background: rgba(239, 68, 68, 0.2);
+  }
+
+  .subscription-status.status-past_due {
+    background: rgba(251, 191, 36, 0.2);
+  }
+}

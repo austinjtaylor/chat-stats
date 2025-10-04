@@ -24,6 +24,63 @@
 @import url('components/header.css');
 @import url('components/messages.css');
 
+/* Authentication Components */
+@import url('auth.css');
+@import url('user-menu.css');
+@import url('profile.css');
+
+/* Pricing & Payment Components */
+@import url('pricing-components.css');
+
+/* Auth Button Styles */
+.auth-buttons-wrapper {
+    position: fixed;
+    top: 20px;
+    right: 80px;
+    z-index: 100;
+}
+
+.auth-button {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.login-button {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.login-button:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-color);
+}
+
+.signup-button {
+    background: var(--accent-color);
+    color: white;
+}
+
+.signup-button:hover {
+    background: var(--accent-hover);
+}
+
+@media (max-width: 768px) {
+    .auth-buttons-wrapper {
+        right: 60px;
+    }
+
+    .auth-button {
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+}
+
 /* Additional utility classes not in base.css */
 .text-left { text-align: left; }
 .text-center { text-align: center; }
