@@ -10,6 +10,7 @@ from api.player_stats import create_player_stats_route
 
 # Import route modules
 from api.routes import create_basic_routes
+from api.stripe_routes import create_stripe_routes
 from config import config
 from core.chat_system import get_stats_system
 from fastapi import FastAPI
@@ -30,12 +31,14 @@ basic_router, _ = create_basic_routes(stats_system)
 player_stats_router = create_player_stats_route(stats_system)
 game_router = create_game_routes(stats_system)
 box_score_router = create_box_score_routes(stats_system)
+stripe_router = create_stripe_routes(stats_system)
 
 # Include all routers
 app.include_router(basic_router)
 app.include_router(player_stats_router)
 app.include_router(game_router)
 app.include_router(box_score_router)
+app.include_router(stripe_router)
 
 
 @app.on_event("startup")
