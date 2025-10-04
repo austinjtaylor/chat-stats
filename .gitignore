@@ -18,8 +18,8 @@ backups/
 logs/
 *.log
 
-# CSV data files
-data/
+# CSV data files (root level only, not backend/data/ which is code)
+/data/
 
 # Documentation files
 docs/
