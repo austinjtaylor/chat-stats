@@ -1,6 +1,6 @@
 """
 SQL Database connection and query execution module for Sports Stats Chatbot.
-Replaces the vector store with direct SQL database access.
+Supports both SQLite (local dev) and PostgreSQL (Supabase production).
 """
 
 import os
@@ -10,34 +10,60 @@ from typing import Any
 import pandas as pd
 from sqlalchemy import MetaData, create_engine, text
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import StaticPool, NullPool
 
 
 class SQLDatabase:
     """Manages SQL database connections and query execution for sports statistics."""
 
-    def __init__(self, database_path: str = None):
+    def __init__(self, database_path: str = None, database_url: str = None):
         """
         Initialize SQL database connection.
+        Supports both SQLite (local) and PostgreSQL (Supabase).
 
         Args:
-            database_path: Path to SQLite database file. If None, uses default.
+            database_path: Path to SQLite database file (for local dev)
+            database_url: PostgreSQL connection URL (for Supabase/production)
+
+        Environment Variables:
+            DATABASE_URL: PostgreSQL URL (takes precedence)
+            DATABASE_PATH: SQLite file path (fallback)
         """
-        if database_path is None:
-            database_path = os.path.join(
-                os.path.dirname(__file__), "..", "..", "db", "sports_stats.db"
+        # Check for Supabase/PostgreSQL first
+        self.database_url = database_url or os.getenv("DATABASE_URL")
+
+        if self.database_url:
+            # Use PostgreSQL (Supabase)
+            self._use_postgresql = True
+            print(f"🐘 Using PostgreSQL database (Supabase)")
+
+            # Create PostgreSQL engine
+            self.engine = create_engine(
+                self.database_url,
+                poolclass=NullPool,  # Let Supabase handle connection pooling
+                echo=False,  # Set to True for SQL query debugging
             )
+        else:
+            # Use SQLite (local development)
+            self._use_postgresql = False
 
-        # Ensure database directory exists
-        Path(database_path).parent.mkdir(parents=True, exist_ok=True)
+            if database_path is None:
+                database_path = os.getenv("DATABASE_PATH") or os.path.join(
+                    os.path.dirname(__file__), "..", "..", "db", "sports_stats.db"
+                )
 
-        # Create engine with connection pooling for SQLite
-        self.engine = create_engine(
-            f"sqlite:///{database_path}",
-            connect_args={"check_same_thread": False},
-            poolclass=StaticPool,
-            echo=False,  # Set to True for SQL query debugging
-        )
+            print(f"📁 Using SQLite database: {database_path}")
+
+            # Ensure database directory exists
+            Path(database_path).parent.mkdir(parents=True, exist_ok=True)
+
+            # Create SQLite engine
+            self.engine = create_engine(
+                f"sqlite:///{database_path}",
+                connect_args={"check_same_thread": False},
+                poolclass=StaticPool,
+                echo=False,
+            )
 
         # Create session factory
         self.SessionLocal = sessionmaker(
@@ -47,8 +73,9 @@ class SQLDatabase:
         # Store metadata
         self.metadata = MetaData()
 
-        # Initialize database schema if needed
-        self._initialize_database()
+        # Initialize database schema if needed (SQLite only)
+        if not self._use_postgresql:
+            self._initialize_database()
 
     def _initialize_database(self):
         """Initialize database with schema if tables don't exist."""
@@ -155,24 +182,40 @@ class SQLDatabase:
     def get_table_info(self) -> dict[str, list[str]]:
         """
         Get information about all tables and their columns.
+        Works with both SQLite and PostgreSQL.
 
         Returns:
             Dictionary mapping table names to list of column names
         """
-        query = """
-        SELECT 
-            m.name as table_name,
-            p.name as column_name
-        FROM 
-            sqlite_master m
-        LEFT OUTER JOIN 
-            pragma_table_info((m.name)) p ON m.name <> p.name
-        WHERE 
-            m.type = 'table' 
-            AND m.name NOT LIKE 'sqlite_%'
-        ORDER BY 
-            table_name, p.cid
-        """
+        if self._use_postgresql:
+            # PostgreSQL query
+            query = """
+            SELECT
+                table_name,
+                column_name
+            FROM
+                information_schema.columns
+            WHERE
+                table_schema = 'public'
+            ORDER BY
+                table_name, ordinal_position
+            """
+        else:
+            # SQLite query
+            query = """
+            SELECT
+                m.name as table_name,
+                p.name as column_name
+            FROM
+                sqlite_master m
+            LEFT OUTER JOIN
+                pragma_table_info((m.name)) p ON m.name <> p.name
+            WHERE
+                m.type = 'table'
+                AND m.name NOT LIKE 'sqlite_%'
+            ORDER BY
+                table_name, p.cid
+            """
 
         results = self.execute_query(query)
 
@@ -216,6 +259,18 @@ class SQLDatabase:
         query = f"SELECT COUNT(*) as count FROM {table_name}"
         result = self.execute_query(query)
         return result[0]["count"] if result else 0
+
+    def is_postgresql(self) -> bool:
+        """Check if using PostgreSQL (Supabase)."""
+        return self._use_postgresql
+
+    def is_sqlite(self) -> bool:
+        """Check if using SQLite (local dev)."""
+        return not self._use_postgresql
+
+    def get_database_type(self) -> str:
+        """Get the database type being used."""
+        return "PostgreSQL" if self._use_postgresql else "SQLite"
 
     def close(self):
         """Close database connection."""
