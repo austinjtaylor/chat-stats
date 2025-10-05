@@ -10,9 +10,16 @@ from fastapi.staticfiles import StaticFiles
 
 def configure_cors(app):
     """Configure CORS middleware for the application."""
+    origins = [
+        "http://localhost:3000",  # Local development (Vite dev server)
+        "http://localhost:4173",  # Local production preview
+        "https://chat-with-stats.vercel.app",  # Vercel production
+        "https://chat-with-stats-*.vercel.app",  # Vercel preview deployments
+    ]
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
