@@ -14,12 +14,12 @@ def configure_cors(app):
         "http://localhost:3000",  # Local development (Vite dev server)
         "http://localhost:4173",  # Local production preview
         "https://chat-with-stats.vercel.app",  # Vercel production
-        "https://chat-with-stats-*.vercel.app",  # Vercel preview deployments
     ]
 
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
+        allow_origin_regex=r"https://chat-with-stats.*\.vercel\.app",  # Vercel preview deployments
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
