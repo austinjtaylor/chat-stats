@@ -13,6 +13,9 @@ This guide walks you through deploying the Sports Stats Chat frontend to Vercel.
 The following files are configured for Vercel deployment:
 
 - **`vercel.json`** - Vercel configuration (build settings, routing, caching)
+  - All paths are relative to the `frontend` root directory
+  - Configures SPA routing (all routes → `/index.html`)
+  - Sets asset caching headers for optimal performance
 - **`frontend/package.json`** - Dependencies and build scripts
 - **`frontend/.env.example`** - Template for environment variables
 
@@ -35,11 +38,11 @@ You'll need these values ready:
 2. Click **"Import Git Repository"**
 3. Select your `chat-with-stats` repository
 4. Configure project settings:
-   - **Framework Preset**: Other
-   - **Root Directory**: Leave as `./` (root)
-   - **Build Command**: `cd frontend && npm install && npm run build`
-   - **Output Directory**: `frontend/dist`
-   - **Install Command**: `cd frontend && npm install`
+   - **Framework Preset**: Vite
+   - **Root Directory**: `frontend` (IMPORTANT: set this to the frontend subdirectory)
+   - **Build Command**: Leave default (`npm run build`) or override if needed
+   - **Output Directory**: Leave default (`dist`)
+   - **Install Command**: Leave default (`npm install`)
 
 5. Click **"Deploy"** (it will fail - this is expected, we need to add env vars first)
 
@@ -394,6 +397,14 @@ Vercel automatically:
 From `vercel.json`:
 ```json
 {
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
   "headers": [
     {
       "source": "/assets/(.*)",
@@ -408,7 +419,9 @@ From `vercel.json`:
 }
 ```
 
-Static assets are cached for 1 year.
+- All routes rewrite to `/index.html` for SPA routing
+- Static assets in `/assets/*` are cached for 1 year
+- Build outputs to `dist` directory (relative to `frontend` root)
 
 ## Security Checklist
 
