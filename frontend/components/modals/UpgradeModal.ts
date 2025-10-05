@@ -14,7 +14,7 @@ export class UpgradeModal {
   /**
    * Show the upgrade modal
    */
-  show(queriesUsed: number = 10, queryLimit: number = 10): void {
+  show(_queriesUsed: number = 10, queryLimit: number = 10): void {
     this.queryLimit = queryLimit;
 
     if (this.modal) {
