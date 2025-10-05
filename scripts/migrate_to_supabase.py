@@ -17,6 +17,23 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def transform_row_data(table_name, row):
+    """Transform row data for PostgreSQL compatibility."""
+    transformed = row.copy()
+
+    # Players table: Convert integer active (0/1) to boolean
+    if table_name == "players" and "active" in transformed:
+        transformed["active"] = bool(transformed["active"])
+
+    # Player season stats: Remove generated columns
+    if table_name == "player_season_stats":
+        # Remove calculated columns (auto-generated in PostgreSQL)
+        for col in ["calculated_plus_minus"]:
+            transformed.pop(col, None)
+
+    return transformed
+
+
 def migrate_to_supabase():
     """Migrate all data from SQLite to Supabase PostgreSQL."""
 
@@ -144,8 +161,10 @@ def migrate_to_supabase():
 
                 # Insert batch
                 for row in batch:
+                    # Transform row for PostgreSQL compatibility
+                    transformed_row = transform_row_data(table_name, row)
                     # Filter row to match columns
-                    filtered_row = {k: v for k, v in row.items() if k in columns_filtered}
+                    filtered_row = {k: v for k, v in transformed_row.items() if k in columns_filtered}
                     postgres_db.execute_query(insert_query, filtered_row)
 
                 total_inserted += len(batch)

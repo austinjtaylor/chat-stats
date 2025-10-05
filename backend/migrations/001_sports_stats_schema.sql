@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS games (
     week VARCHAR(20),  -- Week identifier
     location VARCHAR(200),  -- Game location
     year INTEGER NOT NULL,  -- Four digit year
-    game_type VARCHAR(20) DEFAULT 'regular'  -- Game type: regular, playoffs_r1, playoffs_div, playoffs_championship, allstar
+    game_type VARCHAR(50) DEFAULT 'regular'  -- Game type: regular, playoffs_r1, playoffs_div, playoffs_championship, allstar
 );
 
 -- Player game statistics table (UFA API compatible)
