@@ -50,9 +50,9 @@ export class LogoAnimation {
             bar1Light: document.getElementById('logoBar1Light') as SVGRectElement,
             bar2Light: document.getElementById('logoBar2Light') as SVGRectElement,
             bar3Light: document.getElementById('logoBar3Light') as SVGPathElement,
-            bar1Dark: document.getElementById('logoBar1Dark') as SVGRectElement,
-            bar2Dark: document.getElementById('logoBar2Dark') as SVGRectElement,
-            bar3Dark: document.getElementById('logoBar3Dark') as SVGPathElement,
+            bar1Dark: document.getElementById('logoBar1Dark') as unknown as SVGRectElement,
+            bar2Dark: document.getElementById('logoBar2Dark') as unknown as SVGRectElement,
+            bar3Dark: document.getElementById('logoBar3Dark') as unknown as SVGPathElement,
         };
 
         // Verify all elements exist

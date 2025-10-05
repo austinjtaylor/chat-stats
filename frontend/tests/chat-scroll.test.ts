@@ -5,7 +5,7 @@
  * when submitted, ensuring the loading indicator is visible.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 describe('Chat Scroll Behavior', () => {
     let chatMessages: HTMLElement;
