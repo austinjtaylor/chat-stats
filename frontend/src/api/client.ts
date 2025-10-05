@@ -396,8 +396,9 @@ class StatsAPI extends APIClient {
     }
 }
 
-// Create singleton instance
-const statsAPI = new StatsAPI();
+// Create singleton instance with environment variable or default to relative path
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const statsAPI = new StatsAPI(API_BASE_URL);
 
 // ES Module exports
 export { APIClient, APIError, StatsAPI, statsAPI };
