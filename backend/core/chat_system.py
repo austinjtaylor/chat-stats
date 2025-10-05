@@ -603,12 +603,12 @@ class StatsChatSystem:
             COALESCE(tps.total_completions, 0) as completions,
             COALESCE(tps.total_turnovers, 0) as turnovers,
             CASE WHEN COALESCE(tps.total_attempts, 0) > 0
-                THEN ROUND((CAST(tps.total_completions AS FLOAT) / tps.total_attempts) * 100, 2)
+                THEN ROUND((CAST(tps.total_completions AS NUMERIC) / tps.total_attempts) * 100, 2)
                 ELSE 0
             END as completion_percentage,
             COALESCE(tps.hucks_completed, 0) as hucks_completed,
             CASE WHEN COALESCE(tps.hucks_attempted, 0) > 0
-                THEN ROUND((CAST(tps.hucks_completed AS FLOAT) / tps.hucks_attempted) * 100, 2)
+                THEN ROUND((CAST(tps.hucks_completed AS NUMERIC) / tps.hucks_attempted) * 100, 2)
                 ELSE 0
             END as huck_percentage,
             COALESCE(tps.total_blocks, 0) as blocks,
@@ -631,36 +631,36 @@ class StatsChatSystem:
                     WHEN 'losses' THEN tgs.losses
                     WHEN 'scores' THEN
                         CASE WHEN :view = 'per-game' AND tgs.games_played > 0
-                            THEN CAST(tgs.scores AS FLOAT) / tgs.games_played
+                            THEN CAST(tgs.scores AS NUMERIC) / tgs.games_played
                             ELSE tgs.scores
                         END
                     WHEN 'scores_against' THEN
                         CASE WHEN :view = 'per-game' AND tgs.games_played > 0
-                            THEN CAST(tgs.scores_against AS FLOAT) / tgs.games_played
+                            THEN CAST(tgs.scores_against AS NUMERIC) / tgs.games_played
                             ELSE tgs.scores_against
                         END
                     -- Core stats
                     WHEN 'completions' THEN
                         CASE WHEN :view = 'per-game' AND tgs.games_played > 0
-                            THEN CAST(COALESCE(tps.total_completions, 0) AS FLOAT) / tgs.games_played
+                            THEN CAST(COALESCE(tps.total_completions, 0) AS NUMERIC) / tgs.games_played
                             ELSE COALESCE(tps.total_completions, 0)
                         END
                     WHEN 'turnovers' THEN
                         CASE WHEN :view = 'per-game' AND tgs.games_played > 0
-                            THEN CAST(COALESCE(tps.total_turnovers, 0) AS FLOAT) / tgs.games_played
+                            THEN CAST(COALESCE(tps.total_turnovers, 0) AS NUMERIC) / tgs.games_played
                             ELSE COALESCE(tps.total_turnovers, 0)
                         END
-                    WHEN 'completion_percentage' THEN (CASE WHEN COALESCE(tps.total_attempts, 0) > 0 THEN (CAST(tps.total_completions AS FLOAT) / tps.total_attempts) * 100 ELSE 0 END)
+                    WHEN 'completion_percentage' THEN (CASE WHEN COALESCE(tps.total_attempts, 0) > 0 THEN (CAST(tps.total_completions AS NUMERIC) / tps.total_attempts) * 100 ELSE 0 END)
                     -- Advanced stats
                     WHEN 'hucks_completed' THEN
                         CASE WHEN :view = 'per-game' AND tgs.games_played > 0
-                            THEN CAST(COALESCE(tps.hucks_completed, 0) AS FLOAT) / tgs.games_played
+                            THEN CAST(COALESCE(tps.hucks_completed, 0) AS NUMERIC) / tgs.games_played
                             ELSE COALESCE(tps.hucks_completed, 0)
                         END
-                    WHEN 'huck_percentage' THEN (CASE WHEN COALESCE(tps.hucks_attempted, 0) > 0 THEN (CAST(tps.hucks_completed AS FLOAT) / tps.hucks_attempted) * 100 ELSE 0 END)
+                    WHEN 'huck_percentage' THEN (CASE WHEN COALESCE(tps.hucks_attempted, 0) > 0 THEN (CAST(tps.hucks_completed AS NUMERIC) / tps.hucks_attempted) * 100 ELSE 0 END)
                     WHEN 'blocks' THEN
                         CASE WHEN :view = 'per-game' AND tgs.games_played > 0
-                            THEN CAST(COALESCE(tps.total_blocks, 0) AS FLOAT) / tgs.games_played
+                            THEN CAST(COALESCE(tps.total_blocks, 0) AS NUMERIC) / tgs.games_played
                             ELSE COALESCE(tps.total_blocks, 0)
                         END
                     -- Possession stats (placeholders for now, will be filled later)
@@ -681,36 +681,36 @@ class StatsChatSystem:
                     WHEN 'losses' THEN tgs.losses
                     WHEN 'scores' THEN
                         CASE WHEN :view = 'per-game' AND tgs.games_played > 0
-                            THEN CAST(tgs.scores AS FLOAT) / tgs.games_played
+                            THEN CAST(tgs.scores AS NUMERIC) / tgs.games_played
                             ELSE tgs.scores
                         END
                     WHEN 'scores_against' THEN
                         CASE WHEN :view = 'per-game' AND tgs.games_played > 0
-                            THEN CAST(tgs.scores_against AS FLOAT) / tgs.games_played
+                            THEN CAST(tgs.scores_against AS NUMERIC) / tgs.games_played
                             ELSE tgs.scores_against
                         END
                     -- Core stats
                     WHEN 'completions' THEN
                         CASE WHEN :view = 'per-game' AND tgs.games_played > 0
-                            THEN CAST(COALESCE(tps.total_completions, 0) AS FLOAT) / tgs.games_played
+                            THEN CAST(COALESCE(tps.total_completions, 0) AS NUMERIC) / tgs.games_played
                             ELSE COALESCE(tps.total_completions, 0)
                         END
                     WHEN 'turnovers' THEN
                         CASE WHEN :view = 'per-game' AND tgs.games_played > 0
-                            THEN CAST(COALESCE(tps.total_turnovers, 0) AS FLOAT) / tgs.games_played
+                            THEN CAST(COALESCE(tps.total_turnovers, 0) AS NUMERIC) / tgs.games_played
                             ELSE COALESCE(tps.total_turnovers, 0)
                         END
-                    WHEN 'completion_percentage' THEN (CASE WHEN COALESCE(tps.total_attempts, 0) > 0 THEN (CAST(tps.total_completions AS FLOAT) / tps.total_attempts) * 100 ELSE 0 END)
+                    WHEN 'completion_percentage' THEN (CASE WHEN COALESCE(tps.total_attempts, 0) > 0 THEN (CAST(tps.total_completions AS NUMERIC) / tps.total_attempts) * 100 ELSE 0 END)
                     -- Advanced stats
                     WHEN 'hucks_completed' THEN
                         CASE WHEN :view = 'per-game' AND tgs.games_played > 0
-                            THEN CAST(COALESCE(tps.hucks_completed, 0) AS FLOAT) / tgs.games_played
+                            THEN CAST(COALESCE(tps.hucks_completed, 0) AS NUMERIC) / tgs.games_played
                             ELSE COALESCE(tps.hucks_completed, 0)
                         END
-                    WHEN 'huck_percentage' THEN (CASE WHEN COALESCE(tps.hucks_attempted, 0) > 0 THEN (CAST(tps.hucks_completed AS FLOAT) / tps.hucks_attempted) * 100 ELSE 0 END)
+                    WHEN 'huck_percentage' THEN (CASE WHEN COALESCE(tps.hucks_attempted, 0) > 0 THEN (CAST(tps.hucks_completed AS NUMERIC) / tps.hucks_attempted) * 100 ELSE 0 END)
                     WHEN 'blocks' THEN
                         CASE WHEN :view = 'per-game' AND tgs.games_played > 0
-                            THEN CAST(COALESCE(tps.total_blocks, 0) AS FLOAT) / tgs.games_played
+                            THEN CAST(COALESCE(tps.total_blocks, 0) AS NUMERIC) / tgs.games_played
                             ELSE COALESCE(tps.total_blocks, 0)
                         END
                     -- Possession stats (placeholders for now, will be filled later)
