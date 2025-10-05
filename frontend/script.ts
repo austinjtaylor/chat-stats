@@ -222,9 +222,10 @@ async function sendMessage(): Promise<void> {
         // After adding assistant message, adjust scroll to keep it fully visible
         if (chatMessages) {
             const assistantMessage = chatMessages.lastElementChild as HTMLElement;
-            if (assistantMessage) {
+            if (assistantMessage && chatMessages) {
                 // Small delay to ensure DOM is updated
                 setTimeout(() => {
+                    if (!chatMessages) return;
                     const messageBottom = assistantMessage.offsetTop + assistantMessage.offsetHeight;
                     const containerHeight = chatMessages.offsetHeight;
                     const visibleBottom = chatMessages.scrollTop + containerHeight;

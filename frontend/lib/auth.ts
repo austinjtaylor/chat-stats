@@ -4,7 +4,7 @@
  */
 
 import { supabase } from './supabase';
-import type { User, Session, AuthError } from '@supabase/supabase-js';
+import type { User, Session } from '@supabase/supabase-js';
 
 export interface AuthResult {
   success: boolean;

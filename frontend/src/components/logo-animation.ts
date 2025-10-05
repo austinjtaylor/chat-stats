@@ -45,11 +45,11 @@ export class LogoAnimation {
         // Get all the elements we need to manipulate
         this.elements = {
             wrapper,
-            tailLight: document.getElementById('logoTailLight') as SVGPolygonElement,
-            tailDark: document.getElementById('logoTailDark') as SVGPolygonElement,
-            bar1Light: document.getElementById('logoBar1Light') as SVGRectElement,
-            bar2Light: document.getElementById('logoBar2Light') as SVGRectElement,
-            bar3Light: document.getElementById('logoBar3Light') as SVGPathElement,
+            tailLight: document.getElementById('logoTailLight') as unknown as SVGPolygonElement,
+            tailDark: document.getElementById('logoTailDark') as unknown as SVGPolygonElement,
+            bar1Light: document.getElementById('logoBar1Light') as unknown as SVGRectElement,
+            bar2Light: document.getElementById('logoBar2Light') as unknown as SVGRectElement,
+            bar3Light: document.getElementById('logoBar3Light') as unknown as SVGPathElement,
             bar1Dark: document.getElementById('logoBar1Dark') as unknown as SVGRectElement,
             bar2Dark: document.getElementById('logoBar2Dark') as unknown as SVGRectElement,
             bar3Dark: document.getElementById('logoBar3Dark') as unknown as SVGPathElement,

@@ -7,7 +7,6 @@ import { getSession } from '../../lib/auth';
 
 export class UpgradeModal {
   private modal: HTMLElement | null = null;
-  private queriesUsed: number = 10;
   private queryLimit: number = 10;
 
   constructor() {}
@@ -16,7 +15,6 @@ export class UpgradeModal {
    * Show the upgrade modal
    */
   show(queriesUsed: number = 10, queryLimit: number = 10): void {
-    this.queriesUsed = queriesUsed;
     this.queryLimit = queryLimit;
 
     if (this.modal) {
