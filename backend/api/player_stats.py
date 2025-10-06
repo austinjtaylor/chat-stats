@@ -268,20 +268,11 @@ def create_player_stats_route(stats_system):
                 WHERE 1=1
                 """
             else:
+                # Simplified count - just count from player_season_stats without expensive EXISTS check
                 count_query = f"""
                 SELECT COUNT(DISTINCT pss.player_id || '-' || pss.team_id || '-' || pss.year) as total
                 FROM player_season_stats pss
-                JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
-                LEFT JOIN teams t ON pss.team_id = t.team_id AND pss.year = t.year
                 WHERE 1=1{season_filter}{team_filter}
-                AND EXISTS (
-                    SELECT 1 FROM player_game_stats pgs
-                    LEFT JOIN games g ON pgs.game_id = g.game_id AND g.year = pss.year
-                    WHERE pgs.player_id = pss.player_id
-                    AND pgs.year = pss.year
-                    AND pgs.team_id = pss.team_id
-                    AND (pgs.o_points_played > 0 OR pgs.d_points_played > 0 OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0)
-                )
                 """
 
             # Execute queries using the stats system database connection
