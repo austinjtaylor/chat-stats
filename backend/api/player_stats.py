@@ -232,7 +232,14 @@ def create_player_stats_route(stats_system):
                 LEFT JOIN player_game_stats pgs ON pss.player_id = pgs.player_id AND pss.year = pgs.year AND pss.team_id = pgs.team_id
                 LEFT JOIN games g ON pgs.game_id = g.game_id AND g.year = pss.year
                 WHERE 1=1{season_filter}{team_filter}
-                GROUP BY pss.player_id, pss.team_id, pss.year
+                GROUP BY pss.player_id, pss.team_id, pss.year, p.full_name, p.first_name, p.last_name, p.team_id,
+                         pss.total_goals, pss.total_assists, pss.total_hockey_assists, pss.total_blocks, pss.calculated_plus_minus,
+                         pss.total_completions, pss.completion_percentage, pss.total_yards_thrown, pss.total_yards_received,
+                         pss.total_throwaways, pss.total_stalls, pss.total_drops, pss.total_callahans,
+                         pss.total_hucks_completed, pss.total_hucks_attempted, pss.total_hucks_received, pss.total_pulls,
+                         pss.total_o_points_played, pss.total_d_points_played, pss.total_seconds_played,
+                         pss.total_o_opportunities, pss.total_d_opportunities, pss.total_o_opportunity_scores,
+                         t.name, t.full_name
                 ORDER BY {get_sort_column(sort, per_game=(per == "game"))} {order.upper()}
                 LIMIT {per_page} OFFSET {(page-1) * per_page}
                 """
