@@ -27,12 +27,17 @@ WITH player_aggregates AS (
         SUM(pss.total_seconds_played) as total_seconds_played,
         SUM(pss.total_o_opportunities) as total_o_opportunities,
         SUM(pss.total_d_opportunities) as total_d_opportunities,
-        SUM(pss.total_o_opportunity_scores) as total_o_opportunity_scores,
-        COUNT(DISTINCT pgs.game_id) as games_played
+        SUM(pss.total_o_opportunity_scores) as total_o_opportunity_scores
     FROM player_season_stats pss
-    LEFT JOIN player_game_stats pgs ON pss.player_id = pgs.player_id AND pss.year = pgs.year AND pss.team_id = pgs.team_id
-    WHERE pgs.game_id IS NULL OR (pgs.o_points_played > 0 OR pgs.d_points_played > 0 OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0)
     GROUP BY pss.player_id
+),
+games_played_count AS (
+    SELECT
+        pgs.player_id,
+        COUNT(DISTINCT pgs.game_id) as games_played
+    FROM player_game_stats pgs
+    WHERE pgs.o_points_played > 0 OR pgs.d_points_played > 0 OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0
+    GROUP BY pgs.player_id
 ),
 most_recent_info AS (
     SELECT DISTINCT ON (pss.player_id)
@@ -78,7 +83,7 @@ SELECT
     pa.total_o_opportunities,
     pa.total_d_opportunities,
     pa.total_o_opportunity_scores,
-    pa.games_played,
+    COALESCE(gpc.games_played, 0) as games_played,
     pa.total_o_opportunities as possessions,
     (pa.total_goals + pa.total_assists) as score_total,
     (pa.total_o_points_played + pa.total_d_points_played) as total_points_played,
@@ -105,7 +110,8 @@ SELECT
         ELSE 0
     END as completion_percentage
 FROM player_aggregates pa
-JOIN most_recent_info mri ON pa.player_id = mri.player_id;
+JOIN most_recent_info mri ON pa.player_id = mri.player_id
+LEFT JOIN games_played_count gpc ON pa.player_id = gpc.player_id;
 
 -- Create index on the materialized view for fast lookups
 CREATE INDEX IF NOT EXISTS idx_career_stats_player ON player_career_stats(player_id);
