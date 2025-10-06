@@ -40,7 +40,7 @@ def migrate_table(sqlite_conn, postgres_conn, table_name, batch_size=1000):
         if table_name == 'teams':
             conflict_cols = 'team_id, year'
         elif table_name == 'players':
-            conflict_cols = 'player_id, year'
+            conflict_cols = 'player_id, team_id, year'  # PostgreSQL uses 3-column unique constraint
         elif table_name == 'games':
             conflict_cols = 'game_id'
         else:
