@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-def migrate_table(sqlite_conn, postgres_conn, table_name, batch_size=1000):
+def migrate_table(sqlite_conn, postgres_conn, table_name, batch_size=10000):
     """Migrate a single table from SQLite to PostgreSQL."""
     print(f"\n📊 Migrating {table_name}...")
     print("=" * 60)
@@ -23,6 +23,14 @@ def migrate_table(sqlite_conn, postgres_conn, table_name, batch_size=1000):
     if sqlite_count == 0:
         print(f"  ⏭️  Skipping {table_name} (no data)")
         return
+
+    # Check if table is already fully migrated
+    postgres_count = postgres_conn.execute(text(f"SELECT COUNT(*) FROM {table_name}")).fetchone()[0]
+    if postgres_count == sqlite_count:
+        print(f"  ✅ Already migrated: {postgres_count:,} records")
+        return postgres_count
+    elif postgres_count > 0:
+        print(f"  ⚠️  Partial migration detected: {postgres_count:,}/{sqlite_count:,} - continuing from where we left off")
 
     # Get column names (excluding auto-increment ids and generated columns)
     columns_result = sqlite_conn.execute(text(f"PRAGMA table_info({table_name})")).fetchall()
@@ -95,9 +103,14 @@ def migrate_table(sqlite_conn, postgres_conn, table_name, batch_size=1000):
         # Insert batch into PostgreSQL
         try:
             postgres_conn.execute(text(insert_query), batch_data)
-            postgres_conn.commit()
             total_inserted += len(batch_data)
-            print(f"  ✅ Inserted batch {offset:,} - {offset+len(batch_data):,} ({total_inserted:,}/{sqlite_count:,})")
+
+            # Commit every 50,000 records or at the end
+            if (offset + len(batch_data)) % 50000 < batch_size or offset + len(batch_data) >= sqlite_count:
+                postgres_conn.commit()
+                print(f"  ✅ Committed batch {offset:,} - {offset+len(batch_data):,} ({total_inserted:,}/{sqlite_count:,})")
+            else:
+                print(f"  📝 Inserted batch {offset:,} - {offset+len(batch_data):,} ({total_inserted:,}/{sqlite_count:,})")
         except Exception as e:
             print(f"  ⚠️  Error inserting batch at offset {offset}: {str(e)[:200]}")
             postgres_conn.rollback()
