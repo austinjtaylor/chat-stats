@@ -109,7 +109,7 @@ JOIN most_recent_info mri ON pa.player_id = mri.player_id;
 
 -- Create index on the materialized view for fast lookups
 CREATE INDEX IF NOT EXISTS idx_career_stats_player ON player_career_stats(player_id);
-CREATE INDEX IF NOT EXISTS idx_career_stats_team ON player_career_stats(team_id);
+CREATE INDEX IF NOT EXISTS idx_career_stats_team ON player_career_stats(most_recent_team_id);
 
 -- To refresh the view after data updates, run:
 -- REFRESH MATERIALIZED VIEW player_career_stats;
