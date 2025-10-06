@@ -73,13 +73,22 @@ def migrate_table(sqlite_conn, postgres_conn, table_name, batch_size=1000):
 
         # Convert rows to list of dicts
         batch_data = []
+        # Get column info for type checking
+        col_info = {col[1]: col[2] for col in columns_result}
+
+        # Columns that should be boolean in PostgreSQL
+        boolean_columns = {'active'}
+
         for row in rows:
             row_dict = {}
             for i, col in enumerate(columns):
                 value = row[i]
                 # Convert empty strings to None for INTEGER columns
-                if value == '' and columns_result[i][2] == 'INTEGER':
+                if value == '' and col_info.get(col) == 'INTEGER':
                     value = None
+                # Convert INTEGER (0/1) to BOOLEAN for boolean columns
+                elif col in boolean_columns and isinstance(value, int):
+                    value = bool(value)
                 row_dict[col] = value
             batch_data.append(row_dict)
 
