@@ -15,6 +15,10 @@ from multiprocessing import cpu_count
 from typing import Any
 
 import requests
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Add both parent directory and backend to path for proper import resolution
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))  # For backend.* imports
@@ -116,7 +120,7 @@ def _import_game_stats_chunk(game_chunk_data: tuple[list[dict], int]) -> dict[st
                     # Insert player game stats
                     db.execute_query(
                         """
-                        INSERT OR IGNORE INTO player_game_stats (
+                        INSERT INTO player_game_stats (
                             player_id, game_id, team_id, year,
                             assists, goals, hockey_assists, completions, throw_attempts, throwaways, stalls,
                             callahans_thrown, yards_received, yards_thrown, hucks_attempted, hucks_completed,
@@ -131,6 +135,7 @@ def _import_game_stats_chunk(game_chunk_data: tuple[list[dict], int]) -> dict[st
                             :o_points_played, :o_points_scored, :d_points_played, :d_points_scored, :seconds_played,
                             :o_opportunities, :o_opportunity_scores, :d_opportunities, :d_opportunity_stops
                         )
+                            ON CONFLICT (player_id, game_id) DO NOTHING
                         """,
                         player_game_stat,
                     )
@@ -746,135 +751,140 @@ class UFADataManager:
     def _import_teams_from_api(
         self, teams_data: list[dict[str, Any]], years: list[int] = None
     ) -> int:
-        """Import teams from API data."""
-        count = 0
+        """Import teams from API data using batch insert."""
+        teams_batch = []
         for team in teams_data:
-            try:
-                team_data = {
-                    "team_id": team.get("teamID", ""),
-                    "year": team.get("year", 2025),  # Use actual year from team data
-                    "city": team.get("city", ""),
-                    "name": team.get("name", ""),
-                    "full_name": team.get("name", ""),
-                    "abbrev": team.get("abbrev", team.get("teamID", "")),
-                    "wins": team.get("wins", 0),
-                    "losses": team.get("losses", 0),
-                    "ties": team.get("ties", 0),
-                    "standing": team.get("standing", 0),
-                    "division_id": team.get("divisionID", ""),
-                    "division_name": team.get("divisionName", ""),
-                }
+            team_data = {
+                "team_id": team.get("teamID", ""),
+                "year": team.get("year", 2025),
+                "city": team.get("city", ""),
+                "name": team.get("name", ""),
+                "full_name": team.get("name", ""),
+                "abbrev": team.get("abbrev", team.get("teamID", "")),
+                "wins": team.get("wins", 0),
+                "losses": team.get("losses", 0),
+                "ties": team.get("ties", 0),
+                "standing": team.get("standing", 0),
+                "division_id": team.get("divisionID", ""),
+                "division_name": team.get("divisionName", ""),
+            }
+            teams_batch.append(team_data)
 
-                # Insert team using database schema structure
-                self.db.execute_query(
-                    """
-                    INSERT OR IGNORE INTO teams
-                    (team_id, year, city, name, full_name, abbrev, wins, losses, ties, standing, division_id, division_name)
-                    VALUES (:team_id, :year, :city, :name, :full_name, :abbrev, :wins, :losses, :ties, :standing, :division_id, :division_name)
-                """,
-                    team_data,
+        # Batch insert all teams at once
+        if teams_batch:
+            from sqlalchemy import text
+            with self.db.engine.connect() as conn:
+                conn.execute(
+                    text("""
+                        INSERT INTO teams
+                        (team_id, year, city, name, full_name, abbrev, wins, losses, ties, standing, division_id, division_name)
+                        VALUES (:team_id, :year, :city, :name, :full_name, :abbrev, :wins, :losses, :ties, :standing, :division_id, :division_name)
+                        ON CONFLICT (team_id, year) DO NOTHING
+                    """),
+                    teams_batch
                 )
-                count += 1
-            except Exception as e:
-                logger.warning(
-                    f"Failed to import team {team.get('name', 'unknown')}: {e}"
-                )
+                conn.commit()
 
-        logger.info(f"  Imported {count} team records")
-        return count
+        logger.info(f"  Imported {len(teams_batch)} team records")
+        return len(teams_batch)
 
     def _import_players_from_api(self, players_data: list[dict[str, Any]]) -> int:
-        """Import players from API data."""
-        count = 0
+        """Import players from API data using batch insert."""
+        players_batch = []
         for player in players_data:
-            try:
-                player_data = {
-                    "player_id": player.get("playerID", ""),
-                    "first_name": player.get("firstName", ""),
-                    "last_name": player.get("lastName", ""),
-                    "full_name": player.get("fullName", ""),
-                    "team_id": player.get("teamID", ""),
-                    "active": player.get("active", True),
-                    "year": player.get("year"),
-                    "jersey_number": player.get("jerseyNumber"),
-                }
+            # Convert empty string jersey_number to None for PostgreSQL INTEGER column
+            jersey_num = player.get("jerseyNumber")
+            if jersey_num == "":
+                jersey_num = None
 
-                # Insert player using database schema structure
-                self.db.execute_query(
-                    """
-                    INSERT OR IGNORE INTO players
-                    (player_id, first_name, last_name, full_name, team_id, active, year, jersey_number)
-                    VALUES (:player_id, :first_name, :last_name, :full_name, :team_id, :active, :year, :jersey_number)
-                """,
-                    player_data,
-                )
-                count += 1
-            except Exception as e:
-                logger.warning(
-                    f"Failed to import player {player.get('fullName', 'unknown')}: {e}"
-                )
+            player_data = {
+                "player_id": player.get("playerID", ""),
+                "first_name": player.get("firstName", ""),
+                "last_name": player.get("lastName", ""),
+                "full_name": player.get("fullName", ""),
+                "team_id": player.get("teamID", ""),
+                "active": player.get("active", True),
+                "year": player.get("year"),
+                "jersey_number": jersey_num,
+            }
+            players_batch.append(player_data)
 
-        logger.info(f"  Imported {count} players")
-        return count
+        # Batch insert all players at once
+        if players_batch:
+            from sqlalchemy import text
+            with self.db.engine.connect() as conn:
+                conn.execute(
+                    text("""
+                        INSERT INTO players
+                        (player_id, first_name, last_name, full_name, team_id, active, year, jersey_number)
+                        VALUES (:player_id, :first_name, :last_name, :full_name, :team_id, :active, :year, :jersey_number)
+                        ON CONFLICT (player_id, team_id, year) DO NOTHING
+                    """),
+                    players_batch
+                )
+                conn.commit()
+
+        logger.info(f"  Imported {len(players_batch)} players")
+        return len(players_batch)
 
     def _import_games_from_api(self, games_data: list[dict[str, Any]]) -> int:
-        """Import games from API data."""
-        count = 0
+        """Import games from API data using batch insert."""
+        games_batch = []
         skipped_allstar = 0
         for game in games_data:
-            try:
-                # Extract year from game_id or use current year
-                game_id = game.get("gameID", "")
-                year = int(game_id.split("-")[0]) if "-" in game_id else 2025
+            # Extract year from game_id or use current year
+            game_id = game.get("gameID", "")
+            year = int(game_id.split("-")[0]) if "-" in game_id else 2025
 
-                # Skip all-star games
-                away_team_id = game.get("awayTeamID", "")
-                home_team_id = game.get("homeTeamID", "")
-                if (
-                    "allstar" in game_id.lower()
-                    or "allstar" in away_team_id.lower()
-                    or "allstar" in home_team_id.lower()
-                ):
-                    skipped_allstar += 1
-                    continue
+            # Skip all-star games
+            away_team_id = game.get("awayTeamID", "")
+            home_team_id = game.get("homeTeamID", "")
+            if (
+                "allstar" in game_id.lower()
+                or "allstar" in away_team_id.lower()
+                or "allstar" in home_team_id.lower()
+            ):
+                skipped_allstar += 1
+                continue
 
-                game_data = {
-                    "game_id": game_id,
-                    "away_team_id": away_team_id,
-                    "home_team_id": home_team_id,
-                    "away_score": game.get("awayScore"),
-                    "home_score": game.get("homeScore"),
-                    "status": game.get("status", ""),
-                    "start_timestamp": game.get("startTimestamp"),
-                    "start_timezone": game.get("startTimezone"),
-                    "streaming_url": game.get("streamingUrl"),
-                    "update_timestamp": game.get("updateTimestamp"),
-                    "week": game.get("week"),
-                    "location": game.get("location"),
-                    "year": year,
-                }
+            game_data = {
+                "game_id": game_id,
+                "away_team_id": away_team_id,
+                "home_team_id": home_team_id,
+                "away_score": game.get("awayScore"),
+                "home_score": game.get("homeScore"),
+                "status": game.get("status", ""),
+                "start_timestamp": game.get("startTimestamp"),
+                "start_timezone": game.get("startTimezone"),
+                "streaming_url": game.get("streamingUrl"),
+                "update_timestamp": game.get("updateTimestamp"),
+                "week": game.get("week"),
+                "location": game.get("location"),
+                "year": year,
+            }
+            games_batch.append(game_data)
 
-                # Insert game using database schema structure
-                self.db.execute_query(
-                    """
-                    INSERT OR IGNORE INTO games
-                    (game_id, away_team_id, home_team_id, away_score, home_score, status,
-                     start_timestamp, start_timezone, streaming_url, update_timestamp, week, location, year)
-                    VALUES (:game_id, :away_team_id, :home_team_id, :away_score, :home_score, :status,
-                            :start_timestamp, :start_timezone, :streaming_url, :update_timestamp, :week, :location, :year)
-                """,
-                    game_data,
+        # Batch insert all games at once
+        if games_batch:
+            from sqlalchemy import text
+            with self.db.engine.connect() as conn:
+                conn.execute(
+                    text("""
+                        INSERT INTO games
+                        (game_id, away_team_id, home_team_id, away_score, home_score, status,
+                         start_timestamp, start_timezone, streaming_url, update_timestamp, week, location, year)
+                        VALUES (:game_id, :away_team_id, :home_team_id, :away_score, :home_score, :status,
+                                :start_timestamp, :start_timezone, :streaming_url, :update_timestamp, :week, :location, :year)
+                        ON CONFLICT (game_id) DO NOTHING
+                    """),
+                    games_batch
                 )
-                count += 1
-            except Exception as e:
-                logger.warning(
-                    f"Failed to import game {game.get('gameID', 'unknown')}: {e}"
-                )
+                conn.commit()
 
         if skipped_allstar > 0:
             logger.info(f"  Skipped {skipped_allstar} all-star games")
-        logger.info(f"  Imported {count} games")
-        return count
+        logger.info(f"  Imported {len(games_batch)} games")
+        return len(games_batch)
 
     def _import_player_game_stats_from_api(
         self, games_data: list[dict[str, Any]]
@@ -954,7 +964,7 @@ class UFADataManager:
                         # Insert player game stats
                         self.db.execute_query(
                             """
-                            INSERT OR IGNORE INTO player_game_stats (
+                            INSERT INTO player_game_stats (
                                 player_id, game_id, team_id, year,
                                 assists, goals, hockey_assists, completions, throw_attempts, throwaways, stalls,
                                 callahans_thrown, yards_received, yards_thrown, hucks_attempted, hucks_completed,
@@ -969,6 +979,7 @@ class UFADataManager:
                                 :o_points_played, :o_points_scored, :d_points_played, :d_points_scored, :seconds_played,
                                 :o_opportunities, :o_opportunity_scores, :d_opportunities, :d_opportunity_stops
                             )
+                            ON CONFLICT (player_id, game_id) DO NOTHING
                             """,
                             player_game_stat,
                         )
@@ -1086,7 +1097,7 @@ class UFADataManager:
                 # Insert player season stats
                 self.db.execute_query(
                     """
-                    INSERT OR IGNORE INTO player_season_stats (
+                    INSERT INTO player_season_stats (
                         player_id, team_id, year,
                         total_assists, total_goals, total_hockey_assists, total_completions, total_throw_attempts,
                         total_throwaways, total_stalls, total_callahans_thrown, total_yards_received, total_yards_thrown,
@@ -1105,6 +1116,7 @@ class UFADataManager:
                         :total_seconds_played, :total_o_opportunities, :total_o_opportunity_scores, :total_d_opportunities,
                         :total_d_opportunity_stops, :completion_percentage
                     )
+                    ON CONFLICT (player_id, team_id, year) DO NOTHING
                     """,
                     player_season_stat,
                 )
@@ -1150,7 +1162,7 @@ class UFADataManager:
 
                 self.db.execute_query(
                     """
-                    INSERT OR IGNORE INTO game_events (
+                    INSERT INTO game_events (
                         game_id, event_index, team, event_type, event_time,
                         thrower_id, receiver_id, defender_id, puller_id,
                         thrower_x, thrower_y, receiver_x, receiver_y,
@@ -1161,6 +1173,7 @@ class UFADataManager:
                         :thrower_x, :thrower_y, :receiver_x, :receiver_y,
                         :turnover_x, :turnover_y, :pull_x, :pull_y, :pull_ms, :line_players
                     )
+                    ON CONFLICT (game_id, event_index, team) DO NOTHING
                     """,
                     event_record,
                 )
@@ -1197,7 +1210,7 @@ class UFADataManager:
 
                 self.db.execute_query(
                     """
-                    INSERT OR IGNORE INTO game_events (
+                    INSERT INTO game_events (
                         game_id, event_index, team, event_type, event_time,
                         thrower_id, receiver_id, defender_id, puller_id,
                         thrower_x, thrower_y, receiver_x, receiver_y,
@@ -1208,6 +1221,7 @@ class UFADataManager:
                         :thrower_x, :thrower_y, :receiver_x, :receiver_y,
                         :turnover_x, :turnover_y, :pull_x, :pull_y, :pull_ms, :line_players
                     )
+                    ON CONFLICT (game_id, event_index, team) DO NOTHING
                     """,
                     event_record,
                 )

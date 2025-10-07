@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Migrate all data from local SQLite database to Supabase PostgreSQL.
-Run this via Railway: railway run uv run python scripts/migrate_sqlite_to_supabase.py
+Supports large datasets with batch processing and resume capability.
 """
 
 import os
@@ -68,7 +68,8 @@ def migrate_table(sqlite_conn, postgres_conn, table_name, batch_size=10000):
         """
 
     # Fetch and insert in batches
-    offset = 0
+    # Start from where we left off if partial migration detected
+    offset = postgres_count if postgres_count > 0 else 0
     total_inserted = 0
 
     while offset < sqlite_count:
@@ -171,7 +172,7 @@ def main():
         print(f"  {table:25} {count:,}" if count else f"  {table:25} skipped")
 
     print("\n📝 Next steps:")
-    print("  1. Run scripts/composite_indexes.sql in Supabase SQL Editor")
+    print("  1. Run: uv run python scripts/add_composite_indexes.py")
     print("  2. Run scripts/create_career_stats_view.sql in Supabase SQL Editor")
     print("  3. Refresh the materialized view:")
     print("     REFRESH MATERIALIZED VIEW player_career_stats;")
