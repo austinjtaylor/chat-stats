@@ -203,8 +203,8 @@ def create_basic_routes(stats_system):
                 "perspective": perspective,
             }
 
-            # Cache the result
-            cache.set(cache_key, result, ttl=300)  # 5 minute TTL
+            # Cache the result with longer TTL since team stats don't change frequently
+            cache.set(cache_key, result, ttl=3600)  # 1 hour TTL (was 5 minutes)
 
             return result
 

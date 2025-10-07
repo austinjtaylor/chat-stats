@@ -522,33 +522,44 @@ class StatsChatSystem:
             FROM teams
             GROUP BY team_id
         ),
+        -- OPTIMIZED: Use UNION ALL instead of OR join to allow index usage
+        all_team_games AS (
+            -- Home games
+            SELECT
+                t.team_id,
+                g.game_id,
+                g.home_score as team_score,
+                g.away_score as opponent_score
+            FROM distinct_teams t
+            INNER JOIN games g ON g.home_team_id = t.team_id
+            WHERE 1=1 {season_filter.replace('g.year', 'g.year')}
+
+            UNION ALL
+
+            -- Away games
+            SELECT
+                t.team_id,
+                g.game_id,
+                g.away_score as team_score,
+                g.home_score as opponent_score
+            FROM distinct_teams t
+            INNER JOIN games g ON g.away_team_id = t.team_id
+            WHERE 1=1 {season_filter.replace('g.year', 'g.year')}
+        ),
         team_game_stats AS (
             SELECT
                 t.team_id,
                 t.name,
                 t.full_name,
                 -- Basic record stats
-                COUNT(DISTINCT CASE WHEN g.game_id IS NOT NULL THEN g.game_id END) as games_played,
-                COUNT(DISTINCT CASE WHEN
-                    (g.home_team_id = t.team_id AND g.home_score > g.away_score) OR
-                    (g.away_team_id = t.team_id AND g.away_score > g.home_score)
-                THEN g.game_id END) as wins,
-                COUNT(DISTINCT CASE WHEN
-                    (g.home_team_id = t.team_id AND g.home_score < g.away_score) OR
-                    (g.away_team_id = t.team_id AND g.away_score < g.home_score)
-                THEN g.game_id END) as losses,
+                COUNT(g.game_id) as games_played,
+                COUNT(CASE WHEN g.team_score > g.opponent_score THEN 1 END) as wins,
+                COUNT(CASE WHEN g.team_score < g.opponent_score THEN 1 END) as losses,
                 -- Scores for and against
-                SUM(CASE WHEN g.home_team_id = t.team_id
-                    THEN {'g.away_score' if is_opponent_view else 'g.home_score'}
-                    ELSE {'g.home_score' if is_opponent_view else 'g.away_score'}
-                END) as scores,
-                SUM(CASE WHEN g.home_team_id = t.team_id
-                    THEN {'g.home_score' if is_opponent_view else 'g.away_score'}
-                    ELSE {'g.away_score' if is_opponent_view else 'g.home_score'}
-                END) as scores_against
+                SUM({'g.opponent_score' if is_opponent_view else 'g.team_score'}) as scores,
+                SUM({'g.team_score' if is_opponent_view else 'g.opponent_score'}) as scores_against
             FROM distinct_teams t
-            LEFT JOIN games g ON (g.home_team_id = t.team_id OR g.away_team_id = t.team_id)
-            WHERE 1=1 {season_filter}
+            LEFT JOIN all_team_games g ON t.team_id = g.team_id
             GROUP BY t.team_id, t.name, t.full_name
         ),
         {'all_team_stats AS (' if is_opponent_view else 'team_player_stats AS ('}
@@ -566,6 +577,7 @@ class StatsChatSystem:
             GROUP BY pgs.team_id
         ){''',
         team_player_stats AS (
+            -- OPTIMIZED: Use UNION ALL for opponent stats too
             SELECT
                 t.team_id,
                 SUM(ats.total_completions) as total_completions,
@@ -575,12 +587,20 @@ class StatsChatSystem:
                 SUM(ats.hucks_attempted) as hucks_attempted,
                 SUM(ats.total_blocks) as total_blocks
             FROM distinct_teams t
-            JOIN games g ON (g.home_team_id = t.team_id OR g.away_team_id = t.team_id)
-            JOIN all_team_stats ats ON ats.team_id = CASE
-                WHEN g.home_team_id = t.team_id THEN g.away_team_id
-                ELSE g.home_team_id
-            END
-            WHERE 1=1 ''' + season_filter + '''
+            JOIN (
+                -- Home games: get opponent (away) stats
+                SELECT g.home_team_id as team_id, g.away_team_id as opponent_id
+                FROM games g
+                WHERE 1=1 ''' + season_filter + '''
+
+                UNION ALL
+
+                -- Away games: get opponent (home) stats
+                SELECT g.away_team_id as team_id, g.home_team_id as opponent_id
+                FROM games g
+                WHERE 1=1 ''' + season_filter + '''
+            ) team_opponents ON t.team_id = team_opponents.team_id
+            JOIN all_team_stats ats ON ats.team_id = team_opponents.opponent_id
             GROUP BY t.team_id
         )''' if is_opponent_view else ''}
         SELECT
