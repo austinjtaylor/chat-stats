@@ -129,6 +129,221 @@ def generate_player_season_stats(engine):
             sys.exit(1)
 
 
+def generate_team_season_stats(engine):
+    """Generate team_season_stats by aggregating games and player stats."""
+    print("🏈 Generating team_season_stats from games and player stats...")
+    print("=" * 60)
+
+    with engine.connect() as conn:
+        # Check if we have games data
+        games_count = conn.execute(text("SELECT COUNT(*) FROM games")).fetchone()[0]
+        print(f"  Games records: {games_count:,}")
+
+        if games_count == 0:
+            print("  ❌ No games data to aggregate")
+            return
+
+        # First, clear existing team_season_stats to rebuild
+        print("  🗑️  Clearing existing team_season_stats...")
+        conn.execute(text("DELETE FROM team_season_stats"))
+        conn.commit()
+
+        # Aggregate team stats from games and player_game_stats
+        print("  🔄 Aggregating team stats...")
+
+        aggregate_query = """
+        -- Step 1: Get basic team/year combinations from teams table
+        INSERT INTO team_season_stats (
+            team_id, year, wins, losses, ties, standing,
+            division_id, division_name,
+            games_played, scores, scores_against,
+            completions, throw_attempts, turnovers,
+            completion_percentage,
+            hucks_completed, hucks_attempted, huck_percentage,
+            blocks,
+            opp_completions, opp_throw_attempts, opp_turnovers,
+            opp_completion_percentage,
+            opp_hucks_completed, opp_hucks_attempted, opp_huck_percentage,
+            opp_blocks
+        )
+        WITH team_game_stats AS (
+            -- Home games
+            SELECT
+                t.team_id,
+                t.year,
+                COUNT(*) as games,
+                SUM(CASE WHEN g.home_score > g.away_score THEN 1 ELSE 0 END) as wins,
+                SUM(CASE WHEN g.home_score < g.away_score THEN 1 ELSE 0 END) as losses,
+                SUM(g.home_score) as scores,
+                SUM(g.away_score) as scores_against
+            FROM teams t
+            LEFT JOIN games g ON t.team_id = g.home_team_id AND t.year = g.year
+            WHERE g.game_id IS NOT NULL
+            GROUP BY t.team_id, t.year
+
+            UNION ALL
+
+            -- Away games
+            SELECT
+                t.team_id,
+                t.year,
+                COUNT(*) as games,
+                SUM(CASE WHEN g.away_score > g.home_score THEN 1 ELSE 0 END) as wins,
+                SUM(CASE WHEN g.away_score < g.home_score THEN 1 ELSE 0 END) as losses,
+                SUM(g.away_score) as scores,
+                SUM(g.home_score) as scores_against
+            FROM teams t
+            LEFT JOIN games g ON t.team_id = g.away_team_id AND t.year = g.year
+            WHERE g.game_id IS NOT NULL
+            GROUP BY t.team_id, t.year
+        ),
+        team_player_stats AS (
+            SELECT
+                pgs.team_id,
+                pgs.year,
+                SUM(pgs.completions) as total_completions,
+                SUM(pgs.throw_attempts) as total_attempts,
+                SUM(pgs.throwaways + pgs.drops + pgs.stalls) as total_turnovers,
+                SUM(pgs.hucks_completed) as hucks_completed,
+                SUM(pgs.hucks_attempted) as hucks_attempted,
+                SUM(pgs.blocks) as total_blocks
+            FROM player_game_stats pgs
+            GROUP BY pgs.team_id, pgs.year
+        ),
+        opponent_stats AS (
+            -- Get opponent stats by joining games and reversing team perspective
+            SELECT
+                home.team_id,
+                home.year,
+                SUM(away_stats.total_completions) as opp_completions,
+                SUM(away_stats.total_attempts) as opp_attempts,
+                SUM(away_stats.total_turnovers) as opp_turnovers,
+                SUM(away_stats.hucks_completed) as opp_hucks_completed,
+                SUM(away_stats.hucks_attempted) as opp_hucks_attempted,
+                SUM(away_stats.total_blocks) as opp_blocks
+            FROM teams home
+            INNER JOIN games g ON g.home_team_id = home.team_id AND g.year = home.year
+            INNER JOIN team_player_stats away_stats ON away_stats.team_id = g.away_team_id AND away_stats.year = g.year
+            GROUP BY home.team_id, home.year
+
+            UNION ALL
+
+            SELECT
+                away.team_id,
+                away.year,
+                SUM(home_stats.total_completions) as opp_completions,
+                SUM(home_stats.total_attempts) as opp_attempts,
+                SUM(home_stats.total_turnovers) as opp_turnovers,
+                SUM(home_stats.hucks_completed) as opp_hucks_completed,
+                SUM(home_stats.hucks_attempted) as opp_hucks_attempted,
+                SUM(home_stats.total_blocks) as opp_blocks
+            FROM teams away
+            INNER JOIN games g ON g.away_team_id = away.team_id AND g.year = away.year
+            INNER JOIN team_player_stats home_stats ON home_stats.team_id = g.home_team_id AND home_stats.year = g.year
+            GROUP BY away.team_id, away.year
+        ),
+        aggregated_team_stats AS (
+            SELECT
+                t.team_id,
+                t.year,
+                SUM(tg.games) as total_games,
+                SUM(tg.wins) as total_wins,
+                SUM(tg.losses) as total_losses,
+                SUM(tg.scores) as total_scores,
+                SUM(tg.scores_against) as total_scores_against
+            FROM teams t
+            LEFT JOIN team_game_stats tg ON t.team_id = tg.team_id AND t.year = tg.year
+            GROUP BY t.team_id, t.year
+        ),
+        aggregated_opponent_stats AS (
+            SELECT
+                team_id,
+                year,
+                SUM(opp_completions) as total_opp_completions,
+                SUM(opp_attempts) as total_opp_attempts,
+                SUM(opp_turnovers) as total_opp_turnovers,
+                SUM(opp_hucks_completed) as total_opp_hucks_completed,
+                SUM(opp_hucks_attempted) as total_opp_hucks_attempted,
+                SUM(opp_blocks) as total_opp_blocks
+            FROM opponent_stats
+            GROUP BY team_id, year
+        )
+        SELECT
+            t.team_id,
+            t.year,
+            COALESCE(ats.total_wins, 0) as wins,
+            COALESCE(ats.total_losses, 0) as losses,
+            t.ties,
+            t.standing,
+            t.division_id,
+            t.division_name,
+            COALESCE(ats.total_games, 0) as games_played,
+            COALESCE(ats.total_scores, 0) as scores,
+            COALESCE(ats.total_scores_against, 0) as scores_against,
+            COALESCE(tps.total_completions, 0) as completions,
+            COALESCE(tps.total_attempts, 0) as throw_attempts,
+            COALESCE(tps.total_turnovers, 0) as turnovers,
+            CASE
+                WHEN COALESCE(tps.total_attempts, 0) > 0
+                THEN ROUND((CAST(tps.total_completions AS NUMERIC) / tps.total_attempts) * 100, 2)
+                ELSE 0
+            END as completion_percentage,
+            COALESCE(tps.hucks_completed, 0) as hucks_completed,
+            COALESCE(tps.hucks_attempted, 0) as hucks_attempted,
+            CASE
+                WHEN COALESCE(tps.hucks_attempted, 0) > 0
+                THEN ROUND((CAST(tps.hucks_completed AS NUMERIC) / tps.hucks_attempted) * 100, 2)
+                ELSE 0
+            END as huck_percentage,
+            COALESCE(tps.total_blocks, 0) as blocks,
+            COALESCE(aos.total_opp_completions, 0) as opp_completions,
+            COALESCE(aos.total_opp_attempts, 0) as opp_throw_attempts,
+            COALESCE(aos.total_opp_turnovers, 0) as opp_turnovers,
+            CASE
+                WHEN COALESCE(aos.total_opp_attempts, 0) > 0
+                THEN ROUND((CAST(aos.total_opp_completions AS NUMERIC) / aos.total_opp_attempts) * 100, 2)
+                ELSE 0
+            END as opp_completion_percentage,
+            COALESCE(aos.total_opp_hucks_completed, 0) as opp_hucks_completed,
+            COALESCE(aos.total_opp_hucks_attempted, 0) as opp_hucks_attempted,
+            CASE
+                WHEN COALESCE(aos.total_opp_hucks_attempted, 0) > 0
+                THEN ROUND((CAST(aos.total_opp_hucks_completed AS NUMERIC) / aos.total_opp_hucks_attempted) * 100, 2)
+                ELSE 0
+            END as opp_huck_percentage,
+            COALESCE(aos.total_opp_blocks, 0) as opp_blocks
+        FROM teams t
+        LEFT JOIN aggregated_team_stats ats ON t.team_id = ats.team_id AND t.year = ats.year
+        LEFT JOIN team_player_stats tps ON t.team_id = tps.team_id AND t.year = tps.year
+        LEFT JOIN aggregated_opponent_stats aos ON t.team_id = aos.team_id AND t.year = aos.year
+        GROUP BY t.team_id, t.year, t.ties, t.standing, t.division_id, t.division_name,
+                 ats.total_wins, ats.total_losses, ats.total_games, ats.total_scores, ats.total_scores_against,
+                 tps.total_completions, tps.total_attempts, tps.total_turnovers,
+                 tps.hucks_completed, tps.hucks_attempted, tps.total_blocks,
+                 aos.total_opp_completions, aos.total_opp_attempts, aos.total_opp_turnovers,
+                 aos.total_opp_hucks_completed, aos.total_opp_hucks_attempted, aos.total_opp_blocks
+        """
+
+        try:
+            result = conn.execute(text(aggregate_query))
+            conn.commit()
+            print(f"  ✅ Aggregated team season stats successfully")
+
+            # Verify count
+            team_stats_count = conn.execute(
+                text("SELECT COUNT(*) FROM team_season_stats")
+            ).fetchone()[0]
+            print(f"  ✅ Team season stats records: {team_stats_count:,}")
+
+            print(f"  ⚠️  Note: Possession stats (hold%, O-line conv, etc.) are set to 0")
+            print(f"      These require game_events data and are calculated at query time")
+
+        except Exception as e:
+            print(f"  ❌ Error aggregating team stats: {str(e)}")
+            conn.rollback()
+            sys.exit(1)
+
+
 def main():
     """Main function."""
     print("🚀 Starting Season Stats Generation")
@@ -143,7 +358,7 @@ def main():
     else:
         # Use local SQLite
         sqlite_db_path = os.path.join(
-            os.path.dirname(__file__), "..", "db", "sports_stats.db"
+            os.path.dirname(__file__), "..", "backend", "db", "sports_stats.db"
         )
         print(f"📁 SQLite database: {sqlite_db_path}")
 
@@ -154,12 +369,14 @@ def main():
         engine = create_engine(f"sqlite:///{sqlite_db_path}")
 
     generate_player_season_stats(engine)
+    generate_team_season_stats(engine)
 
     print("\n" + "=" * 60)
     print("✅ SEASON STATS GENERATION COMPLETE!")
     print("=" * 60)
-    print("\n📝 Next step:")
-    print("  Run: REFRESH MATERIALIZED VIEW player_career_stats;")
+    print("\n📝 Next steps:")
+    print("  - Player season stats: Ready for use")
+    print("  - Team season stats: Ready for use (possession stats calculated at query time)")
 
 
 if __name__ == "__main__":

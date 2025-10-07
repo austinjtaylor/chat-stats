@@ -196,6 +196,47 @@ class TeamSeasonStats(BaseModel):
     points_for: int = 0  # Points scored
     points_against: int = 0  # Points allowed
 
+    # Basic game stats
+    games_played: int = 0
+    scores: int = 0
+    scores_against: int = 0
+
+    # Completion/turnover stats
+    completions: int = 0
+    throw_attempts: int = 0
+    turnovers: int = 0
+    completion_percentage: float | None = None
+
+    # Huck stats
+    hucks_completed: int = 0
+    hucks_attempted: int = 0
+    huck_percentage: float | None = None
+
+    # Defensive stats
+    blocks: int = 0
+
+    # Possession-based stats
+    hold_percentage: float | None = None
+    o_line_conversion: float | None = None
+    break_percentage: float | None = None
+    d_line_conversion: float | None = None
+    red_zone_conversion: float | None = None
+
+    # Opponent stats (for opponent perspective view)
+    opp_completions: int = 0
+    opp_throw_attempts: int = 0
+    opp_turnovers: int = 0
+    opp_completion_percentage: float | None = None
+    opp_hucks_completed: int = 0
+    opp_hucks_attempted: int = 0
+    opp_huck_percentage: float | None = None
+    opp_blocks: int = 0
+    opp_hold_percentage: float | None = None
+    opp_o_line_conversion: float | None = None
+    opp_break_percentage: float | None = None
+    opp_d_line_conversion: float | None = None
+    opp_red_zone_conversion: float | None = None
+
 
 class StatsQuery(BaseModel):
     """Model for a statistics query request"""

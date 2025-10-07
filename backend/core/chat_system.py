@@ -503,13 +503,14 @@ class StatsChatSystem:
     ) -> list[dict[str, Any]]:
         """
         Get comprehensive team statistics with all UFA-style columns.
+        Now using pre-aggregated team_season_stats table for instant performance.
 
         Args:
             season: Season year or 'career' for all-time stats
             view: 'total' or 'per-game' for aggregation type
             perspective: 'team' for team stats or 'opponent' for opponent stats
-            sort: Column to sort by
-            order: 'asc' or 'desc'
+            sort: Column to sort by (handled client-side now)
+            order: 'asc' or 'desc' (handled client-side now)
 
         Returns:
             List of team statistics dictionaries
@@ -518,351 +519,238 @@ class StatsChatSystem:
         season_filter = "AND g.year = :season" if season != "career" else ""
         season_param = int(season) if season.isdigit() else None
 
-        # Determine if we're showing team stats or opponent stats
+        # OPTIMIZED: Now using pre-aggregated team_season_stats table
+        # This replaces the complex 300+ line query with a simple SELECT
+
+        # Determine if we're showing opponent stats
         is_opponent_view = perspective == "opponent"
 
-        query = f"""
-        WITH distinct_teams AS (
-            SELECT DISTINCT team_id, MIN(name) as name, MIN(full_name) as full_name
-            FROM teams
-            GROUP BY team_id
-        ),
-        -- OPTIMIZED: Use UNION ALL instead of OR join to allow index usage
-        all_team_games AS (
-            -- Home games
-            SELECT
-                t.team_id,
-                g.game_id,
-                g.home_score as team_score,
-                g.away_score as opponent_score
-            FROM distinct_teams t
-            INNER JOIN games g ON g.home_team_id = t.team_id
-            WHERE 1=1 {season_filter.replace('g.year', 'g.year')}
-
-            UNION ALL
-
-            -- Away games
-            SELECT
-                t.team_id,
-                g.game_id,
-                g.away_score as team_score,
-                g.home_score as opponent_score
-            FROM distinct_teams t
-            INNER JOIN games g ON g.away_team_id = t.team_id
-            WHERE 1=1 {season_filter.replace('g.year', 'g.year')}
-        ),
-        team_game_stats AS (
-            SELECT
-                t.team_id,
-                t.name,
-                t.full_name,
-                -- Basic record stats
-                COUNT(g.game_id) as games_played,
-                COUNT(CASE WHEN g.team_score > g.opponent_score THEN 1 END) as wins,
-                COUNT(CASE WHEN g.team_score < g.opponent_score THEN 1 END) as losses,
-                -- Scores for and against
-                SUM({'g.opponent_score' if is_opponent_view else 'g.team_score'}) as scores,
-                SUM({'g.team_score' if is_opponent_view else 'g.opponent_score'}) as scores_against
-            FROM distinct_teams t
-            LEFT JOIN all_team_games g ON t.team_id = g.team_id
-            GROUP BY t.team_id, t.name, t.full_name
-        ),
-        {'all_team_stats AS (' if is_opponent_view else 'team_player_stats AS ('}
-            SELECT
-                {'pgs' if not is_opponent_view else 'pgs'}.team_id,
-                SUM(pgs.completions) as total_completions,
-                SUM(pgs.throw_attempts) as total_attempts,
-                SUM(pgs.throwaways + pgs.drops + pgs.stalls) as total_turnovers,
-                SUM(pgs.hucks_completed) as hucks_completed,
-                SUM(pgs.hucks_attempted) as hucks_attempted,
-                SUM(pgs.blocks) as total_blocks
-            FROM player_game_stats pgs
-            {'JOIN games g ON pgs.game_id = g.game_id' if season_filter else ''}
-            WHERE 1=1 {season_filter}
-            GROUP BY pgs.team_id
-        ){''',
-        team_player_stats AS (
-            -- OPTIMIZED: Use UNION ALL for opponent stats too
-            SELECT
-                t.team_id,
-                SUM(ats.total_completions) as total_completions,
-                SUM(ats.total_attempts) as total_attempts,
-                SUM(ats.total_turnovers) as total_turnovers,
-                SUM(ats.hucks_completed) as hucks_completed,
-                SUM(ats.hucks_attempted) as hucks_attempted,
-                SUM(ats.total_blocks) as total_blocks
-            FROM distinct_teams t
-            JOIN (
-                -- Home games: get opponent (away) stats
-                SELECT g.home_team_id as team_id, g.away_team_id as opponent_id
-                FROM games g
-                WHERE 1=1 ''' + season_filter + '''
-
-                UNION ALL
-
-                -- Away games: get opponent (home) stats
-                SELECT g.away_team_id as team_id, g.home_team_id as opponent_id
-                FROM games g
-                WHERE 1=1 ''' + season_filter + '''
-            ) team_opponents ON t.team_id = team_opponents.team_id
-            JOIN all_team_stats ats ON ats.team_id = team_opponents.opponent_id
-            GROUP BY t.team_id
-        )''' if is_opponent_view else ''}
-        SELECT
-            tgs.team_id,
-            tgs.name,
-            tgs.full_name,
-            tgs.games_played,
-            tgs.wins,
-            tgs.losses,
-            tgs.scores,
-            tgs.scores_against,
-            COALESCE(tps.total_completions, 0) as completions,
-            COALESCE(tps.total_turnovers, 0) as turnovers,
-            CASE WHEN COALESCE(tps.total_attempts, 0) > 0
-                THEN ROUND((CAST(tps.total_completions AS NUMERIC) / tps.total_attempts) * 100, 2)
-                ELSE 0
-            END as completion_percentage,
-            COALESCE(tps.hucks_completed, 0) as hucks_completed,
-            CASE WHEN COALESCE(tps.hucks_attempted, 0) > 0
-                THEN ROUND((CAST(tps.hucks_completed AS NUMERIC) / tps.hucks_attempted) * 100, 2)
-                ELSE 0
-            END as huck_percentage,
-            COALESCE(tps.total_blocks, 0) as blocks,
-            -- Possession stats will be calculated separately
-            0.0 as hold_percentage,
-            0.0 as o_line_conversion,
-            0.0 as break_percentage,
-            0.0 as d_line_conversion,
-            0.0 as red_zone_conversion
-        FROM team_game_stats tgs
-        LEFT JOIN team_player_stats tps ON tgs.team_id = tps.team_id
-        WHERE tgs.games_played > 0
-        ORDER BY
-            CASE WHEN :order = 'desc' THEN
-                CASE :sort_col
-                    -- Basic stats
-                    WHEN 'name' THEN NULL  -- Handle name separately for proper string sorting
-                    WHEN 'games_played' THEN tgs.games_played
-                    WHEN 'wins' THEN tgs.wins
-                    WHEN 'losses' THEN tgs.losses
-                    WHEN 'scores' THEN
-                        CASE WHEN :view = 'per-game' AND tgs.games_played > 0
-                            THEN CAST(tgs.scores AS NUMERIC) / tgs.games_played
-                            ELSE tgs.scores
-                        END
-                    WHEN 'scores_against' THEN
-                        CASE WHEN :view = 'per-game' AND tgs.games_played > 0
-                            THEN CAST(tgs.scores_against AS NUMERIC) / tgs.games_played
-                            ELSE tgs.scores_against
-                        END
-                    -- Core stats
-                    WHEN 'completions' THEN
-                        CASE WHEN :view = 'per-game' AND tgs.games_played > 0
-                            THEN CAST(COALESCE(tps.total_completions, 0) AS NUMERIC) / tgs.games_played
-                            ELSE COALESCE(tps.total_completions, 0)
-                        END
-                    WHEN 'turnovers' THEN
-                        CASE WHEN :view = 'per-game' AND tgs.games_played > 0
-                            THEN CAST(COALESCE(tps.total_turnovers, 0) AS NUMERIC) / tgs.games_played
-                            ELSE COALESCE(tps.total_turnovers, 0)
-                        END
-                    WHEN 'completion_percentage' THEN (CASE WHEN COALESCE(tps.total_attempts, 0) > 0 THEN (CAST(tps.total_completions AS NUMERIC) / tps.total_attempts) * 100 ELSE 0 END)
-                    -- Advanced stats
-                    WHEN 'hucks_completed' THEN
-                        CASE WHEN :view = 'per-game' AND tgs.games_played > 0
-                            THEN CAST(COALESCE(tps.hucks_completed, 0) AS NUMERIC) / tgs.games_played
-                            ELSE COALESCE(tps.hucks_completed, 0)
-                        END
-                    WHEN 'huck_percentage' THEN (CASE WHEN COALESCE(tps.hucks_attempted, 0) > 0 THEN (CAST(tps.hucks_completed AS NUMERIC) / tps.hucks_attempted) * 100 ELSE 0 END)
-                    WHEN 'blocks' THEN
-                        CASE WHEN :view = 'per-game' AND tgs.games_played > 0
-                            THEN CAST(COALESCE(tps.total_blocks, 0) AS NUMERIC) / tgs.games_played
-                            ELSE COALESCE(tps.total_blocks, 0)
-                        END
-                    -- Possession stats (placeholders for now, will be filled later)
-                    WHEN 'hold_percentage' THEN 0
-                    WHEN 'o_line_conversion' THEN 0
-                    WHEN 'break_percentage' THEN 0
-                    WHEN 'd_line_conversion' THEN 0
-                    WHEN 'red_zone_conversion' THEN 0
-                    ELSE tgs.wins
-                END
-            END DESC,
-            CASE WHEN :order = 'asc' THEN
-                CASE :sort_col
-                    -- Basic stats
-                    WHEN 'name' THEN NULL  -- Handle name separately for proper string sorting
-                    WHEN 'games_played' THEN tgs.games_played
-                    WHEN 'wins' THEN tgs.wins
-                    WHEN 'losses' THEN tgs.losses
-                    WHEN 'scores' THEN
-                        CASE WHEN :view = 'per-game' AND tgs.games_played > 0
-                            THEN CAST(tgs.scores AS NUMERIC) / tgs.games_played
-                            ELSE tgs.scores
-                        END
-                    WHEN 'scores_against' THEN
-                        CASE WHEN :view = 'per-game' AND tgs.games_played > 0
-                            THEN CAST(tgs.scores_against AS NUMERIC) / tgs.games_played
-                            ELSE tgs.scores_against
-                        END
-                    -- Core stats
-                    WHEN 'completions' THEN
-                        CASE WHEN :view = 'per-game' AND tgs.games_played > 0
-                            THEN CAST(COALESCE(tps.total_completions, 0) AS NUMERIC) / tgs.games_played
-                            ELSE COALESCE(tps.total_completions, 0)
-                        END
-                    WHEN 'turnovers' THEN
-                        CASE WHEN :view = 'per-game' AND tgs.games_played > 0
-                            THEN CAST(COALESCE(tps.total_turnovers, 0) AS NUMERIC) / tgs.games_played
-                            ELSE COALESCE(tps.total_turnovers, 0)
-                        END
-                    WHEN 'completion_percentage' THEN (CASE WHEN COALESCE(tps.total_attempts, 0) > 0 THEN (CAST(tps.total_completions AS NUMERIC) / tps.total_attempts) * 100 ELSE 0 END)
-                    -- Advanced stats
-                    WHEN 'hucks_completed' THEN
-                        CASE WHEN :view = 'per-game' AND tgs.games_played > 0
-                            THEN CAST(COALESCE(tps.hucks_completed, 0) AS NUMERIC) / tgs.games_played
-                            ELSE COALESCE(tps.hucks_completed, 0)
-                        END
-                    WHEN 'huck_percentage' THEN (CASE WHEN COALESCE(tps.hucks_attempted, 0) > 0 THEN (CAST(tps.hucks_completed AS NUMERIC) / tps.hucks_attempted) * 100 ELSE 0 END)
-                    WHEN 'blocks' THEN
-                        CASE WHEN :view = 'per-game' AND tgs.games_played > 0
-                            THEN CAST(COALESCE(tps.total_blocks, 0) AS NUMERIC) / tgs.games_played
-                            ELSE COALESCE(tps.total_blocks, 0)
-                        END
-                    -- Possession stats (placeholders for now, will be filled later)
-                    WHEN 'hold_percentage' THEN 0
-                    WHEN 'o_line_conversion' THEN 0
-                    WHEN 'break_percentage' THEN 0
-                    WHEN 'd_line_conversion' THEN 0
-                    WHEN 'red_zone_conversion' THEN 0
-                    ELSE tgs.wins
-                END
-            END ASC,
-            -- Handle name sorting separately
-            CASE
-                WHEN :sort_col = 'name' AND :order = 'asc' THEN tgs.name
-            END ASC,
-            CASE
-                WHEN :sort_col = 'name' AND :order = 'desc' THEN tgs.name
-            END DESC,
-            -- Secondary sort by name if not primary sort
-            CASE
-                WHEN :sort_col != 'name' THEN tgs.name
-            END ASC
-        """
-
-        params = {
-            "season": season_param,
-            "sort_col": sort,
-            "order": order,
-            "view": view,
-        }
+        # Handle "career" stats by aggregating across all years
+        if season == "career":
+            # Aggregate career stats across all years
+            if is_opponent_view:
+                query = """
+                SELECT
+                    tss.team_id,
+                    MIN(t.name) as name,
+                    MIN(t.full_name) as full_name,
+                    SUM(tss.games_played) as games_played,
+                    SUM(tss.wins) as wins,
+                    SUM(tss.losses) as losses,
+                    SUM(tss.scores) as scores,
+                    SUM(tss.scores_against) as scores_against,
+                    SUM(tss.opp_completions) as completions,
+                    SUM(tss.opp_turnovers) as turnovers,
+                    CASE WHEN SUM(tss.opp_throw_attempts) > 0
+                        THEN ROUND((CAST(SUM(tss.opp_completions) AS REAL) / SUM(tss.opp_throw_attempts)) * 100, 2)
+                        ELSE 0
+                    END as completion_percentage,
+                    SUM(tss.opp_hucks_completed) as hucks_completed,
+                    CASE WHEN SUM(tss.opp_hucks_attempted) > 0
+                        THEN ROUND((CAST(SUM(tss.opp_hucks_completed) AS REAL) / SUM(tss.opp_hucks_attempted)) * 100, 2)
+                        ELSE 0
+                    END as huck_percentage,
+                    SUM(tss.opp_blocks) as blocks,
+                    0.0 as hold_percentage,
+                    0.0 as o_line_conversion,
+                    0.0 as break_percentage,
+                    0.0 as d_line_conversion,
+                    0.0 as red_zone_conversion
+                FROM team_season_stats tss
+                JOIN teams t ON tss.team_id = t.team_id AND tss.year = t.year
+                GROUP BY tss.team_id
+                """
+            else:
+                query = """
+                SELECT
+                    tss.team_id,
+                    MIN(t.name) as name,
+                    MIN(t.full_name) as full_name,
+                    SUM(tss.games_played) as games_played,
+                    SUM(tss.wins) as wins,
+                    SUM(tss.losses) as losses,
+                    SUM(tss.scores) as scores,
+                    SUM(tss.scores_against) as scores_against,
+                    SUM(tss.completions) as completions,
+                    SUM(tss.turnovers) as turnovers,
+                    CASE WHEN SUM(tss.throw_attempts) > 0
+                        THEN ROUND((CAST(SUM(tss.completions) AS REAL) / SUM(tss.throw_attempts)) * 100, 2)
+                        ELSE 0
+                    END as completion_percentage,
+                    SUM(tss.hucks_completed) as hucks_completed,
+                    CASE WHEN SUM(tss.hucks_attempted) > 0
+                        THEN ROUND((CAST(SUM(tss.hucks_completed) AS REAL) / SUM(tss.hucks_attempted)) * 100, 2)
+                        ELSE 0
+                    END as huck_percentage,
+                    SUM(tss.blocks) as blocks,
+                    0.0 as hold_percentage,
+                    0.0 as o_line_conversion,
+                    0.0 as break_percentage,
+                    0.0 as d_line_conversion,
+                    0.0 as red_zone_conversion
+                FROM team_season_stats tss
+                JOIN teams t ON tss.team_id = t.team_id AND tss.year = t.year
+                GROUP BY tss.team_id
+                """
+            params = {}
+        else:
+            # Single season stats - no aggregation needed
+            if is_opponent_view:
+                query = """
+                SELECT
+                    tss.team_id,
+                    t.name,
+                    t.full_name,
+                    tss.games_played,
+                    tss.wins,
+                    tss.losses,
+                    tss.scores,
+                    tss.scores_against,
+                    tss.opp_completions as completions,
+                    tss.opp_turnovers as turnovers,
+                    CASE WHEN tss.opp_throw_attempts > 0
+                        THEN ROUND((CAST(tss.opp_completions AS REAL) / tss.opp_throw_attempts) * 100, 2)
+                        ELSE 0
+                    END as completion_percentage,
+                    tss.opp_hucks_completed as hucks_completed,
+                    CASE WHEN tss.opp_hucks_attempted > 0
+                        THEN ROUND((CAST(tss.opp_hucks_completed AS REAL) / tss.opp_hucks_attempted) * 100, 2)
+                        ELSE 0
+                    END as huck_percentage,
+                    tss.opp_blocks as blocks,
+                    tss.opp_hold_percentage as hold_percentage,
+                    tss.opp_o_line_conversion as o_line_conversion,
+                    tss.opp_break_percentage as break_percentage,
+                    tss.opp_d_line_conversion as d_line_conversion,
+                    tss.opp_red_zone_conversion as red_zone_conversion
+                FROM team_season_stats tss
+                JOIN teams t ON tss.team_id = t.team_id AND tss.year = t.year
+                WHERE tss.year = :season
+                """
+            else:
+                query = """
+                SELECT
+                    tss.team_id,
+                    t.name,
+                    t.full_name,
+                    tss.games_played,
+                    tss.wins,
+                    tss.losses,
+                    tss.scores,
+                    tss.scores_against,
+                    tss.completions,
+                    tss.turnovers,
+                    CASE WHEN tss.throw_attempts > 0
+                        THEN ROUND((CAST(tss.completions AS REAL) / tss.throw_attempts) * 100, 2)
+                        ELSE 0
+                    END as completion_percentage,
+                    tss.hucks_completed,
+                    CASE WHEN tss.hucks_attempted > 0
+                        THEN ROUND((CAST(tss.hucks_completed AS REAL) / tss.hucks_attempted) * 100, 2)
+                        ELSE 0
+                    END as huck_percentage,
+                    tss.blocks,
+                    tss.hold_percentage,
+                    tss.o_line_conversion,
+                    tss.break_percentage,
+                    tss.d_line_conversion,
+                    tss.red_zone_conversion
+                FROM team_season_stats tss
+                JOIN teams t ON tss.team_id = t.team_id AND tss.year = t.year
+                WHERE tss.year = :season
+                """
+            params = {"season": season_param}
 
         teams = self.db.execute_query(query, params)
 
-        # OPTIMIZED: Use batch queries to calculate possession stats for all teams at once
-        # Extract team_ids from results
+        # Calculate possession and redzone stats from game_events (batch operation for performance)
         team_ids = [team["team_id"] for team in teams]
+        if team_ids:
+            possession_stats = calculate_possessions_batch(
+                self.db, team_ids, season_filter, season_param
+            )
+            redzone_stats = calculate_redzone_stats_batch(
+                self.db, team_ids, season_filter, season_param
+            )
 
-        if not team_ids:
-            return teams
+            # Merge batch results into team stats
+            for team in teams:
+                team_id = team["team_id"]
 
-        # Calculate possession and redzone stats for all teams in 2 batch queries (was ~7800 queries)
-        possession_stats = calculate_possessions_batch(
-            self.db, team_ids, season_filter, season_param
-        )
-        redzone_stats = calculate_redzone_stats_batch(
-            self.db, team_ids, season_filter, season_param
-        )
+                # Get possession stats from batch results
+                poss_stats = possession_stats.get(team_id, {
+                    "o_line_points": 0,
+                    "o_line_scores": 0,
+                    "o_line_possessions": 0,
+                    "d_line_points": 0,
+                    "d_line_scores": 0,
+                    "d_line_possessions": 0,
+                })
 
-        # Merge batch results into team stats
-        for team in teams:
-            team_id = team["team_id"]
+                # Get redzone stats from batch results
+                rz_stats = redzone_stats.get(team_id, {"possessions": 0, "goals": 0})
 
-            # Get possession stats from batch results
-            poss_stats = possession_stats.get(team_id, {
-                "o_line_points": 0,
-                "o_line_scores": 0,
-                "o_line_possessions": 0,
-                "d_line_points": 0,
-                "d_line_scores": 0,
-                "d_line_possessions": 0,
-            })
+                # Calculate percentages
+                total_o_line_points = poss_stats["o_line_points"]
+                total_o_line_scores = poss_stats["o_line_scores"]
+                total_o_line_possessions = poss_stats["o_line_possessions"]
+                total_d_line_points = poss_stats["d_line_points"]
+                total_d_line_scores = poss_stats["d_line_scores"]
+                total_d_line_possessions = poss_stats["d_line_possessions"]
+                total_redzone_possessions = rz_stats["possessions"]
+                total_redzone_goals = rz_stats["goals"]
 
-            # Get redzone stats from batch results
-            rz_stats = redzone_stats.get(team_id, {"possessions": 0, "goals": 0})
+                if total_o_line_points > 0:
+                    team["hold_percentage"] = round(
+                        (total_o_line_scores / total_o_line_points) * 100, 1
+                    )
+                else:
+                    team["hold_percentage"] = 0.0
 
-            # Calculate percentages
-            total_o_line_points = poss_stats["o_line_points"]
-            total_o_line_scores = poss_stats["o_line_scores"]
-            total_o_line_possessions = poss_stats["o_line_possessions"]
-            total_d_line_points = poss_stats["d_line_points"]
-            total_d_line_scores = poss_stats["d_line_scores"]
-            total_d_line_possessions = poss_stats["d_line_possessions"]
-            total_redzone_possessions = rz_stats["possessions"]
-            total_redzone_goals = rz_stats["goals"]
+                if total_o_line_possessions > 0:
+                    team["o_line_conversion"] = round(
+                        (total_o_line_scores / total_o_line_possessions) * 100, 1
+                    )
+                else:
+                    team["o_line_conversion"] = 0.0
 
-            if total_o_line_points > 0:
-                team["hold_percentage"] = round(
-                    (total_o_line_scores / total_o_line_points) * 100, 1
-                )
-            else:
-                team["hold_percentage"] = 0.0
+                if total_d_line_points > 0:
+                    team["break_percentage"] = round(
+                        (total_d_line_scores / total_d_line_points) * 100, 1
+                    )
+                else:
+                    team["break_percentage"] = 0.0
 
-            if total_o_line_possessions > 0:
-                team["o_line_conversion"] = round(
-                    (total_o_line_scores / total_o_line_possessions) * 100, 1
-                )
-            else:
-                team["o_line_conversion"] = 0.0
+                if total_d_line_possessions > 0:
+                    team["d_line_conversion"] = round(
+                        (total_d_line_scores / total_d_line_possessions) * 100, 1
+                    )
+                else:
+                    team["d_line_conversion"] = 0.0
 
-            if total_d_line_points > 0:
-                team["break_percentage"] = round(
-                    (total_d_line_scores / total_d_line_points) * 100, 1
-                )
-            else:
-                team["break_percentage"] = 0.0
-
-            if total_d_line_possessions > 0:
-                team["d_line_conversion"] = round(
-                    (total_d_line_scores / total_d_line_possessions) * 100, 1
-                )
-            else:
-                team["d_line_conversion"] = 0.0
-
-            if total_redzone_possessions > 0:
-                team["red_zone_conversion"] = round(
-                    (total_redzone_goals / total_redzone_possessions) * 100, 1
-                )
-            else:
-                team["red_zone_conversion"] = 0.0
+                if total_redzone_possessions > 0:
+                    team["red_zone_conversion"] = round(
+                        (total_redzone_goals / total_redzone_possessions) * 100, 1
+                    )
+                else:
+                    team["red_zone_conversion"] = 0.0
 
         # Apply per-game calculations if requested
         if view == "per-game":
             for team in teams:
                 if team["games_played"] > 0:
                     games = team["games_played"]
+                    # Divide totals by games played
                     team["scores"] = round(team["scores"] / games, 2)
                     team["scores_against"] = round(team["scores_against"] / games, 2)
                     team["completions"] = round(team["completions"] / games, 2)
                     team["turnovers"] = round(team["turnovers"] / games, 2)
                     team["hucks_completed"] = round(team["hucks_completed"] / games, 2)
                     team["blocks"] = round(team["blocks"] / games, 2)
+                    # Note: Percentages stay the same in per-game view
 
-        # If sorting by possession stats, apply Python sorting after calculation
-        possession_stats = [
-            "hold_percentage",
-            "o_line_conversion",
-            "break_percentage",
-            "d_line_conversion",
-            "red_zone_conversion",
-        ]
-
-        if sort in possession_stats:
-            # Sort by the calculated possession stat values
-            reverse = order == "desc"
-            teams.sort(key=lambda x: x.get(sort, 0), reverse=reverse)
+        # Note: Sorting is now handled client-side for instant performance
+        # The 'sort' and 'order' parameters are ignored here but kept for API compatibility
 
         return teams
 

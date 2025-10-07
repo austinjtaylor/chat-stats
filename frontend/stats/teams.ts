@@ -89,19 +89,15 @@ class TeamStats {
             });
         });
 
-        // Table header click handlers for sorting
+        // Table header click handlers for sorting (now instant client-side sorting!)
         const tableHeaders = document.getElementById('tableHeaders');
         if (tableHeaders) {
             tableHeaders.addEventListener('click', (e) => {
                 const target = e.target as HTMLElement;
                 if (target.tagName === 'TH' && target.hasAttribute('data-sort')) {
                     const sortKey = target.getAttribute('data-sort')!;
-                    this.currentSort = window.ufaStats.handleTableSort(
-                        document.getElementById('teamsTable')!,
-                        sortKey,
-                        this.currentSort
-                    );
-                    this.loadTeamStats();
+                    // Use client-side sorting for instant results
+                    this.sortTeamsLocally(sortKey);
                 }
             });
         }
@@ -172,15 +168,53 @@ class TeamStats {
         }, 0);
     }
 
+    sortTeamsLocally(sortKey: string, toggleDirection: boolean = true): void {
+        // Toggle sort direction if same column and toggleDirection is true
+        let direction: 'asc' | 'desc' = 'desc';
+        if (toggleDirection && this.currentSort.key === sortKey) {
+            direction = this.currentSort.direction === 'desc' ? 'asc' : 'desc';
+        } else if (!toggleDirection) {
+            // Keep current direction when not toggling
+            direction = this.currentSort.direction;
+        }
+
+        // Update sort state
+        this.currentSort = { key: sortKey, direction };
+
+        // Sort the teams array in-place
+        this.teams.sort((a, b) => {
+            let aVal = a[sortKey as keyof TeamSeasonStats];
+            let bVal = b[sortKey as keyof TeamSeasonStats];
+
+            // Handle nulls
+            if (aVal === null || aVal === undefined) aVal = 0;
+            if (bVal === null || bVal === undefined) bVal = 0;
+
+            // String comparison for team name
+            if (sortKey === 'name') {
+                const aStr = String(aVal);
+                const bStr = String(bVal);
+                return direction === 'desc' ? bStr.localeCompare(aStr) : aStr.localeCompare(bStr);
+            }
+
+            // Numeric comparison
+            const aNum = Number(aVal);
+            const bNum = Number(bVal);
+            return direction === 'desc' ? bNum - aNum : aNum - bNum;
+        });
+
+        // Update the UI
+        this.renderTableHeaders();
+        this.renderTeamsTable();
+    }
+
     async loadTeamStats(): Promise<void> {
         try {
-            // Generate cache key
+            // OPTIMIZED: Cache key excludes sort parameters (sorting is client-side now)
             const cacheKey = JSON.stringify({
                 season: this.filters.season,
                 view: this.filters.view,
-                perspective: this.filters.perspective,
-                sort: this.currentSort.key,
-                order: this.currentSort.direction
+                perspective: this.filters.perspective
             });
 
             // Check cache (5 minute TTL)
@@ -188,19 +222,18 @@ class TeamStats {
             if (cached && Date.now() - cached.timestamp < 5 * 60 * 1000) {
                 this.teams = cached.data.teams || [];
                 this.totalTeams = cached.data.total || 0;
-                this.renderTeamsTable();
+                this.sortTeamsLocally(this.currentSort.key, false);  // Apply current sort without toggling
                 this.updateTeamCount();
                 return;
             }
 
             window.ufaStats.showLoading('#teamsTableBody', 'Loading team statistics...');
 
+            // OPTIMIZED: Don't send sort/order params (backend ignores them anyway)
             const response = await window.ufaStats.fetchData<TeamStatsResponse>('/teams/stats', {
                 season: this.filters.season,
                 view: this.filters.view,
-                perspective: this.filters.perspective,
-                sort: this.currentSort.key,
-                order: this.currentSort.direction
+                perspective: this.filters.perspective
             });
 
             if (response && response.teams) {
@@ -212,12 +245,15 @@ class TeamStats {
                     data: response,
                     timestamp: Date.now()
                 });
+
+                // Apply client-side sorting without toggling
+                this.sortTeamsLocally(this.currentSort.key, false);
             } else {
                 this.teams = [];
                 this.totalTeams = 0;
+                this.renderTeamsTable();
             }
 
-            this.renderTeamsTable();
             this.updateTeamCount();
 
         } catch (error) {
