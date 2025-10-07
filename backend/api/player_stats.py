@@ -177,7 +177,7 @@ def create_player_stats_route(stats_system):
                 JOIN player_info pi ON tcs.player_id = pi.player_id
                 LEFT JOIN games_count gc ON tcs.player_id = gc.player_id
                 CROSS JOIN team_info ti
-                ORDER BY {get_sort_column(sort, per_game=(per == "game"))} {order.upper()}
+                ORDER BY tcs.{sort} {order.upper()}
                 LIMIT {per_page} OFFSET {(page-1) * per_page}
                 """
             elif season == "career":
