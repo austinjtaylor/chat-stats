@@ -551,46 +551,38 @@ class StatsChatSystem:
             WHERE 1=1 {season_filter}
             GROUP BY t.team_id, t.name, t.full_name
         ),
+        {'all_team_stats AS (' if is_opponent_view else 'team_player_stats AS ('}
+            SELECT
+                {'pgs' if not is_opponent_view else 'pgs'}.team_id,
+                SUM(pgs.completions) as total_completions,
+                SUM(pgs.throw_attempts) as total_attempts,
+                SUM(pgs.throwaways + pgs.drops + pgs.stalls) as total_turnovers,
+                SUM(pgs.hucks_completed) as hucks_completed,
+                SUM(pgs.hucks_attempted) as hucks_attempted,
+                SUM(pgs.blocks) as total_blocks
+            FROM player_game_stats pgs
+            {'JOIN games g ON pgs.game_id = g.game_id' if season_filter else ''}
+            WHERE 1=1 {season_filter}
+            GROUP BY pgs.team_id
+        ){''',
         team_player_stats AS (
             SELECT
                 t.team_id,
-                -- Aggregate player statistics for the team or opponents
-                SUM(CASE
-                    WHEN {'(' if is_opponent_view else ''} pgs.team_id {'!=' if is_opponent_view else '='} t.team_id
-                    {' AND (pgs.team_id = g.home_team_id OR pgs.team_id = g.away_team_id))' if is_opponent_view else ''}
-                    THEN pgs.completions ELSE 0
-                END) as total_completions,
-                SUM(CASE
-                    WHEN {'(' if is_opponent_view else ''} pgs.team_id {'!=' if is_opponent_view else '='} t.team_id
-                    {' AND (pgs.team_id = g.home_team_id OR pgs.team_id = g.away_team_id))' if is_opponent_view else ''}
-                    THEN pgs.throw_attempts ELSE 0
-                END) as total_attempts,
-                SUM(CASE
-                    WHEN {'(' if is_opponent_view else ''} pgs.team_id {'!=' if is_opponent_view else '='} t.team_id
-                    {' AND (pgs.team_id = g.home_team_id OR pgs.team_id = g.away_team_id))' if is_opponent_view else ''}
-                    THEN pgs.throwaways + pgs.drops + pgs.stalls ELSE 0
-                END) as total_turnovers,
-                SUM(CASE
-                    WHEN {'(' if is_opponent_view else ''} pgs.team_id {'!=' if is_opponent_view else '='} t.team_id
-                    {' AND (pgs.team_id = g.home_team_id OR pgs.team_id = g.away_team_id))' if is_opponent_view else ''}
-                    THEN pgs.hucks_completed ELSE 0
-                END) as hucks_completed,
-                SUM(CASE
-                    WHEN {'(' if is_opponent_view else ''} pgs.team_id {'!=' if is_opponent_view else '='} t.team_id
-                    {' AND (pgs.team_id = g.home_team_id OR pgs.team_id = g.away_team_id))' if is_opponent_view else ''}
-                    THEN pgs.hucks_attempted ELSE 0
-                END) as hucks_attempted,
-                SUM(CASE
-                    WHEN {'(' if is_opponent_view else ''} pgs.team_id {'!=' if is_opponent_view else '='} t.team_id
-                    {' AND (pgs.team_id = g.home_team_id OR pgs.team_id = g.away_team_id))' if is_opponent_view else ''}
-                    THEN pgs.blocks ELSE 0
-                END) as total_blocks
+                SUM(ats.total_completions) as total_completions,
+                SUM(ats.total_attempts) as total_attempts,
+                SUM(ats.total_turnovers) as total_turnovers,
+                SUM(ats.hucks_completed) as hucks_completed,
+                SUM(ats.hucks_attempted) as hucks_attempted,
+                SUM(ats.total_blocks) as total_blocks
             FROM distinct_teams t
-            LEFT JOIN games g ON (g.home_team_id = t.team_id OR g.away_team_id = t.team_id)
-            LEFT JOIN player_game_stats pgs ON pgs.game_id = g.game_id
-            WHERE 1=1 {season_filter}
+            JOIN games g ON (g.home_team_id = t.team_id OR g.away_team_id = t.team_id)
+            JOIN all_team_stats ats ON ats.team_id = CASE
+                WHEN g.home_team_id = t.team_id THEN g.away_team_id
+                ELSE g.home_team_id
+            END
+            WHERE 1=1 ''' + season_filter + '''
             GROUP BY t.team_id
-        )
+        )''' if is_opponent_view else ''}
         SELECT
             tgs.team_id,
             tgs.name,
