@@ -65,16 +65,20 @@ cd backend && uv run uvicorn app:app --reload --port 8000
 - **Frontend Production**: Can be served from any static file server
 
 ### Database Setup
-```bash
-# Initialize database with schema and synthetic UFA data (for development/testing)
-uv run python scripts/database_setup.py init
-uv run python scripts/database_setup.py generate
 
-# Full database reset (development/testing)
-uv run python scripts/database_setup.py reset
+**PostgreSQL (Supabase) is required for both development and production.**
 
-# The database will be created at ./db/sports_stats.db
-```
+1. Set up your Supabase project at https://supabase.com
+2. Get your DATABASE_URL from: Settings → Database → Connection String → URI
+3. Add it to your `.env` file:
+   ```bash
+   DATABASE_URL=postgresql://postgres:[YOUR-PASSWORD]@db.xxxxxxxxxxxxx.supabase.co:5432/postgres
+   ```
+4. Run migrations (if needed):
+   ```bash
+   # Database schema is managed via Supabase migrations
+   # See backend/migrations/ for SQL migration files
+   ```
 
 ### UFA API Data Import (Production Data)
 ```bash
@@ -183,7 +187,10 @@ uv run python scripts/backup_database.py cleanup --keep 5
 Create `.env` file in root with:
 ```
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
-DATABASE_PATH=./db/sports_stats.db
+DATABASE_URL=postgresql://postgres:[YOUR-PASSWORD]@db.xxxxxxxxxxxxx.supabase.co:5432/postgres
+SUPABASE_URL=https://xxxxxxxxxxxxx.supabase.co
+SUPABASE_ANON_KEY=your_anon_key_here
+SUPABASE_SERVICE_KEY=your_service_key_here
 ```
 
 ## Architecture Overview
@@ -257,7 +264,7 @@ backend/
 
 ### Database Schema
 
-The system uses SQLite with the following main tables:
+The system uses PostgreSQL (Supabase) with the following main tables:
 - **teams** - Team information (name, city, division, conference)
 - **players** - Player details (name, position, team, physical stats)
 - **games** - Game records (date, teams, scores, venue)
@@ -302,7 +309,7 @@ Claude autonomously decides which tools to use based on the user's question.
 ### Configuration
 
 Key settings in `backend/config.py`:
-- `DATABASE_PATH: "./db/sports_stats.db"` - SQLite database location
+- `DATABASE_URL` - PostgreSQL connection string (required, from .env)
 - `MAX_RESULTS: 10` - Maximum results per query
 - `MAX_HISTORY: 5` - Conversation messages remembered per session
 - `MAX_TOOL_ROUNDS: 3` - Maximum sequential tool calls
@@ -318,7 +325,7 @@ HTML/CSS/JavaScript chat interface that:
 
 ### Data Storage
 
-- **SQLite Database** (`./db/sports_stats.db`) - All sports statistics
+- **PostgreSQL Database** (Supabase) - All sports statistics
 - **Session Memory** - In-memory conversation history (ephemeral)
 - **Sample Data** (`/data/sample_stats.json`) - Reference data for testing
 
@@ -326,9 +333,11 @@ HTML/CSS/JavaScript chat interface that:
 
 - Always use `uv` to manage dependencies and run Python code (not pip directly)
 - Test files use pytest framework
-- Use `scripts/database_setup.py` for development/testing data and `scripts/ufa_data_manager.py` for production UFA data
+- Use `scripts/ufa_data_manager.py` to import UFA data
+- The system uses PostgreSQL (Supabase) for both development and production
 - The system uses direct SQL queries instead of vector embeddings for accuracy
 - Claude function calling provides precise statistics without hallucination
+- All SQL queries should be PostgreSQL-compatible (no SQLite-specific syntax)
 
 ### Data Availability Notes
 

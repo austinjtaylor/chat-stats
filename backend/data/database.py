@@ -1,69 +1,46 @@
 """
 SQL Database connection and query execution module for Sports Stats Chatbot.
-Supports both SQLite (local dev) and PostgreSQL (Supabase production).
+PostgreSQL (Supabase) only.
 """
 
 import os
-from pathlib import Path
 from typing import Any
 
 import pandas as pd
 from sqlalchemy import MetaData, create_engine, text
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool, NullPool
+from sqlalchemy.pool import NullPool
 
 
 class SQLDatabase:
-    """Manages SQL database connections and query execution for sports statistics."""
+    """Manages PostgreSQL database connections and query execution for sports statistics."""
 
-    def __init__(self, database_path: str = None, database_url: str = None):
+    def __init__(self, database_url: str = None):
         """
-        Initialize SQL database connection.
-        Supports both SQLite (local) and PostgreSQL (Supabase).
+        Initialize PostgreSQL database connection.
 
         Args:
-            database_path: Path to SQLite database file (for local dev)
-            database_url: PostgreSQL connection URL (for Supabase/production)
+            database_url: PostgreSQL connection URL (for Supabase)
 
         Environment Variables:
-            DATABASE_URL: PostgreSQL URL (takes precedence)
-            DATABASE_PATH: SQLite file path (fallback)
+            DATABASE_URL: PostgreSQL URL (required)
         """
-        # Check for Supabase/PostgreSQL first
+        # Get database URL from parameter or environment
         self.database_url = database_url or os.getenv("DATABASE_URL")
 
-        if self.database_url:
-            # Use PostgreSQL (Supabase)
-            self._use_postgresql = True
-            print(f"🐘 Using PostgreSQL database (Supabase)")
-
-            # Create PostgreSQL engine
-            self.engine = create_engine(
-                self.database_url,
-                poolclass=NullPool,  # Let Supabase handle connection pooling
-                echo=False,  # Set to True for SQL query debugging
+        if not self.database_url:
+            raise ValueError(
+                "DATABASE_URL is required. Please set it in your .env file."
             )
-        else:
-            # Use SQLite (local development)
-            self._use_postgresql = False
 
-            if database_path is None:
-                database_path = os.getenv("DATABASE_PATH") or os.path.join(
-                    os.path.dirname(__file__), "..", "..", "db", "sports_stats.db"
-                )
+        print(f"🐘 Using PostgreSQL database (Supabase)")
 
-            print(f"📁 Using SQLite database: {database_path}")
-
-            # Ensure database directory exists
-            Path(database_path).parent.mkdir(parents=True, exist_ok=True)
-
-            # Create SQLite engine
-            self.engine = create_engine(
-                f"sqlite:///{database_path}",
-                connect_args={"check_same_thread": False},
-                poolclass=StaticPool,
-                echo=False,
-            )
+        # Create PostgreSQL engine
+        self.engine = create_engine(
+            self.database_url,
+            poolclass=NullPool,  # Let Supabase handle connection pooling
+            echo=False,  # Set to True for SQL query debugging
+        )
 
         # Create session factory
         self.SessionLocal = sessionmaker(
@@ -72,31 +49,6 @@ class SQLDatabase:
 
         # Store metadata
         self.metadata = MetaData()
-
-        # Initialize database schema if needed (SQLite only)
-        if not self._use_postgresql:
-            self._initialize_database()
-
-    def _initialize_database(self):
-        """Initialize database with schema if tables don't exist."""
-        schema_file = os.path.join(os.path.dirname(__file__), "database_schema.sql")
-
-        if os.path.exists(schema_file):
-            with open(schema_file) as f:
-                schema_sql = f.read()
-
-            # Execute schema creation
-            with self.engine.connect() as conn:
-                # Split by semicolon and execute each statement
-                for statement in schema_sql.split(";"):
-                    statement = statement.strip()
-                    if statement:
-                        try:
-                            conn.execute(text(statement))
-                            conn.commit()
-                        except Exception as e:
-                            # Table might already exist, continue
-                            print(f"Note: {str(e)[:50]}...")
 
     def execute_query(
         self, query: str, params: dict[str, Any] = None
@@ -181,41 +133,23 @@ class SQLDatabase:
 
     def get_table_info(self) -> dict[str, list[str]]:
         """
-        Get information about all tables and their columns.
-        Works with both SQLite and PostgreSQL.
+        Get information about all tables and their columns (PostgreSQL).
 
         Returns:
             Dictionary mapping table names to list of column names
         """
-        if self._use_postgresql:
-            # PostgreSQL query
-            query = """
-            SELECT
-                table_name,
-                column_name
-            FROM
-                information_schema.columns
-            WHERE
-                table_schema = 'public'
-            ORDER BY
-                table_name, ordinal_position
-            """
-        else:
-            # SQLite query
-            query = """
-            SELECT
-                m.name as table_name,
-                p.name as column_name
-            FROM
-                sqlite_master m
-            LEFT OUTER JOIN
-                pragma_table_info((m.name)) p ON m.name <> p.name
-            WHERE
-                m.type = 'table'
-                AND m.name NOT LIKE 'sqlite_%'
-            ORDER BY
-                table_name, p.cid
-            """
+        # PostgreSQL query
+        query = """
+        SELECT
+            table_name,
+            column_name
+        FROM
+            information_schema.columns
+        WHERE
+            table_schema = 'public'
+        ORDER BY
+            table_name, ordinal_position
+        """
 
         results = self.execute_query(query)
 
@@ -261,16 +195,12 @@ class SQLDatabase:
         return result[0]["count"] if result else 0
 
     def is_postgresql(self) -> bool:
-        """Check if using PostgreSQL (Supabase)."""
-        return self._use_postgresql
-
-    def is_sqlite(self) -> bool:
-        """Check if using SQLite (local dev)."""
-        return not self._use_postgresql
+        """Check if using PostgreSQL (always True now)."""
+        return True
 
     def get_database_type(self) -> str:
         """Get the database type being used."""
-        return "PostgreSQL" if self._use_postgresql else "SQLite"
+        return "PostgreSQL"
 
     def close(self):
         """Close database connection."""

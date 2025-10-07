@@ -15,9 +15,8 @@ class Config:
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
     ANTHROPIC_MODEL: str = "claude-3-haiku-20240307"
 
-    # Database settings (PostgreSQL via Supabase or SQLite for local)
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "")  # PostgreSQL (Supabase) - takes precedence
-    DATABASE_PATH: str = os.getenv("DATABASE_PATH", "../db/sports_stats.db")  # SQLite fallback
+    # Database settings (PostgreSQL via Supabase - REQUIRED)
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "")
 
     # Supabase settings
     SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
@@ -81,19 +80,20 @@ def validate_config():
         print("WARNING: ANTHROPIC_API_KEY appears to be a placeholder value.")
         print("Please set your actual API key in the .env file to enable AI responses.")
 
-    # Database validation
-    if config.DATABASE_URL:
-        print("✅ Using PostgreSQL database (Supabase)")
-        # Validate Supabase configuration
-        if not config.SUPABASE_URL:
-            print("WARNING: DATABASE_URL is set but SUPABASE_URL is missing")
-        if not config.SUPABASE_SERVICE_KEY:
-            print("WARNING: DATABASE_URL is set but SUPABASE_SERVICE_KEY is missing (needed for auth)")
-    else:
-        print("📁 Using SQLite database (local development)")
-        if config.SUPABASE_URL or config.SUPABASE_SERVICE_KEY:
-            print("NOTE: Supabase credentials detected but DATABASE_URL not set")
-            print("      Add DATABASE_URL to .env to use PostgreSQL")
+    # Database validation - DATABASE_URL is required
+    if not config.DATABASE_URL:
+        raise ValueError(
+            "DATABASE_URL is required. Please set it in your .env file.\n"
+            "Get your connection string from Supabase: Settings → Database → Connection String → URI"
+        )
+
+    print("✅ Using PostgreSQL database (Supabase)")
+
+    # Validate Supabase configuration
+    if not config.SUPABASE_URL:
+        print("⚠️  WARNING: SUPABASE_URL is not set (required for authentication)")
+    if not config.SUPABASE_SERVICE_KEY:
+        print("⚠️  WARNING: SUPABASE_SERVICE_KEY is not set (required for authentication)")
 
 
 # Run validation on import
