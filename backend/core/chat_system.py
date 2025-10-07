@@ -756,6 +756,10 @@ class StatsChatSystem:
 
         teams = self.db.execute_query(query, params)
 
+        # TEMPORARY: Skip possession stats to fix timeout (N+1 query problem)
+        # TODO: Optimize possession stats calculation to use batch queries
+        return teams
+
         # Calculate possession statistics for each team
         for team in teams:
             team_id = team["team_id"]
