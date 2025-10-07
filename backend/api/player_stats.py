@@ -49,77 +49,134 @@ def create_player_stats_route(stats_system):
             # which include all teams)
             if season == "career" and team != "all":
                 # Aggregate career stats for specific team across all seasons
+                # Optimized version without expensive LEFT JOINs
                 query = f"""
+                WITH team_career_stats AS (
+                    SELECT
+                        pss.player_id,
+                        pss.team_id,
+                        MAX(pss.year) as most_recent_year,
+                        SUM(pss.total_goals) as total_goals,
+                        SUM(pss.total_assists) as total_assists,
+                        SUM(pss.total_hockey_assists) as total_hockey_assists,
+                        SUM(pss.total_blocks) as total_blocks,
+                        (SUM(pss.total_goals) + SUM(pss.total_assists) + SUM(pss.total_blocks) -
+                         SUM(pss.total_throwaways) - SUM(pss.total_drops)) as calculated_plus_minus,
+                        SUM(pss.total_completions) as total_completions,
+                        CASE
+                            WHEN SUM(pss.total_throw_attempts) > 0
+                            THEN ROUND(SUM(pss.total_completions) * 100.0 / SUM(pss.total_throw_attempts), 1)
+                            ELSE 0
+                        END as completion_percentage,
+                        SUM(pss.total_yards_thrown) as total_yards_thrown,
+                        SUM(pss.total_yards_received) as total_yards_received,
+                        SUM(pss.total_throwaways) as total_throwaways,
+                        SUM(pss.total_stalls) as total_stalls,
+                        SUM(pss.total_drops) as total_drops,
+                        SUM(pss.total_callahans) as total_callahans,
+                        SUM(pss.total_hucks_completed) as total_hucks_completed,
+                        SUM(pss.total_hucks_attempted) as total_hucks_attempted,
+                        SUM(pss.total_hucks_received) as total_hucks_received,
+                        SUM(pss.total_pulls) as total_pulls,
+                        SUM(pss.total_o_points_played) as total_o_points_played,
+                        SUM(pss.total_d_points_played) as total_d_points_played,
+                        SUM(pss.total_seconds_played) as total_seconds_played,
+                        SUM(pss.total_o_opportunities) as total_o_opportunities,
+                        SUM(pss.total_d_opportunities) as total_d_opportunities,
+                        SUM(pss.total_o_opportunity_scores) as total_o_opportunity_scores,
+                        SUM(pss.total_o_opportunities) as possessions,
+                        (SUM(pss.total_goals) + SUM(pss.total_assists)) as score_total,
+                        (SUM(pss.total_o_points_played) + SUM(pss.total_d_points_played)) as total_points_played,
+                        (SUM(pss.total_yards_thrown) + SUM(pss.total_yards_received)) as total_yards,
+                        ROUND(SUM(pss.total_seconds_played) / 60.0, 0) as minutes_played,
+                        CASE WHEN SUM(pss.total_hucks_attempted) > 0 THEN ROUND(SUM(pss.total_hucks_completed) * 100.0 / SUM(pss.total_hucks_attempted), 1) ELSE 0 END as huck_percentage,
+                        CASE
+                            WHEN SUM(pss.total_o_opportunities) >= 20
+                            THEN ROUND(SUM(pss.total_o_opportunity_scores) * 100.0 / SUM(pss.total_o_opportunities), 1)
+                            ELSE NULL
+                        END as offensive_efficiency,
+                        CASE
+                            WHEN (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops)) > 0
+                            THEN ROUND((SUM(pss.total_yards_thrown) + SUM(pss.total_yards_received)) * 1.0 / (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops)), 1)
+                            ELSE NULL
+                        END as yards_per_turn
+                    FROM player_season_stats pss
+                    WHERE pss.team_id = '{team}'
+                    GROUP BY pss.player_id, pss.team_id
+                ),
+                player_info AS (
+                    SELECT DISTINCT ON (pss.player_id)
+                        pss.player_id,
+                        p.full_name,
+                        p.first_name,
+                        p.last_name
+                    FROM player_season_stats pss
+                    JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
+                    WHERE pss.team_id = '{team}'
+                    ORDER BY pss.player_id, pss.year DESC
+                ),
+                games_count AS (
+                    SELECT
+                        pgs.player_id,
+                        COUNT(DISTINCT pgs.game_id) as games_played
+                    FROM player_game_stats pgs
+                    WHERE pgs.team_id = '{team}'
+                      AND (pgs.o_points_played > 0 OR pgs.d_points_played > 0 OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0)
+                    GROUP BY pgs.player_id
+                ),
+                team_info AS (
+                    SELECT DISTINCT ON (t.team_id)
+                        t.team_id,
+                        t.name,
+                        t.full_name
+                    FROM teams t
+                    WHERE t.team_id = '{team}'
+                    ORDER BY t.team_id, t.year DESC
+                )
                 SELECT
-                    p.full_name,
-                    p.first_name,
-                    p.last_name,
-                    pss.team_id,
+                    pi.full_name,
+                    pi.first_name,
+                    pi.last_name,
+                    tcs.team_id,
                     NULL as year,
-                    SUM(pss.total_goals) as total_goals,
-                    SUM(pss.total_assists) as total_assists,
-                    SUM(pss.total_hockey_assists) as total_hockey_assists,
-                    SUM(pss.total_blocks) as total_blocks,
-                    (SUM(pss.total_goals) + SUM(pss.total_assists) + SUM(pss.total_blocks) -
-                     SUM(pss.total_throwaways) - SUM(pss.total_drops)) as calculated_plus_minus,
-                    SUM(pss.total_completions) as total_completions,
-                    CASE
-                        WHEN SUM(pss.total_throw_attempts) > 0
-                        THEN ROUND(SUM(pss.total_completions) * 100.0 / SUM(pss.total_throw_attempts), 1)
-                        ELSE 0
-                    END as completion_percentage,
-                    SUM(pss.total_yards_thrown) as total_yards_thrown,
-                    SUM(pss.total_yards_received) as total_yards_received,
-                    SUM(pss.total_throwaways) as total_throwaways,
-                    SUM(pss.total_stalls) as total_stalls,
-                    SUM(pss.total_drops) as total_drops,
-                    SUM(pss.total_callahans) as total_callahans,
-                    SUM(pss.total_hucks_completed) as total_hucks_completed,
-                    SUM(pss.total_hucks_attempted) as total_hucks_attempted,
-                    SUM(pss.total_hucks_received) as total_hucks_received,
-                    SUM(pss.total_pulls) as total_pulls,
-                    SUM(pss.total_o_points_played) as total_o_points_played,
-                    SUM(pss.total_d_points_played) as total_d_points_played,
-                    SUM(pss.total_seconds_played) as total_seconds_played,
-                    SUM(pss.total_o_opportunities) as total_o_opportunities,
-                    SUM(pss.total_d_opportunities) as total_d_opportunities,
-                    SUM(pss.total_o_opportunity_scores) as total_o_opportunity_scores,
-                    t.name as team_name,
-                    t.full_name as team_full_name,
-                    COUNT(DISTINCT CASE
-                        WHEN (pgs.o_points_played > 0 OR pgs.d_points_played > 0 OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0)
-                        THEN pgs.game_id
-                        ELSE NULL
-                    END) as games_played,
-                    SUM(pss.total_o_opportunities) as possessions,
-                    (SUM(pss.total_goals) + SUM(pss.total_assists)) as score_total,
-                    (SUM(pss.total_o_points_played) + SUM(pss.total_d_points_played)) as total_points_played,
-                    (SUM(pss.total_yards_thrown) + SUM(pss.total_yards_received)) as total_yards,
-                    ROUND(SUM(pss.total_seconds_played) / 60.0, 0) as minutes_played,
-                    CASE WHEN SUM(pss.total_hucks_attempted) > 0 THEN ROUND(SUM(pss.total_hucks_completed) * 100.0 / SUM(pss.total_hucks_attempted), 1) ELSE 0 END as huck_percentage,
-                    CASE
-                        WHEN SUM(pss.total_o_opportunities) >= 20
-                        THEN ROUND(SUM(pss.total_o_opportunity_scores) * 100.0 / SUM(pss.total_o_opportunities), 1)
-                        ELSE NULL
-                    END as offensive_efficiency,
-                    CASE
-                        WHEN (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops)) > 0
-                        THEN ROUND((SUM(pss.total_yards_thrown) + SUM(pss.total_yards_received)) * 1.0 / (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops)), 1)
-                        ELSE NULL
-                    END as yards_per_turn
-                FROM player_season_stats pss
-                JOIN (SELECT DISTINCT pss2.player_id,
-                             FIRST_VALUE(pl.full_name) OVER (PARTITION BY pss2.player_id ORDER BY pss2.year DESC) as full_name,
-                             FIRST_VALUE(pl.first_name) OVER (PARTITION BY pss2.player_id ORDER BY pss2.year DESC) as first_name,
-                             FIRST_VALUE(pl.last_name) OVER (PARTITION BY pss2.player_id ORDER BY pss2.year DESC) as last_name
-                      FROM player_season_stats pss2
-                      JOIN players pl ON pss2.player_id = pl.player_id AND pss2.year = pl.year
-                      WHERE pss2.team_id = '{team}') p ON pss.player_id = p.player_id
-                LEFT JOIN teams t ON pss.team_id = t.team_id AND pss.year = t.year
-                LEFT JOIN player_game_stats pgs ON pss.player_id = pgs.player_id AND pss.year = pgs.year AND pss.team_id = pgs.team_id
-                LEFT JOIN games g ON pgs.game_id = g.game_id AND g.year = pss.year
-                WHERE pss.team_id = '{team}'
-                GROUP BY pss.player_id, pss.team_id, p.full_name, p.first_name, p.last_name, t.name, t.full_name
+                    tcs.total_goals,
+                    tcs.total_assists,
+                    tcs.total_hockey_assists,
+                    tcs.total_blocks,
+                    tcs.calculated_plus_minus,
+                    tcs.total_completions,
+                    tcs.completion_percentage,
+                    tcs.total_yards_thrown,
+                    tcs.total_yards_received,
+                    tcs.total_throwaways,
+                    tcs.total_stalls,
+                    tcs.total_drops,
+                    tcs.total_callahans,
+                    tcs.total_hucks_completed,
+                    tcs.total_hucks_attempted,
+                    tcs.total_hucks_received,
+                    tcs.total_pulls,
+                    tcs.total_o_points_played,
+                    tcs.total_d_points_played,
+                    tcs.total_seconds_played,
+                    tcs.total_o_opportunities,
+                    tcs.total_d_opportunities,
+                    tcs.total_o_opportunity_scores,
+                    ti.name as team_name,
+                    ti.full_name as team_full_name,
+                    COALESCE(gc.games_played, 0) as games_played,
+                    tcs.possessions,
+                    tcs.score_total,
+                    tcs.total_points_played,
+                    tcs.total_yards,
+                    tcs.minutes_played,
+                    tcs.huck_percentage,
+                    tcs.offensive_efficiency,
+                    tcs.yards_per_turn
+                FROM team_career_stats tcs
+                JOIN player_info pi ON tcs.player_id = pi.player_id
+                LEFT JOIN games_count gc ON tcs.player_id = gc.player_id
+                CROSS JOIN team_info ti
                 ORDER BY {get_sort_column(sort, per_game=(per == "game"))} {order.upper()}
                 LIMIT {per_page} OFFSET {(page-1) * per_page}
                 """
@@ -246,19 +303,11 @@ def create_player_stats_route(stats_system):
 
             # Get total count for pagination
             if season == "career" and team != "all":
-                # Count players who played for this specific team
+                # Count players who played for this specific team (simplified - no EXISTS check)
                 count_query = f"""
                 SELECT COUNT(DISTINCT pss.player_id) as total
                 FROM player_season_stats pss
                 WHERE pss.team_id = '{team}'
-                AND EXISTS (
-                    SELECT 1 FROM player_game_stats pgs
-                    LEFT JOIN games g ON pgs.game_id = g.game_id AND g.year = pss.year
-                    WHERE pgs.player_id = pss.player_id
-                    AND pgs.year = pss.year
-                    AND pgs.team_id = pss.team_id
-                    AND (pgs.o_points_played > 0 OR pgs.d_points_played > 0 OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0)
-                )
                 """
             elif season == "career":
                 # Count all career players
