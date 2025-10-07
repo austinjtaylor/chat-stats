@@ -12,7 +12,12 @@ from utils.response import format_game_details_response, should_format_response
 
 from data.cache import cache_key_for_endpoint, get_cache
 from data.database import get_db
-from data.possession import calculate_possessions, calculate_redzone_stats_for_team
+from data.possession import (
+    calculate_possessions,
+    calculate_possessions_batch,
+    calculate_redzone_stats_batch,
+    calculate_redzone_stats_for_team,
+)
 from data.processor import StatsProcessor
 
 
@@ -756,94 +761,48 @@ class StatsChatSystem:
 
         teams = self.db.execute_query(query, params)
 
-        # TEMPORARY: Skip possession stats to fix timeout (N+1 query problem)
-        # TODO: Optimize possession stats calculation to use batch queries
-        return teams
+        # OPTIMIZED: Use batch queries to calculate possession stats for all teams at once
+        # Extract team_ids from results
+        team_ids = [team["team_id"] for team in teams]
 
-        # Calculate possession statistics for each team
+        if not team_ids:
+            return teams
+
+        # Calculate possession and redzone stats for all teams in 2 batch queries (was ~7800 queries)
+        possession_stats = calculate_possessions_batch(
+            self.db, team_ids, season_filter, season_param
+        )
+        redzone_stats = calculate_redzone_stats_batch(
+            self.db, team_ids, season_filter, season_param
+        )
+
+        # Merge batch results into team stats
         for team in teams:
             team_id = team["team_id"]
 
-            # Get all games for this team in the season
-            games_query = f"""
-            SELECT g.game_id,
-                   g.home_team_id,
-                   g.away_team_id,
-                   CASE WHEN g.home_team_id = :team_id THEN 1 ELSE 0 END as is_home
-            FROM games g
-            WHERE (g.home_team_id = :team_id OR g.away_team_id = :team_id)
-            {season_filter}
-            """
-            games = self.db.execute_query(
-                games_query, {"team_id": team_id, "season": season_param}
-            )
+            # Get possession stats from batch results
+            poss_stats = possession_stats.get(team_id, {
+                "o_line_points": 0,
+                "o_line_scores": 0,
+                "o_line_possessions": 0,
+                "d_line_points": 0,
+                "d_line_scores": 0,
+                "d_line_possessions": 0,
+            })
 
-            # Aggregate possession stats across all games
-            total_o_line_points = 0
-            total_o_line_scores = 0
-            total_o_line_possessions = 0
-            total_d_line_points = 0
-            total_d_line_scores = 0
-            total_d_line_possessions = 0
-            total_redzone_possessions = 0
-            total_redzone_goals = 0
-            games_with_events = 0
-
-            for game in games:
-                game_id = game["game_id"]
-                is_home = bool(game["is_home"])
-
-                # For opponent perspective, we want stats for the opposing team
-                if is_opponent_view:
-                    # Get the opponent's team_id
-                    opponent_team_id = (
-                        game["away_team_id"] if is_home else game["home_team_id"]
-                    )
-                    opponent_is_home = not is_home
-
-                    # Calculate possession stats for the opponent
-                    poss_stats = calculate_possessions(
-                        self.db, game_id, opponent_team_id, opponent_is_home
-                    )
-                    if poss_stats:
-                        games_with_events += 1
-                        total_o_line_points += poss_stats["o_line_points"]
-                        total_o_line_scores += poss_stats["o_line_scores"]
-                        total_o_line_possessions += poss_stats["o_line_possessions"]
-                        total_d_line_points += poss_stats["d_line_points"]
-                        total_d_line_scores += poss_stats["d_line_scores"]
-                        total_d_line_possessions += poss_stats["d_line_possessions"]
-
-                    # Calculate redzone stats for the opponent
-                    rz_stats = calculate_redzone_stats_for_team(
-                        self.db, game_id, opponent_team_id, opponent_is_home
-                    )
-                    if rz_stats:
-                        total_redzone_possessions += rz_stats["possessions"]
-                        total_redzone_goals += rz_stats["goals"]
-                else:
-                    # Try to calculate possession stats for this game
-                    poss_stats = calculate_possessions(
-                        self.db, game_id, team_id, is_home
-                    )
-                    if poss_stats:
-                        games_with_events += 1
-                        total_o_line_points += poss_stats["o_line_points"]
-                        total_o_line_scores += poss_stats["o_line_scores"]
-                        total_o_line_possessions += poss_stats["o_line_possessions"]
-                        total_d_line_points += poss_stats["d_line_points"]
-                        total_d_line_scores += poss_stats["d_line_scores"]
-                        total_d_line_possessions += poss_stats["d_line_possessions"]
-
-                    # Try to calculate redzone stats for this game
-                    rz_stats = calculate_redzone_stats_for_team(
-                        self.db, game_id, team_id, is_home
-                    )
-                    if rz_stats:
-                        total_redzone_possessions += rz_stats["possessions"]
-                        total_redzone_goals += rz_stats["goals"]
+            # Get redzone stats from batch results
+            rz_stats = redzone_stats.get(team_id, {"possessions": 0, "goals": 0})
 
             # Calculate percentages
+            total_o_line_points = poss_stats["o_line_points"]
+            total_o_line_scores = poss_stats["o_line_scores"]
+            total_o_line_possessions = poss_stats["o_line_possessions"]
+            total_d_line_points = poss_stats["d_line_points"]
+            total_d_line_scores = poss_stats["d_line_scores"]
+            total_d_line_possessions = poss_stats["d_line_possessions"]
+            total_redzone_possessions = rz_stats["possessions"]
+            total_redzone_goals = rz_stats["goals"]
+
             if total_o_line_points > 0:
                 team["hold_percentage"] = round(
                     (total_o_line_scores / total_o_line_points) * 100, 1

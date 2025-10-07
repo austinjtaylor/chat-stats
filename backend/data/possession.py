@@ -3,6 +3,7 @@ Possession and redzone calculation utilities for Ultimate Frisbee statistics.
 Implements UFA-style possession tracking and conversion percentages.
 """
 
+from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
 from utils.stats import calculate_percentage
@@ -599,3 +600,468 @@ def calculate_redzone_stats(game_id: str) -> dict:
     away_stats = analyze_team_redzone("away")
 
     return {"game_id": game_id, "homeTeam": home_stats, "awayTeam": away_stats}
+
+
+def _process_possession_events(
+    events: List[Dict[str, Any]], team_type: str, opponent_type: str
+) -> Dict[str, Any]:
+    """
+    Process a list of events to calculate possession stats.
+    Extracted core logic from calculate_possessions() for reuse in batch processing.
+
+    Args:
+        events: List of game events (already filtered for this team)
+        team_type: 'home' or 'away'
+        opponent_type: 'away' or 'home'
+
+    Returns:
+        Dictionary with possession statistics
+    """
+    if not events:
+        return {
+            "o_line_points": 0,
+            "o_line_scores": 0,
+            "o_line_possessions": 0,
+            "d_line_points": 0,
+            "d_line_scores": 0,
+            "d_line_possessions": 0,
+        }
+
+    # Group events by point (between pulls)
+    points = []
+    current_point = None
+    current_possession = None
+    point_had_action = False
+
+    for event in events:
+        event_type = event["event_type"]
+
+        # START_D_POINT (1) - This team pulls, opponent receives
+        if event_type == 1:
+            if current_point and point_had_action:
+                points.append(current_point)
+            current_point = {
+                "pulling_team": team_type,
+                "receiving_team": opponent_type,
+                "scoring_team": None,
+                "team_possessions": 0,
+                "opponent_possessions": 1,
+            }
+            current_possession = opponent_type
+            point_had_action = False
+
+        # START_O_POINT (2) - This team receives, opponent pulls
+        elif event_type == 2:
+            if current_point and point_had_action:
+                points.append(current_point)
+            current_point = {
+                "pulling_team": opponent_type,
+                "receiving_team": team_type,
+                "scoring_team": None,
+                "team_possessions": 1,
+                "opponent_possessions": 0,
+            }
+            current_possession = team_type
+            point_had_action = False
+
+        # Goals end the current point
+        elif event_type == 19 and current_point:  # Team goal
+            current_point["scoring_team"] = team_type
+            point_had_action = True
+        elif event_type == 15 and current_point:  # Opponent goal
+            current_point["scoring_team"] = opponent_type
+            point_had_action = True
+
+        # Pass events indicate actual game play
+        elif event_type == 18 and current_point:
+            point_had_action = True
+
+        # Turnovers change possession
+        elif event_type in [11, 20, 22, 24] and current_point:
+            point_had_action = True
+            if event_type == 11:  # Block - this team blocks, gets possession
+                new_possession = team_type
+            else:  # Drop/Throwaway/Stall - this team loses possession
+                new_possession = opponent_type
+
+            if new_possession != current_possession:
+                if new_possession == team_type:
+                    current_point["team_possessions"] += 1
+                else:
+                    current_point["opponent_possessions"] += 1
+                current_possession = new_possession
+
+        # Opponent turnovers
+        elif event_type == 13 and current_point:
+            point_had_action = True
+            new_possession = team_type
+            if new_possession != current_possession:
+                if new_possession == team_type:
+                    current_point["team_possessions"] += 1
+                else:
+                    current_point["opponent_possessions"] += 1
+                current_possession = new_possession
+
+    # Add final point if exists
+    if current_point and point_had_action:
+        points.append(current_point)
+
+    # Calculate statistics from points
+    o_line_points = 0
+    o_line_scores = 0
+    o_line_possessions = 0
+    d_line_points = 0
+    d_line_scores = 0
+    d_line_possessions = 0
+
+    for point in points:
+        if point["receiving_team"] == team_type:
+            o_line_points += 1
+            if point["scoring_team"] == team_type:
+                o_line_scores += 1
+            o_line_possessions += point["team_possessions"]
+        elif point["pulling_team"] == team_type:
+            d_line_points += 1
+            if point["scoring_team"] == team_type:
+                d_line_scores += 1
+            d_line_possessions += point["team_possessions"]
+
+    return {
+        "o_line_points": o_line_points,
+        "o_line_scores": o_line_scores,
+        "o_line_possessions": o_line_possessions,
+        "d_line_points": d_line_points,
+        "d_line_scores": d_line_scores,
+        "d_line_possessions": d_line_possessions,
+    }
+
+
+def calculate_possessions_batch(
+    db, team_ids: List[str], season_filter: str = "", season_param: Optional[int] = None
+) -> Dict[str, Dict[str, Any]]:
+    """
+    Calculate possession statistics for multiple teams in a single batch query.
+    Optimized to avoid N+1 query problem.
+
+    Args:
+        db: Database connection
+        team_ids: List of team IDs to calculate stats for
+        season_filter: SQL WHERE clause for season filtering (e.g., "AND g.year = :season")
+        season_param: Season year value for the filter
+
+    Returns:
+        Dictionary mapping team_id to possession statistics:
+        {
+            "team_123": {
+                "o_line_points": 50,
+                "o_line_scores": 40,
+                "o_line_possessions": 75,
+                "d_line_points": 48,
+                "d_line_scores": 12,
+                "d_line_possessions": 25
+            },
+            ...
+        }
+    """
+    if not team_ids:
+        return {}
+
+    # Fetch ALL game events for all teams in ONE query
+    placeholders = ",".join([f":team_{i}" for i in range(len(team_ids))])
+    params = {f"team_{i}": team_id for i, team_id in enumerate(team_ids)}
+    if season_param:
+        params["season"] = season_param
+
+    events_query = f"""
+    SELECT
+        ge.game_id,
+        ge.team,
+        ge.event_index,
+        ge.event_type,
+        g.home_team_id,
+        g.away_team_id
+    FROM game_events ge
+    JOIN games g ON ge.game_id = g.game_id
+    WHERE (g.home_team_id IN ({placeholders}) OR g.away_team_id IN ({placeholders}))
+    {season_filter}
+    ORDER BY ge.game_id, ge.team, ge.event_index,
+        CASE
+            WHEN ge.event_type IN (19, 15) THEN 0
+            WHEN ge.event_type = 1 THEN 1
+            ELSE 2
+        END
+    """
+
+    all_events = db.execute_query(events_query, params)
+
+    if not all_events:
+        # Return empty stats for all teams
+        return {
+            team_id: {
+                "o_line_points": 0,
+                "o_line_scores": 0,
+                "o_line_possessions": 0,
+                "d_line_points": 0,
+                "d_line_scores": 0,
+                "d_line_possessions": 0,
+            }
+            for team_id in team_ids
+        }
+
+    # Group events by (game_id, team)
+    events_by_game_team = defaultdict(list)
+    game_team_mapping = {}  # (game_id, team_type) -> team_id
+
+    for event in all_events:
+        game_id = event["game_id"]
+        team = event["team"]  # 'home' or 'away'
+        key = (game_id, team)
+        events_by_game_team[key].append(event)
+
+        # Map team type to team_id
+        if team == "home":
+            game_team_mapping[key] = event["home_team_id"]
+        else:
+            game_team_mapping[key] = event["away_team_id"]
+
+    # Process each (game, team) group and aggregate by team_id
+    team_stats = defaultdict(lambda: {
+        "o_line_points": 0,
+        "o_line_scores": 0,
+        "o_line_possessions": 0,
+        "d_line_points": 0,
+        "d_line_scores": 0,
+        "d_line_possessions": 0,
+    })
+
+    for (game_id, team_type), events in events_by_game_team.items():
+        team_id = game_team_mapping[(game_id, team_type)]
+        opponent_type = "away" if team_type == "home" else "home"
+
+        # Process events for this game/team
+        game_stats = _process_possession_events(events, team_type, opponent_type)
+
+        # Aggregate into team totals
+        for key, value in game_stats.items():
+            team_stats[team_id][key] += value
+
+    # Ensure all requested teams have entries (even if 0)
+    for team_id in team_ids:
+        if team_id not in team_stats:
+            team_stats[team_id] = {
+                "o_line_points": 0,
+                "o_line_scores": 0,
+                "o_line_possessions": 0,
+                "d_line_points": 0,
+                "d_line_scores": 0,
+                "d_line_possessions": 0,
+            }
+
+    return dict(team_stats)
+
+
+def _process_redzone_events(
+    events: List[Dict[str, Any]], team_type: str
+) -> Dict[str, Any]:
+    """
+    Process a list of events to calculate redzone stats.
+    Extracted core logic from calculate_redzone_stats_for_team() for batch processing.
+
+    Args:
+        events: List of game events (already filtered for this team)
+        team_type: 'home' or 'away'
+
+    Returns:
+        Dictionary with redzone statistics
+    """
+    if not events:
+        return {"possessions": 0, "goals": 0}
+
+    # Track red zone opportunities by POSSESSION
+    possessions = []
+    current_possession = None
+    in_possession = False
+    point_num = 0
+
+    for event in events:
+        event_type = event["event_type"]
+        receiver_y = event.get("receiver_y")
+
+        # Point boundaries
+        if is_point_start(event_type):
+            point_num += 1
+            if event_type == 2:  # START_O_POINT
+                current_possession = {
+                    "point": point_num,
+                    "reached_redzone": False,
+                    "scored": False,
+                }
+                in_possession = True
+            else:
+                in_possession = False
+
+        # New possession when we gain the disc
+        elif event_type == 11:  # Block
+            if not in_possession:
+                if current_possession:
+                    possessions.append(current_possession)
+                current_possession = {
+                    "point": point_num,
+                    "reached_redzone": False,
+                    "scored": False,
+                }
+                in_possession = True
+
+        elif event_type == 13:  # Throwaway by opposing team
+            if not in_possession:
+                if current_possession:
+                    possessions.append(current_possession)
+                current_possession = {
+                    "point": point_num,
+                    "reached_redzone": False,
+                    "scored": False,
+                }
+                in_possession = True
+
+        elif event_type == 18:  # Pass
+            if not in_possession:
+                if current_possession:
+                    possessions.append(current_possession)
+                current_possession = {
+                    "point": point_num,
+                    "reached_redzone": False,
+                    "scored": False,
+                }
+                in_possession = True
+
+            # Check for red zone possession
+            if in_possession and current_possession and receiver_y:
+                if 80 <= receiver_y <= 100:
+                    current_possession["reached_redzone"] = True
+
+        # Lose possession on turnover
+        elif event_type in [20, 22, 24]:  # Drop, Throwaway, Stall
+            if in_possession and current_possession:
+                possessions.append(current_possession)
+                current_possession = None
+                in_possession = False
+
+        # Score or opponent scores
+        elif event_type == 19:  # Our goal
+            if current_possession:
+                current_possession["scored"] = True
+                thrower_y = event.get("thrower_y")
+                if thrower_y and 80 <= thrower_y <= 100:
+                    current_possession["reached_redzone"] = True
+                possessions.append(current_possession)
+                current_possession = None
+                in_possession = False
+
+        elif event_type == 15:  # Opponent scores
+            if current_possession:
+                possessions.append(current_possession)
+                current_possession = None
+                in_possession = False
+
+    # Add final possession if exists
+    if current_possession:
+        possessions.append(current_possession)
+
+    # Count red zone opportunities and goals
+    redzone_possessions = [p for p in possessions if p["reached_redzone"]]
+    redzone_goals = sum(1 for p in redzone_possessions if p["scored"])
+
+    return {
+        "possessions": len(redzone_possessions),
+        "goals": redzone_goals,
+    }
+
+
+def calculate_redzone_stats_batch(
+    db, team_ids: List[str], season_filter: str = "", season_param: Optional[int] = None
+) -> Dict[str, Dict[str, Any]]:
+    """
+    Calculate redzone statistics for multiple teams in a single batch query.
+    Optimized to avoid N+1 query problem.
+
+    Args:
+        db: Database connection
+        team_ids: List of team IDs to calculate stats for
+        season_filter: SQL WHERE clause for season filtering
+        season_param: Season year value for the filter
+
+    Returns:
+        Dictionary mapping team_id to redzone statistics:
+        {
+            "team_123": {
+                "possessions": 45,
+                "goals": 38
+            },
+            ...
+        }
+    """
+    if not team_ids:
+        return {}
+
+    # Fetch ALL game events for all teams in ONE query
+    placeholders = ",".join([f":team_{i}" for i in range(len(team_ids))])
+    params = {f"team_{i}": team_id for i, team_id in enumerate(team_ids)}
+    if season_param:
+        params["season"] = season_param
+
+    events_query = f"""
+    SELECT
+        ge.game_id,
+        ge.team,
+        ge.event_index,
+        ge.event_type,
+        ge.receiver_y,
+        ge.thrower_y,
+        g.home_team_id,
+        g.away_team_id
+    FROM game_events ge
+    JOIN games g ON ge.game_id = g.game_id
+    WHERE (g.home_team_id IN ({placeholders}) OR g.away_team_id IN ({placeholders}))
+    {season_filter}
+    ORDER BY ge.game_id, ge.team, ge.event_index
+    """
+
+    all_events = db.execute_query(events_query, params)
+
+    if not all_events:
+        return {team_id: {"possessions": 0, "goals": 0} for team_id in team_ids}
+
+    # Group events by (game_id, team)
+    events_by_game_team = defaultdict(list)
+    game_team_mapping = {}
+
+    for event in all_events:
+        game_id = event["game_id"]
+        team = event["team"]
+        key = (game_id, team)
+        events_by_game_team[key].append(event)
+
+        if team == "home":
+            game_team_mapping[key] = event["home_team_id"]
+        else:
+            game_team_mapping[key] = event["away_team_id"]
+
+    # Process each (game, team) group and aggregate by team_id
+    team_stats = defaultdict(lambda: {"possessions": 0, "goals": 0})
+
+    for (game_id, team_type), events in events_by_game_team.items():
+        team_id = game_team_mapping[(game_id, team_type)]
+
+        # Process events for this game/team
+        game_stats = _process_redzone_events(events, team_type)
+
+        # Aggregate into team totals
+        team_stats[team_id]["possessions"] += game_stats["possessions"]
+        team_stats[team_id]["goals"] += game_stats["goals"]
+
+    # Ensure all requested teams have entries
+    for team_id in team_ids:
+        if team_id not in team_stats:
+            team_stats[team_id] = {"possessions": 0, "goals": 0}
+
+    return dict(team_stats)
