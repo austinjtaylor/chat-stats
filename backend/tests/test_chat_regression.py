@@ -108,6 +108,12 @@ EXPECTED_DATA = {
             "date": "2025-08-22",
         },
     ],
+    "semifinalists_2025": [
+        {"name": "Glory"},
+        {"name": "Hustle"},
+        {"name": "Shred"},
+        {"name": "Wind Chill"},
+    ],
 }
 
 
@@ -431,6 +437,26 @@ class TestGameQueries:
                 f"{team1} played against {team2} this season",
             ],
             expected_keywords=[team1, team2, "record"],
+        )
+
+        relevancy_metric = AnswerRelevancyMetric(threshold=0.7, model=claude_model)
+        hallucination_metric = HallucinationMetric(threshold=0.7, model=claude_model)
+
+        assert_test(test_case, [relevancy_metric, hallucination_metric])
+
+    def test_semifinalists_2025(self, chat_helper, claude_model):
+        """Test query about playoff semifinalists."""
+        semifinalists = EXPECTED_DATA["semifinalists_2025"]
+        team_names = [team["name"] for team in semifinalists]
+
+        test_case, response = chat_helper.create_test_case(
+            input_query="which teams made the semi finals in 2025?",
+            expected_values=team_names,
+            retrieval_context=[
+                "Glory, Hustle, Shred, and Wind Chill made the 2025 UFA semifinals",
+                "The 2025 semifinal games were played on 2025-08-22",
+            ],
+            expected_keywords=["semi", "finals", "2025"] + team_names,
         )
 
         relevancy_metric = AnswerRelevancyMetric(threshold=0.7, model=claude_model)
