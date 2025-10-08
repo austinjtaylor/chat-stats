@@ -265,9 +265,9 @@ class StatsAPI extends APIClient {
     /**
      * Get all teams
      */
-    async getTeams(season?: number | string | null): Promise<Team[]> {
+    async getTeams(year?: number | string | null): Promise<Team[]> {
         const params: Record<string, any> = {};
-        if (season) params.season = season;
+        if (year) params.year = year;
         return this.get<Team[]>('/teams', params);
     }
 
@@ -317,10 +317,40 @@ class StatsAPI extends APIClient {
     }
 
     /**
+     * Get games list for selection dropdown
+     */
+    async getGamesList(params?: {
+        year?: number;
+        team_id?: string;
+        limit?: number;
+    }): Promise<any> {
+        const requestParams: Record<string, any> = {
+            limit: params?.limit ?? 500
+        };
+        if (params?.year) requestParams.year = params.year;
+        if (params?.team_id) requestParams.team_id = params.team_id;
+        return this.get<any>('/games/list', requestParams);
+    }
+
+    /**
      * Get game details
      */
     async getGame(gameId: string): Promise<GameDetailsResponse> {
         return this.get<GameDetailsResponse>(`/games/${gameId}`);
+    }
+
+    /**
+     * Get game play-by-play data
+     */
+    async getGamePlayByPlay(gameId: string): Promise<any> {
+        return this.get<any>(`/games/${gameId}/play-by-play`);
+    }
+
+    /**
+     * Get game box score
+     */
+    async getGameBoxScore(gameId: string): Promise<any> {
+        return this.get<any>(`/games/${gameId}/box-score`);
     }
 
     /**

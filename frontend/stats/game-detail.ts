@@ -2,6 +2,7 @@
  * Game Detail Page - Main Coordinator
  */
 
+import { statsAPI } from '../src/api/client';
 import { GameSearch } from './game-search';
 import { GameScoreboard } from './game-scoreboard';
 import { GameStatsTable } from './game-stats-table';
@@ -187,8 +188,7 @@ class GameDetailPage {
 
     private async loadGameDetails(gameId: string, closePanel: boolean = true): Promise<void> {
         try {
-            const response = await fetch(`/api/games/${gameId}/box-score`);
-            const data: BoxScoreData = await response.json();
+            const data: BoxScoreData = await statsAPI.getGameBoxScore(gameId);
 
             this.currentGame = data;
             this.gameScoreboard.updateScoreboard(data.home_team, data.away_team);

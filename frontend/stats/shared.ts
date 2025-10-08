@@ -18,7 +18,8 @@ class UFAStats {
     dom: typeof window.DOM | null;
 
     constructor() {
-        this.apiBase = '/api';  // Use relative path for API
+        // Use VITE_API_URL from environment or fall back to relative path
+        this.apiBase = (import.meta as any).env?.VITE_API_URL || '/api';
         this.currentPage = this.getCurrentPage();
         // Theme is now handled by header.js
         // Navigation highlighting is also handled by header.js

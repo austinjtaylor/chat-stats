@@ -2,6 +2,8 @@
  * Game Play-by-Play Component - Handles play-by-play rendering
  */
 
+import { statsAPI } from '../src/api/client';
+
 export interface PlayByPlayEvent {
     type: string;
     description: string;
@@ -48,8 +50,7 @@ export class GamePlayByPlay {
 
     public async loadPlayByPlay(gameId: string): Promise<void> {
         try {
-            const response = await fetch(`/api/games/${gameId}/play-by-play`);
-            this.playByPlayData = await response.json();
+            this.playByPlayData = await statsAPI.getGamePlayByPlay(gameId);
             this.renderPlayByPlay();
         } catch (error) {
             console.error('Failed to load play-by-play:', error);

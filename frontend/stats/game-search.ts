@@ -2,6 +2,8 @@
  * Game Search Component - Handles game selection panel
  */
 
+import { statsAPI } from '../src/api/client';
+
 export interface GameListItem {
     game_id: string;
     display_name: string;
@@ -118,8 +120,7 @@ export class GameSearch {
 
     private async loadTeams(): Promise<void> {
         try {
-            const response = await fetch(`/api/teams?year=${this.currentYear}`);
-            this.teams = await response.json();
+            this.teams = await statsAPI.getTeams(this.currentYear);
 
             if (this.elements.teamFilter) {
                 const currentSelection = this.elements.teamFilter.value;
@@ -147,13 +148,16 @@ export class GameSearch {
 
     public async loadGamesList(): Promise<void> {
         try {
-            let url = `/api/games/list?limit=500&year=${this.currentYear}`;
+            const params: any = {
+                limit: 500,
+                year: this.currentYear
+            };
+
             if (this.currentTeamFilter !== 'all') {
-                url += `&team_id=${this.currentTeamFilter}`;
+                params.team_id = this.currentTeamFilter;
             }
 
-            const response = await fetch(url);
-            const data = await response.json();
+            const data = await statsAPI.getGamesList(params);
 
             this.gameList = data.games || [];
             console.log('Loaded games:', this.gameList.length);
