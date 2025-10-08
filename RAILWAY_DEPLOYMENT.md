@@ -382,7 +382,7 @@ railway variables get SUPABASE_URL
 3. Click **"Configure"**
 4. Under "Repository access":
    - Select "All repositories" OR
-   - Select "Only select repositories" and add `chat-with-stats`
+   - Select "Only select repositories" and add `chat-stats`
 5. Click **"Save"**
 
 **Fix via Railway Dashboard**:

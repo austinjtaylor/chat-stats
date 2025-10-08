@@ -8,7 +8,7 @@ This guide walks you through setting up Supabase for authentication and database
 2. Sign up or log in
 3. Click "New Project"
 4. Fill in project details:
-   - **Name**: chat-with-stats (or your preferred name)
+   - **Name**: chat-stats (or your preferred name)
    - **Database Password**: Generate a strong password (save this!)
    - **Region**: Choose closest to your users (e.g., US East, US West, Europe)
    - **Pricing Plan**: Start with Free tier

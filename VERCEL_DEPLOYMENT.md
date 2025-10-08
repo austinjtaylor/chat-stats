@@ -25,7 +25,7 @@ The following files are configured for Vercel deployment:
 
 You'll need these values ready:
 
-- **Railway Backend URL**: `https://chat-with-stats-production.up.railway.app`
+- **Railway Backend URL**: `https://chat-stats-production.up.railway.app`
 - **Supabase URL**: From your Supabase project settings
 - **Supabase Anon Key**: From your Supabase project settings
 - **Stripe Publishable Key**: From your Stripe dashboard
@@ -36,7 +36,7 @@ You'll need these values ready:
 
 1. Go to [vercel.com/new](https://vercel.com/new)
 2. Click **"Import Git Repository"**
-3. Select your `chat-with-stats` repository
+3. Select your `chat-stats` repository
 4. Configure project settings:
    - **Framework Preset**: Vite
    - **Root Directory**: `frontend` (IMPORTANT: set this to the frontend subdirectory)
@@ -75,7 +75,7 @@ After creating the project (even if the first deploy failed):
 
 | Variable | Value | Example |
 |----------|-------|---------|
-| `VITE_API_URL` | Your Railway backend URL | `https://chat-with-stats-production.up.railway.app` |
+| `VITE_API_URL` | Your Railway backend URL | `https://chat-stats-production.up.railway.app` |
 | `VITE_SUPABASE_URL` | Your Supabase project URL | `https://xxx.supabase.co` |
 | `VITE_SUPABASE_ANON_KEY` | Your Supabase anonymous key | `eyJ...` |
 | `VITE_STRIPE_PUBLISHABLE_KEY` | Your Stripe publishable key | `pk_test_...` or `pk_live_...` |
@@ -83,7 +83,7 @@ After creating the project (even if the first deploy failed):
 **Adding via Dashboard:**
 1. Click **"Add New"**
 2. Enter **Key** (e.g., `VITE_API_URL`)
-3. Enter **Value** (e.g., `https://chat-with-stats-production.up.railway.app`)
+3. Enter **Value** (e.g., `https://chat-stats-production.up.railway.app`)
 4. Select **"Production"**, **"Preview"**, and **"Development"** (all environments)
 5. Click **"Save"**
 6. Repeat for all variables
@@ -113,8 +113,8 @@ vercel --prod
 ### 5. Update Backend CORS Settings
 
 Your frontend will be deployed at a Vercel URL like:
-- `https://chat-with-stats.vercel.app` (production)
-- `https://chat-with-stats-xxx.vercel.app` (preview deployments)
+- `https://chat-stats.vercel.app` (production)
+- `https://chat-stats-xxx.vercel.app` (preview deployments)
 
 **Update Railway backend to allow your Vercel domain:**
 
@@ -128,7 +128,7 @@ See the CORS configuration section below for details.
 
 Once deployed, test your application:
 
-1. **Visit your Vercel URL** (e.g., `https://chat-with-stats.vercel.app`)
+1. **Visit your Vercel URL** (e.g., `https://chat-stats.vercel.app`)
 2. **Test authentication**:
    - Click "Sign Up" to create an account
    - Verify you receive confirmation email
@@ -153,8 +153,8 @@ def configure_cors(app: FastAPI):
     origins = [
         "http://localhost:3000",  # Local development
         "http://localhost:4173",  # Local production preview
-        "https://chat-with-stats.vercel.app",  # Vercel production
-        "https://chat-with-stats-*.vercel.app",  # Vercel preview deployments
+        "https://chat-stats.vercel.app",  # Vercel production
+        "https://chat-stats-*.vercel.app",  # Vercel preview deployments
     ]
 
     app.add_middleware(
@@ -202,7 +202,7 @@ All frontend environment variables must be prefixed with `VITE_` to be accessibl
 
 | Variable | Description | Required | Example |
 |----------|-------------|----------|---------|
-| `VITE_API_URL` | Backend API base URL | Yes | `https://chat-with-stats-production.up.railway.app` |
+| `VITE_API_URL` | Backend API base URL | Yes | `https://chat-stats-production.up.railway.app` |
 | `VITE_SUPABASE_URL` | Supabase project URL | Yes | `https://xxx.supabase.co` |
 | `VITE_SUPABASE_ANON_KEY` | Supabase anonymous key (public) | Yes | `eyJhbGci...` |
 | `VITE_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key (public) | Yes | `pk_test_...` or `pk_live_...` |
@@ -377,7 +377,7 @@ Vercel automatically creates preview deployments for:
 - Non-production branches
 
 Each preview gets a unique URL:
-- `https://chat-with-stats-git-[branch]-[username].vercel.app`
+- `https://chat-stats-git-[branch]-[username].vercel.app`
 
 Perfect for testing changes before merging to production!
 

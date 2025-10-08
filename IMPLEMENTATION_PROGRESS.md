@@ -350,7 +350,7 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
 ## ⚡ **Quick Start for Next Session**
 
 ### ✅ Completed:
-- Railway backend deployed: `https://chat-with-stats-production.up.railway.app`
+- Railway backend deployed: `https://chat-stats-production.up.railway.app`
 - Stripe webhook configured
 - Vercel deployment configuration created
 
@@ -363,7 +363,7 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
 # 2. Import your GitHub repository
 # 3. Configure project settings (see VERCEL_DEPLOYMENT.md)
 # 4. Add environment variables:
-#    - VITE_API_URL=https://chat-with-stats-production.up.railway.app
+#    - VITE_API_URL=https://chat-stats-production.up.railway.app
 #    - VITE_SUPABASE_URL=https://xxx.supabase.co
 #    - VITE_SUPABASE_ANON_KEY=eyJ...
 #    - VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
@@ -376,7 +376,7 @@ vercel  # Follow prompts
 ```
 
 **After Vercel Deployment:**
-1. Get your Vercel URL (e.g., `https://chat-with-stats.vercel.app`)
+1. Get your Vercel URL (e.g., `https://chat-stats.vercel.app`)
 2. Update CORS in `backend/middleware.py` to allow Vercel domain
 3. Push changes to trigger Railway redeploy
 4. Test end-to-end functionality
