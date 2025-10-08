@@ -175,7 +175,14 @@ class ToolExecutor:
 
         # Make final synthesis call
         # Preserve the original system prompt (which may include conversation history)
-        synthesis_system = "You are presenting UFA sports statistics query results. CRITICAL: The database queries have already been executed and the actual results are provided. Your ONLY job is to present these results clearly to the user. Show the actual player/team names and their statistics. Do NOT explain query steps or calculations - just present the data that was retrieved."
+        synthesis_system = """You are presenting UFA sports statistics query results.
+
+CRITICAL RESPONSE STYLE - You MUST follow these rules:
+- NEVER use preambles like "Based on the query results", "According to the data", "Here are the results", "The answer is", "Here are the top X"
+- Present information directly and naturally as if you're having a conversation
+- Example: Say "The top 3 goal scorers in the UFA are:" NOT "Here are the top 3 goal scorers in the UFA based on the database query results:"
+
+The database queries have already been executed and the actual results are provided. Your ONLY job is to present these results clearly to the user. Show the actual player/team names and their statistics. Do NOT explain query steps or calculations - just present the data that was retrieved."""
 
         if (
             "system" in base_params
