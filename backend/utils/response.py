@@ -3,6 +3,7 @@ Response validation and processing for AI-generated content.
 Handles keyword detection and forces tool use when necessary.
 """
 
+from datetime import datetime
 from typing import Any
 
 
@@ -195,7 +196,16 @@ def format_game_details_response(answer: str, data: list[Any]) -> str:
     enhanced_stats.append("| | |")
     enhanced_stats.append("|----------|-------------|")
     enhanced_stats.append(f"| **Game ID** | {game_info.get('game_id', 'N/A')} |")
-    enhanced_stats.append(f"| **Date** | {game_info.get('start_timestamp', 'N/A')[:10]} |")
+
+    # Format date - handle both datetime objects and strings
+    start_timestamp = game_info.get('start_timestamp', 'N/A')
+    if isinstance(start_timestamp, datetime):
+        date_str = start_timestamp.strftime('%Y-%m-%d')
+    elif isinstance(start_timestamp, str) and start_timestamp != 'N/A':
+        date_str = start_timestamp[:10]
+    else:
+        date_str = 'N/A'
+    enhanced_stats.append(f"| **Date** | {date_str} |")
     enhanced_stats.append(
         f"| **Final Score** | **{game_info.get('away_team_name', 'Away')} {game_info.get('away_score', 0)}** - **{game_info.get('home_team_name', 'Home')} {game_info.get('home_score', 0)}** |"
     )
