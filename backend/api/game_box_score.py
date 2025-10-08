@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException
 from services.box_score_service import calculate_team_stats
 from services.play_by_play_service import calculate_play_by_play
 from services.quarter_score_service import calculate_quarter_scores
+from data.cache import get_cache, cache_key_for_endpoint
 
 
 def create_box_score_routes(stats_system):
@@ -16,6 +17,14 @@ def create_box_score_routes(stats_system):
     async def get_game_box_score(game_id: str):
         """Get complete box score for a game including all player statistics"""
         try:
+            # Check cache first
+            cache = get_cache()
+            cache_key = cache_key_for_endpoint("box_score", game_id=game_id)
+            cached_result = cache.get(cache_key)
+
+            if cached_result is not None:
+                return cached_result
+
             # Get game information with quarter scoring
             game_query = """
             SELECT
@@ -148,7 +157,7 @@ def create_box_score_routes(stats_system):
                 stats_system, game_id, game["away_team_id"], is_home=False
             )
 
-            return {
+            result = {
                 "game_id": game["game_id"],
                 "status": game["status"],
                 "start_timestamp": game["start_timestamp"],
@@ -176,6 +185,12 @@ def create_box_score_routes(stats_system):
                     "stats": away_team_stats,
                 },
             }
+
+            # Cache the result (longer TTL for Final games since they never change)
+            ttl = 3600 if game["status"] == "Final" else 300  # 1 hour for final, 5 min for in-progress
+            cache.set(cache_key, result, ttl=ttl)
+
+            return result
 
         except HTTPException:
             raise

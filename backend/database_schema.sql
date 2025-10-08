@@ -194,9 +194,9 @@ CREATE TABLE IF NOT EXISTS game_events (
 );
 
 -- Indexes for game events
-CREATE INDEX IF NOT EXISTS idx_game_events_game ON game_events(game_id);
+-- Composite index for most common query pattern: filtering by game_id and team
+CREATE INDEX IF NOT EXISTS idx_game_events_game_team ON game_events(game_id, team);
 CREATE INDEX IF NOT EXISTS idx_game_events_type ON game_events(event_type);
-CREATE INDEX IF NOT EXISTS idx_game_events_team ON game_events(team);
 
 -- Views for common queries (UFA API compatible)
 CREATE VIEW IF NOT EXISTS current_season_leaders AS

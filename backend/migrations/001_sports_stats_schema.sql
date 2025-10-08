@@ -193,9 +193,9 @@ CREATE INDEX IF NOT EXISTS idx_player_game_stats_game ON player_game_stats(game_
 CREATE INDEX IF NOT EXISTS idx_player_game_stats_year ON player_game_stats(year);
 CREATE INDEX IF NOT EXISTS idx_player_season_stats ON player_season_stats(player_id, year);
 CREATE INDEX IF NOT EXISTS idx_team_season_stats ON team_season_stats(team_id, year);
-CREATE INDEX IF NOT EXISTS idx_game_events_game ON game_events(game_id);
+-- Composite index for most common query pattern: filtering by game_id and team
+CREATE INDEX IF NOT EXISTS idx_game_events_game_team ON game_events(game_id, team);
 CREATE INDEX IF NOT EXISTS idx_game_events_type ON game_events(event_type);
-CREATE INDEX IF NOT EXISTS idx_game_events_team ON game_events(team);
 
 -- Useful views for common queries
 CREATE OR REPLACE VIEW current_season_leaders AS

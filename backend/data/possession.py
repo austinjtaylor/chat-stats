@@ -180,6 +180,260 @@ def calculate_possessions(
     }
 
 
+def calculate_team_stats_combined(
+    db, game_id: str, team_id: str, is_home_team: bool
+) -> Dict[str, Any]:
+    """
+    Calculate both possession and redzone statistics in a single pass.
+    Optimized to fetch game_events once and process both metrics together.
+
+    Args:
+        db: Database connection
+        game_id: Game identifier
+        team_id: Team identifier
+        is_home_team: Whether this is the home team
+
+    Returns:
+        Dictionary containing both possession and redzone statistics:
+        {
+            'possession': {...},  # Same format as calculate_possessions()
+            'redzone': {...}      # Same format as calculate_redzone_stats_for_team()
+        }
+    """
+    team_type = "home" if is_home_team else "away"
+    opponent_type = "away" if is_home_team else "home"
+
+    # Fetch events ONCE with all needed columns
+    events_query = """
+    SELECT event_index, event_type, team, receiver_y, thrower_y
+    FROM game_events
+    WHERE game_id = :game_id
+      AND team = :team_type
+    ORDER BY event_index,
+        CASE
+            WHEN event_type IN (19, 15) THEN 0  -- Goals first
+            WHEN event_type = 1 THEN 1          -- Then pulls
+            ELSE 2                               -- Then other events
+        END
+    """
+    events = db.execute_query(events_query, {"game_id": game_id, "team_type": team_type})
+
+    if not events:
+        return {
+            "possession": None,
+            "redzone": None
+        }
+
+    # Track possession stats
+    points = []
+    current_point = None
+    current_possession = None
+    point_had_action = False
+
+    # Track redzone stats
+    redzone_possessions = []
+    current_redzone_possession = None
+    in_possession = False
+    point_num = 0
+
+    for event in events:
+        event_type = event["event_type"]
+        receiver_y = event.get("receiver_y")
+        thrower_y = event.get("thrower_y")
+
+        # === POSSESSION TRACKING ===
+        if event_type == 1:  # START_D_POINT - Team pulls
+            if current_point and point_had_action:
+                points.append(current_point)
+            current_point = {
+                "pulling_team": team_type,
+                "receiving_team": opponent_type,
+                "scoring_team": None,
+                "team_possessions": 0,
+                "opponent_possessions": 1,
+            }
+            current_possession = opponent_type
+            point_had_action = False
+
+            # Redzone: D point start
+            point_num += 1
+            in_possession = False
+
+        elif event_type == 2:  # START_O_POINT - Team receives
+            if current_point and point_had_action:
+                points.append(current_point)
+            current_point = {
+                "pulling_team": opponent_type,
+                "receiving_team": team_type,
+                "scoring_team": None,
+                "team_possessions": 1,
+                "opponent_possessions": 0,
+            }
+            current_possession = team_type
+            point_had_action = False
+
+            # Redzone: O point start - we have possession
+            point_num += 1
+            if current_redzone_possession:
+                redzone_possessions.append(current_redzone_possession)
+            current_redzone_possession = {
+                "point": point_num,
+                "reached_redzone": False,
+                "scored": False,
+            }
+            in_possession = True
+
+        elif event_type == 19 and current_point:  # Team goal
+            current_point["scoring_team"] = team_type
+            point_had_action = True
+
+            # Redzone: Our goal
+            if current_redzone_possession:
+                current_redzone_possession["scored"] = True
+                if thrower_y and 80 <= thrower_y <= 100:
+                    current_redzone_possession["reached_redzone"] = True
+                redzone_possessions.append(current_redzone_possession)
+                current_redzone_possession = None
+                in_possession = False
+
+        elif event_type == 15 and current_point:  # Opponent goal
+            current_point["scoring_team"] = opponent_type
+            point_had_action = True
+
+            # Redzone: Opponent scores
+            if current_redzone_possession:
+                redzone_possessions.append(current_redzone_possession)
+                current_redzone_possession = None
+                in_possession = False
+
+        elif event_type == 18 and current_point:  # Pass
+            point_had_action = True
+
+            # Redzone: Check for redzone entry
+            if not in_possession:
+                if current_redzone_possession:
+                    redzone_possessions.append(current_redzone_possession)
+                current_redzone_possession = {
+                    "point": point_num,
+                    "reached_redzone": False,
+                    "scored": False,
+                }
+                in_possession = True
+
+            if in_possession and current_redzone_possession and receiver_y:
+                if 80 <= receiver_y <= 100:
+                    current_redzone_possession["reached_redzone"] = True
+
+        elif event_type in [11, 20, 22, 24] and current_point:  # Turnovers
+            point_had_action = True
+
+            # Possession tracking
+            if event_type == 11:  # Block - we get possession
+                new_possession = team_type
+            else:  # Drop/Throwaway/Stall - we lose possession
+                new_possession = opponent_type
+
+            if new_possession != current_possession:
+                if new_possession == team_type:
+                    current_point["team_possessions"] += 1
+                else:
+                    current_point["opponent_possessions"] += 1
+                current_possession = new_possession
+
+            # Redzone tracking
+            if event_type == 11:  # Block - we gain possession
+                if not in_possession:
+                    if current_redzone_possession:
+                        redzone_possessions.append(current_redzone_possession)
+                    current_redzone_possession = {
+                        "point": point_num,
+                        "reached_redzone": False,
+                        "scored": False,
+                    }
+                    in_possession = True
+            elif event_type in [20, 22, 24]:  # We lose possession
+                if in_possession and current_redzone_possession:
+                    redzone_possessions.append(current_redzone_possession)
+                    current_redzone_possession = None
+                    in_possession = False
+
+        elif event_type == 13 and current_point:  # Opponent throwaway - we get possession
+            point_had_action = True
+            new_possession = team_type
+
+            if new_possession != current_possession:
+                if new_possession == team_type:
+                    current_point["team_possessions"] += 1
+                else:
+                    current_point["opponent_possessions"] += 1
+                current_possession = new_possession
+
+            # Redzone: We gain possession
+            if not in_possession:
+                if current_redzone_possession:
+                    redzone_possessions.append(current_redzone_possession)
+                current_redzone_possession = {
+                    "point": point_num,
+                    "reached_redzone": False,
+                    "scored": False,
+                }
+                in_possession = True
+
+    # Add final point and possession if exists
+    if current_point and point_had_action:
+        points.append(current_point)
+    if current_redzone_possession:
+        redzone_possessions.append(current_redzone_possession)
+
+    # Calculate possession statistics
+    o_line_points = 0
+    o_line_scores = 0
+    o_line_possessions = 0
+    d_line_points = 0
+    d_line_scores = 0
+    d_line_possessions = 0
+
+    for point in points:
+        if point["receiving_team"] == team_type:
+            o_line_points += 1
+            if point["scoring_team"] == team_type:
+                o_line_scores += 1
+            o_line_possessions += point["team_possessions"]
+        elif point["pulling_team"] == team_type:
+            d_line_points += 1
+            if point["scoring_team"] == team_type:
+                d_line_scores += 1
+            d_line_possessions += point["team_possessions"]
+
+    possession_stats = {
+        "o_line_points": o_line_points,
+        "o_line_scores": o_line_scores,
+        "o_line_possessions": o_line_possessions,
+        "d_line_points": d_line_points,
+        "d_line_scores": d_line_scores,
+        "d_line_possessions": d_line_possessions,
+        "d_line_conversions": d_line_possessions,
+    } if points else None
+
+    # Calculate redzone statistics
+    redzone_opportunities = [p for p in redzone_possessions if p["reached_redzone"]]
+    redzone_goals = sum(1 for p in redzone_opportunities if p["scored"])
+
+    redzone_stats = None
+    if len(redzone_opportunities) > 0:
+        pct = round((redzone_goals / len(redzone_opportunities)) * 100, 1)
+        redzone_stats = {
+            "percentage": pct,
+            "goals": redzone_goals,
+            "possessions": len(redzone_opportunities),
+        }
+
+    return {
+        "possession": possession_stats,
+        "redzone": redzone_stats
+    }
+
+
 def calculate_redzone_stats_for_team(
     db, game_id: str, team_id: str, is_home_team: bool
 ) -> Optional[Dict[str, Any]]:

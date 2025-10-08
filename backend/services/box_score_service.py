@@ -20,7 +20,7 @@ def calculate_team_stats(
     Returns:
         Dictionary containing all team statistics
     """
-    from data.possession import calculate_possessions, calculate_redzone_stats_for_team
+    from data.possession import calculate_team_stats_combined
 
     # Get team aggregate stats from player_game_stats
     team_stats_query = """
@@ -64,13 +64,12 @@ def calculate_team_stats(
         team_stats["total_stalls"] or 0
     )
 
-    # Calculate possession stats from game_events
-    possession_stats = calculate_possessions(stats_system.db, game_id, team_id, is_home)
-
-    # Calculate red zone stats
-    redzone_stats = calculate_redzone_stats_for_team(
+    # Calculate possession and redzone stats from game_events in a single query
+    combined_stats = calculate_team_stats_combined(
         stats_system.db, game_id, team_id, is_home
     )
+    possession_stats = combined_stats.get("possession")
+    redzone_stats = combined_stats.get("redzone")
 
     # Build result dictionary
     result = {
