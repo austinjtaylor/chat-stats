@@ -103,13 +103,13 @@ export class GameScoreboard {
         if (this.elements.homeName) this.elements.homeName.textContent = homeTeam.full_name;
         if (this.elements.homeScore) this.elements.homeScore.textContent = String(homeTeam.final_score);
 
-        // Update team logos
+        // Update team logos - use logo_url from API if available, otherwise fallback to hardcoded path
         if (this.elements.awayLogo) {
-            const awayLogoPath = this.getTeamLogoPath(awayTeam.city, awayTeam.name);
+            const awayLogoPath = awayTeam.logo_url || this.getTeamLogoPath(awayTeam.city, awayTeam.name);
             this.elements.awayLogo.innerHTML = `<img src="${awayLogoPath}" alt="${awayTeam.full_name} logo" onerror="this.style.display='none'; this.parentElement.textContent='${awayTeam.name.charAt(0)}'">`;
         }
         if (this.elements.homeLogo) {
-            const homeLogoPath = this.getTeamLogoPath(homeTeam.city, homeTeam.name);
+            const homeLogoPath = homeTeam.logo_url || this.getTeamLogoPath(homeTeam.city, homeTeam.name);
             this.elements.homeLogo.innerHTML = `<img src="${homeLogoPath}" alt="${homeTeam.full_name} logo" onerror="this.style.display='none'; this.parentElement.textContent='${homeTeam.name.charAt(0)}'">`;
         }
 

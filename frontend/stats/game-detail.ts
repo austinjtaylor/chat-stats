@@ -63,6 +63,7 @@ export interface TeamData {
     quarter_scores: number[];
     players: PlayerStats[];
     stats?: TeamStatistics;
+    logo_url?: string;
 }
 
 export interface BoxScoreData {

@@ -41,9 +41,11 @@ def create_box_score_routes(stats_system):
                 ht.full_name as home_team_name,
                 ht.city as home_team_city,
                 ht.name as home_team_short_name,
+                ht.logo_url as home_team_logo_url,
                 at.full_name as away_team_name,
                 at.city as away_team_city,
-                at.name as away_team_short_name
+                at.name as away_team_short_name,
+                at.logo_url as away_team_logo_url
             FROM games g
             LEFT JOIN teams ht ON g.home_team_id = ht.team_id AND g.year = ht.year
             LEFT JOIN teams at ON g.away_team_id = at.team_id AND g.year = at.year
@@ -173,6 +175,7 @@ def create_box_score_routes(stats_system):
                     "quarter_scores": quarter_scores.get("home", []),
                     "players": home_players,
                     "stats": home_team_stats,
+                    "logo_url": game.get("home_team_logo_url"),
                 },
                 "away_team": {
                     "team_id": game["away_team_id"],
@@ -183,6 +186,7 @@ def create_box_score_routes(stats_system):
                     "quarter_scores": quarter_scores.get("away", []),
                     "players": away_players,
                     "stats": away_team_stats,
+                    "logo_url": game.get("away_team_logo_url"),
                 },
             }
 

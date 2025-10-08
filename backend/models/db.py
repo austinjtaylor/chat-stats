@@ -20,6 +20,7 @@ class Team(BaseModel):
     standing: int  # Team's current standing
     division_id: str | None = None  # Division ID
     division_name: str | None = None  # Division name
+    logo_url: str | None = None  # Public URL to team logo in Supabase Storage
 
 
 class Player(BaseModel):
