@@ -12,6 +12,7 @@ def configure_cors(app):
     """Configure CORS middleware for the application."""
     origins = [
         "http://localhost:3000",  # Local development (Vite dev server)
+        "http://localhost:3001",  # Local development (Vite dev server alternate port)
         "http://localhost:4173",  # Local production preview
         "https://chat-with-stats.vercel.app",  # Vercel production
     ]

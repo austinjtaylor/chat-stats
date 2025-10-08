@@ -542,20 +542,20 @@ class StatsChatSystem:
                     SUM(tss.opp_completions) as completions,
                     SUM(tss.opp_turnovers) as turnovers,
                     CASE WHEN SUM(tss.opp_throw_attempts) > 0
-                        THEN ROUND((CAST(SUM(tss.opp_completions) AS REAL) / SUM(tss.opp_throw_attempts)) * 100, 2)
+                        THEN ROUND((CAST(SUM(tss.opp_completions) AS NUMERIC) / SUM(tss.opp_throw_attempts)) * 100, 2)
                         ELSE 0
                     END as completion_percentage,
                     SUM(tss.opp_hucks_completed) as hucks_completed,
                     CASE WHEN SUM(tss.opp_hucks_attempted) > 0
-                        THEN ROUND((CAST(SUM(tss.opp_hucks_completed) AS REAL) / SUM(tss.opp_hucks_attempted)) * 100, 2)
+                        THEN ROUND((CAST(SUM(tss.opp_hucks_completed) AS NUMERIC) / SUM(tss.opp_hucks_attempted)) * 100, 2)
                         ELSE 0
                     END as huck_percentage,
                     SUM(tss.opp_blocks) as blocks,
-                    0.0 as hold_percentage,
-                    0.0 as o_line_conversion,
-                    0.0 as break_percentage,
-                    0.0 as d_line_conversion,
-                    0.0 as red_zone_conversion
+                    COALESCE(ROUND(AVG(tss.opp_hold_percentage), 2), 0.0) as hold_percentage,
+                    COALESCE(ROUND(AVG(tss.opp_o_line_conversion), 2), 0.0) as o_line_conversion,
+                    COALESCE(ROUND(AVG(tss.opp_break_percentage), 2), 0.0) as break_percentage,
+                    COALESCE(ROUND(AVG(tss.opp_d_line_conversion), 2), 0.0) as d_line_conversion,
+                    COALESCE(ROUND(AVG(tss.opp_red_zone_conversion), 2), 0.0) as red_zone_conversion
                 FROM team_season_stats tss
                 JOIN teams t ON tss.team_id = t.team_id AND tss.year = t.year
                 GROUP BY tss.team_id
@@ -574,20 +574,35 @@ class StatsChatSystem:
                     SUM(tss.completions) as completions,
                     SUM(tss.turnovers) as turnovers,
                     CASE WHEN SUM(tss.throw_attempts) > 0
-                        THEN ROUND((CAST(SUM(tss.completions) AS REAL) / SUM(tss.throw_attempts)) * 100, 2)
+                        THEN ROUND((CAST(SUM(tss.completions) AS NUMERIC) / SUM(tss.throw_attempts)) * 100, 2)
                         ELSE 0
                     END as completion_percentage,
                     SUM(tss.hucks_completed) as hucks_completed,
                     CASE WHEN SUM(tss.hucks_attempted) > 0
-                        THEN ROUND((CAST(SUM(tss.hucks_completed) AS REAL) / SUM(tss.hucks_attempted)) * 100, 2)
+                        THEN ROUND((CAST(SUM(tss.hucks_completed) AS NUMERIC) / SUM(tss.hucks_attempted)) * 100, 2)
                         ELSE 0
                     END as huck_percentage,
                     SUM(tss.blocks) as blocks,
-                    0.0 as hold_percentage,
-                    0.0 as o_line_conversion,
-                    0.0 as break_percentage,
-                    0.0 as d_line_conversion,
-                    0.0 as red_zone_conversion
+                    CASE WHEN SUM(tss.o_line_points) > 0
+                        THEN ROUND((CAST(SUM(tss.o_line_scores) AS NUMERIC) / SUM(tss.o_line_points)) * 100, 2)
+                        ELSE 0
+                    END as hold_percentage,
+                    CASE WHEN SUM(tss.o_line_possessions) > 0
+                        THEN ROUND((CAST(SUM(tss.o_line_scores) AS NUMERIC) / SUM(tss.o_line_possessions)) * 100, 2)
+                        ELSE 0
+                    END as o_line_conversion,
+                    CASE WHEN SUM(tss.d_line_points) > 0
+                        THEN ROUND((CAST(SUM(tss.d_line_scores) AS NUMERIC) / SUM(tss.d_line_points)) * 100, 2)
+                        ELSE 0
+                    END as break_percentage,
+                    CASE WHEN SUM(tss.d_line_possessions) > 0
+                        THEN ROUND((CAST(SUM(tss.d_line_scores) AS NUMERIC) / SUM(tss.d_line_possessions)) * 100, 2)
+                        ELSE 0
+                    END as d_line_conversion,
+                    CASE WHEN SUM(tss.redzone_possessions) > 0
+                        THEN ROUND((CAST(SUM(tss.redzone_goals) AS NUMERIC) / SUM(tss.redzone_possessions)) * 100, 2)
+                        ELSE 0
+                    END as red_zone_conversion
                 FROM team_season_stats tss
                 JOIN teams t ON tss.team_id = t.team_id AND tss.year = t.year
                 GROUP BY tss.team_id
@@ -609,12 +624,12 @@ class StatsChatSystem:
                     tss.opp_completions as completions,
                     tss.opp_turnovers as turnovers,
                     CASE WHEN tss.opp_throw_attempts > 0
-                        THEN ROUND((CAST(tss.opp_completions AS REAL) / tss.opp_throw_attempts) * 100, 2)
+                        THEN ROUND((CAST(tss.opp_completions AS NUMERIC) / tss.opp_throw_attempts) * 100, 2)
                         ELSE 0
                     END as completion_percentage,
                     tss.opp_hucks_completed as hucks_completed,
                     CASE WHEN tss.opp_hucks_attempted > 0
-                        THEN ROUND((CAST(tss.opp_hucks_completed AS REAL) / tss.opp_hucks_attempted) * 100, 2)
+                        THEN ROUND((CAST(tss.opp_hucks_completed AS NUMERIC) / tss.opp_hucks_attempted) * 100, 2)
                         ELSE 0
                     END as huck_percentage,
                     tss.opp_blocks as blocks,
@@ -641,12 +656,12 @@ class StatsChatSystem:
                     tss.completions,
                     tss.turnovers,
                     CASE WHEN tss.throw_attempts > 0
-                        THEN ROUND((CAST(tss.completions AS REAL) / tss.throw_attempts) * 100, 2)
+                        THEN ROUND((CAST(tss.completions AS NUMERIC) / tss.throw_attempts) * 100, 2)
                         ELSE 0
                     END as completion_percentage,
                     tss.hucks_completed,
                     CASE WHEN tss.hucks_attempted > 0
-                        THEN ROUND((CAST(tss.hucks_completed AS REAL) / tss.hucks_attempted) * 100, 2)
+                        THEN ROUND((CAST(tss.hucks_completed AS NUMERIC) / tss.hucks_attempted) * 100, 2)
                         ELSE 0
                     END as huck_percentage,
                     tss.blocks,
@@ -663,77 +678,9 @@ class StatsChatSystem:
 
         teams = self.db.execute_query(query, params)
 
-        # Calculate possession and redzone stats from game_events (batch operation for performance)
-        team_ids = [team["team_id"] for team in teams]
-        if team_ids:
-            possession_stats = calculate_possessions_batch(
-                self.db, team_ids, season_filter, season_param
-            )
-            redzone_stats = calculate_redzone_stats_batch(
-                self.db, team_ids, season_filter, season_param
-            )
-
-            # Merge batch results into team stats
-            for team in teams:
-                team_id = team["team_id"]
-
-                # Get possession stats from batch results
-                poss_stats = possession_stats.get(team_id, {
-                    "o_line_points": 0,
-                    "o_line_scores": 0,
-                    "o_line_possessions": 0,
-                    "d_line_points": 0,
-                    "d_line_scores": 0,
-                    "d_line_possessions": 0,
-                })
-
-                # Get redzone stats from batch results
-                rz_stats = redzone_stats.get(team_id, {"possessions": 0, "goals": 0})
-
-                # Calculate percentages
-                total_o_line_points = poss_stats["o_line_points"]
-                total_o_line_scores = poss_stats["o_line_scores"]
-                total_o_line_possessions = poss_stats["o_line_possessions"]
-                total_d_line_points = poss_stats["d_line_points"]
-                total_d_line_scores = poss_stats["d_line_scores"]
-                total_d_line_possessions = poss_stats["d_line_possessions"]
-                total_redzone_possessions = rz_stats["possessions"]
-                total_redzone_goals = rz_stats["goals"]
-
-                if total_o_line_points > 0:
-                    team["hold_percentage"] = round(
-                        (total_o_line_scores / total_o_line_points) * 100, 1
-                    )
-                else:
-                    team["hold_percentage"] = 0.0
-
-                if total_o_line_possessions > 0:
-                    team["o_line_conversion"] = round(
-                        (total_o_line_scores / total_o_line_possessions) * 100, 1
-                    )
-                else:
-                    team["o_line_conversion"] = 0.0
-
-                if total_d_line_points > 0:
-                    team["break_percentage"] = round(
-                        (total_d_line_scores / total_d_line_points) * 100, 1
-                    )
-                else:
-                    team["break_percentage"] = 0.0
-
-                if total_d_line_possessions > 0:
-                    team["d_line_conversion"] = round(
-                        (total_d_line_scores / total_d_line_possessions) * 100, 1
-                    )
-                else:
-                    team["d_line_conversion"] = 0.0
-
-                if total_redzone_possessions > 0:
-                    team["red_zone_conversion"] = round(
-                        (total_redzone_goals / total_redzone_possessions) * 100, 1
-                    )
-                else:
-                    team["red_zone_conversion"] = 0.0
+        # Possession stats are pre-computed and stored in team_season_stats table
+        # Run scripts/populate_possession_stats.py to calculate and populate these values
+        # This provides instant performance (10-50ms) instead of on-demand calculation (3-8s)
 
         # Apply per-game calculations if requested
         if view == "per-game":

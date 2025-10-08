@@ -58,7 +58,7 @@ def get_sort_column(
             "games_played",
         ]:
             # For pre-computed career stats, just use games_played column
-            return f"CASE WHEN games_played > 0 THEN CAST({base_column} AS REAL) / games_played ELSE 0 END"
+            return f"CASE WHEN games_played > 0 THEN CAST({base_column} AS NUMERIC) / games_played ELSE 0 END"
 
         return base_column
 
@@ -108,7 +108,7 @@ def get_sort_column(
         "games_played",
     ]:
         games_played_col = column_mapping["games_played"]
-        return f"CASE WHEN {games_played_col} > 0 THEN CAST({base_column} AS REAL) / {games_played_col} ELSE 0 END"
+        return f"CASE WHEN {games_played_col} > 0 THEN CAST({base_column} AS NUMERIC) / {games_played_col} ELSE 0 END"
 
     return base_column
 

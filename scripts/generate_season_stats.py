@@ -344,6 +344,26 @@ def generate_team_season_stats(engine):
             sys.exit(1)
 
 
+def populate_possession_stats_from_events(engine):
+    """Populate possession statistics using game_events data."""
+    print("\n🏈 Populating Possession-Based Statistics...")
+    print("=" * 60)
+
+    # Import the populate function from populate_possession_stats
+    sys.path.insert(0, os.path.dirname(__file__))
+    from populate_possession_stats import populate_possession_stats, DatabaseWrapper
+
+    try:
+        db_wrapper = DatabaseWrapper(engine)
+        populate_possession_stats(db_wrapper)
+    except ImportError:
+        print("  ⚠️  Could not import possession stats module")
+        print("  ℹ️  Run 'uv run python scripts/populate_possession_stats.py' manually")
+    except Exception as e:
+        print(f"  ❌ Error populating possession stats: {str(e)}")
+        print("  ℹ️  You can run 'uv run python scripts/populate_possession_stats.py' separately")
+
+
 def main():
     """Main function."""
     print("🚀 Starting Season Stats Generation")
@@ -371,12 +391,15 @@ def main():
     generate_player_season_stats(engine)
     generate_team_season_stats(engine)
 
+    # Populate possession stats from game_events
+    populate_possession_stats_from_events(engine)
+
     print("\n" + "=" * 60)
     print("✅ SEASON STATS GENERATION COMPLETE!")
     print("=" * 60)
     print("\n📝 Next steps:")
     print("  - Player season stats: Ready for use")
-    print("  - Team season stats: Ready for use (possession stats calculated at query time)")
+    print("  - Team season stats: Ready for use (including possession stats!)")
 
 
 if __name__ == "__main__":

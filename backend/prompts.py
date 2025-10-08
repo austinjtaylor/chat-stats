@@ -118,7 +118,7 @@ When asked about career statistics or stats "across all seasons":
      GROUP BY player_id
    )
    SELECT ct.full_name, ct.career_goals, gc.games_played,
-          ROUND(CAST(ct.career_goals AS REAL) / gc.games_played, 1) as goals_per_game
+          ROUND(CAST(ct.career_goals AS NUMERIC) / gc.games_played, 1) as goals_per_game
    FROM career_totals ct
    JOIN game_counts gc ON ct.player_id = gc.player_id
    WHERE gc.games_played > 0
