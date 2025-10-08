@@ -8,7 +8,7 @@ from typing import Any
 
 
 def process_team_events(
-    events: list[dict], team: str, game_year: int, stats_system
+    events: list[dict], team: str, player_lookup: dict[str, dict[str, str]]
 ) -> list[dict[str, Any]]:
     """
     Process events for a single team to build their play-by-play perspective.
@@ -16,8 +16,7 @@ def process_team_events(
     Args:
         events: List of events for this team
         team: 'home' or 'away'
-        game_year: Year for player lookups
-        stats_system: Database system for queries
+        player_lookup: Dictionary mapping player_id to dict with full_name and last_name
 
     Returns:
         List of points with events from this team's perspective
@@ -112,7 +111,7 @@ def process_team_events(
                     pulling_team = "home"
                     receiving_team = "away"
 
-            # Get line players
+            # Get line players using pre-fetched lookup
             line_players = []
             if event["line_players"]:
                 import json
@@ -120,25 +119,10 @@ def process_team_events(
                 try:
                     player_ids = json.loads(event["line_players"])
                     if player_ids and len(player_ids) > 0:
-                        # Build query for multiple player IDs
-                        placeholders = ", ".join(
-                            [f":p{i}" for i in range(len(player_ids))]
-                        )
-                        players_query = f"""
-                        SELECT DISTINCT last_name
-                        FROM players
-                        WHERE player_id IN ({placeholders})
-                          AND year = :year
-                        """
-                        params = {f"p{i}": pid for i, pid in enumerate(player_ids)}
-                        params["year"] = game_year
-                        player_results = stats_system.db.execute_query(
-                            players_query, params
-                        )
                         line_players = [
-                            p["last_name"]
-                            for p in player_results
-                            if p and p.get("last_name")
+                            player_lookup[pid]["last_name"]
+                            for pid in player_ids
+                            if pid in player_lookup and player_lookup[pid].get("last_name")
                         ]
                 except Exception as e:
                     print(f"Error parsing line players: {e}")
@@ -468,6 +452,8 @@ def calculate_play_by_play(stats_system, game_id: str) -> list[dict[str, Any]]:
     Calculate play-by-play data from game events.
     Returns a list of points with their events and metadata.
     """
+    import json
+
     # Get game information
     game_query = """
     SELECT
@@ -486,40 +472,105 @@ def calculate_play_by_play(stats_system, game_id: str) -> list[dict[str, Any]]:
 
     game_year = game_result[0]["year"]
 
-    # Get events from both teams
+    # Get events from both teams (without player JOINs for better performance)
     events_query = """
     SELECT
         e.event_index, e.team, e.event_type, e.event_time,
         e.thrower_id, e.receiver_id, e.defender_id, e.puller_id,
         e.thrower_x, e.thrower_y, e.receiver_x, e.receiver_y,
         e.turnover_x, e.turnover_y, e.pull_x, e.pull_y,
-        e.pull_ms, e.line_players,
-        t.full_name as thrower_name, t.last_name as thrower_last,
-        r.full_name as receiver_name, r.last_name as receiver_last,
-        d.full_name as defender_name, d.last_name as defender_last,
-        p.full_name as puller_name, p.last_name as puller_last
+        e.pull_ms, e.line_players
     FROM game_events e
-    LEFT JOIN players t ON e.thrower_id = t.player_id AND t.year = :year
-    LEFT JOIN players r ON e.receiver_id = r.player_id AND r.year = :year
-    LEFT JOIN players d ON e.defender_id = d.player_id AND d.year = :year
-    LEFT JOIN players p ON e.puller_id = p.player_id AND p.year = :year
     WHERE e.game_id = :game_id
     ORDER BY e.team, e.event_index
     """
 
-    events = stats_system.db.execute_query(
-        events_query, {"game_id": game_id, "year": game_year}
-    )
+    events = stats_system.db.execute_query(events_query, {"game_id": game_id})
     if not events:
         return []
+
+    # Collect all unique player IDs from events and line_players
+    all_player_ids = set()
+    for event in events:
+        # Add player IDs from event columns
+        if event.get("thrower_id"):
+            all_player_ids.add(event["thrower_id"])
+        if event.get("receiver_id"):
+            all_player_ids.add(event["receiver_id"])
+        if event.get("defender_id"):
+            all_player_ids.add(event["defender_id"])
+        if event.get("puller_id"):
+            all_player_ids.add(event["puller_id"])
+
+        # Add player IDs from line_players JSON
+        if event.get("line_players"):
+            try:
+                player_ids = json.loads(event["line_players"])
+                if player_ids:
+                    all_player_ids.update(player_ids)
+            except Exception:
+                pass
+
+    # Fetch all players in a single query and build lookup dictionary
+    player_lookup = {}
+    if all_player_ids:
+        player_ids_list = list(all_player_ids)
+        placeholders = ", ".join([f":p{i}" for i in range(len(player_ids_list))])
+        players_query = f"""
+        SELECT DISTINCT player_id, full_name, last_name
+        FROM players
+        WHERE player_id IN ({placeholders})
+          AND year = :year
+        """
+        params = {f"p{i}": pid for i, pid in enumerate(player_ids_list)}
+        params["year"] = game_year
+        player_results = stats_system.db.execute_query(players_query, params)
+        player_lookup = {
+            p["player_id"]: {
+                "full_name": p.get("full_name"),
+                "last_name": p.get("last_name"),
+            }
+            for p in player_results
+            if p and p.get("player_id")
+        }
+
+    # Enrich events with player names from lookup
+    for event in events:
+        if event.get("thrower_id") and event["thrower_id"] in player_lookup:
+            event["thrower_name"] = player_lookup[event["thrower_id"]]["full_name"]
+            event["thrower_last"] = player_lookup[event["thrower_id"]]["last_name"]
+        else:
+            event["thrower_name"] = None
+            event["thrower_last"] = None
+
+        if event.get("receiver_id") and event["receiver_id"] in player_lookup:
+            event["receiver_name"] = player_lookup[event["receiver_id"]]["full_name"]
+            event["receiver_last"] = player_lookup[event["receiver_id"]]["last_name"]
+        else:
+            event["receiver_name"] = None
+            event["receiver_last"] = None
+
+        if event.get("defender_id") and event["defender_id"] in player_lookup:
+            event["defender_name"] = player_lookup[event["defender_id"]]["full_name"]
+            event["defender_last"] = player_lookup[event["defender_id"]]["last_name"]
+        else:
+            event["defender_name"] = None
+            event["defender_last"] = None
+
+        if event.get("puller_id") and event["puller_id"] in player_lookup:
+            event["puller_name"] = player_lookup[event["puller_id"]]["full_name"]
+            event["puller_last"] = player_lookup[event["puller_id"]]["last_name"]
+        else:
+            event["puller_name"] = None
+            event["puller_last"] = None
 
     # Separate events by team
     home_events = [e for e in events if e["team"] == "home"]
     away_events = [e for e in events if e["team"] == "away"]
 
     # Process each team's events separately
-    home_points = process_team_events(home_events, "home", game_year, stats_system)
-    away_points = process_team_events(away_events, "away", game_year, stats_system)
+    home_points = process_team_events(home_events, "home", player_lookup)
+    away_points = process_team_events(away_events, "away", player_lookup)
 
     # Combine and return both perspectives
     return home_points + away_points

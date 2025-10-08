@@ -302,8 +302,33 @@ def create_box_score_routes(stats_system):
     async def get_game_play_by_play(game_id: str):
         """Get play-by-play data for a game"""
         try:
+            # Check cache first
+            cache = get_cache()
+            cache_key = cache_key_for_endpoint("play_by_play", game_id=game_id)
+            cached_result = cache.get(cache_key)
+
+            if cached_result is not None:
+                return cached_result
+
+            # Get game status to determine cache TTL
+            game_query = "SELECT status FROM games WHERE game_id = :game_id"
+            game_result = stats_system.db.execute_query(
+                game_query, {"game_id": game_id}
+            )
+
             points = calculate_play_by_play(stats_system, game_id)
-            return {"points": points}
+            result = {"points": points}
+
+            # Cache the result (longer TTL for Final games since they never change)
+            ttl = 3600  # Default 1 hour
+            if game_result and game_result[0].get("status") == "Final":
+                ttl = 3600  # 1 hour for final games
+            else:
+                ttl = 300  # 5 minutes for in-progress games
+
+            cache.set(cache_key, result, ttl=ttl)
+
+            return result
         except HTTPException:
             raise
         except Exception as e:

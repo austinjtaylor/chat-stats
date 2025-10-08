@@ -180,6 +180,11 @@ class GameDetailPage {
         }
     }
 
+    private isPlayByPlayTabActive(): boolean {
+        const playByPlayTab = document.getElementById('play-by-play');
+        return playByPlayTab?.classList.contains('active') || false;
+    }
+
     private async loadGameDetails(gameId: string, closePanel: boolean = true): Promise<void> {
         try {
             const response = await fetch(`/api/games/${gameId}/box-score`);
@@ -190,6 +195,16 @@ class GameDetailPage {
             this.updateTeamRadios();
             this.updateStatsTable();
             this.updateTeamStats();
+
+            // If play-by-play tab is currently active, reload play-by-play data
+            if (this.isPlayByPlayTabActive()) {
+                this.gamePlayByPlay.loadPlayByPlay(data.game_id).then(() => {
+                    this.gamePlayByPlay.renderPlayByPlay(
+                        data.home_team.city,
+                        data.away_team.city
+                    );
+                });
+            }
 
             // Update active game in search
             this.gameSearch.setActiveGame(gameId);
