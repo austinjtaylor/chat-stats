@@ -8,6 +8,30 @@ from utils.query import convert_to_per_game_stats, get_sort_column
 from data.cache import get_cache, cache_key_for_endpoint
 
 
+def get_team_career_sort_column(sort_key: str, per_game: bool = False) -> str:
+    """
+    Get the sort column for team career stats queries.
+    Handles per-game sorting by dividing counting stats by games_played.
+    """
+    # Stats that should not be divided (already percentages/ratios or special fields)
+    non_counting_stats = [
+        "full_name",
+        "completion_percentage",
+        "huck_percentage",
+        "offensive_efficiency",
+        "yards_per_turn",
+        "games_played",
+    ]
+
+    # If per_game mode and this is a counting stat, divide by games_played
+    if per_game and sort_key not in non_counting_stats:
+        # Use COALESCE to handle the LEFT JOIN case where gc.games_played might be NULL
+        return f"CASE WHEN COALESCE(gc.games_played, 0) > 0 THEN CAST(tcs.{sort_key} AS NUMERIC) / gc.games_played ELSE 0 END"
+
+    # Otherwise use the column directly from team_career_stats CTE
+    return f"tcs.{sort_key}"
+
+
 def create_player_stats_route(stats_system):
     """Create the player statistics endpoint."""
     router = APIRouter()
@@ -177,7 +201,7 @@ def create_player_stats_route(stats_system):
                 JOIN player_info pi ON tcs.player_id = pi.player_id
                 LEFT JOIN games_count gc ON tcs.player_id = gc.player_id
                 CROSS JOIN team_info ti
-                ORDER BY tcs.{sort} {order.upper()}
+                ORDER BY {get_team_career_sort_column(sort, per_game=(per == "game"))} {order.upper()}
                 LIMIT {per_page} OFFSET {(page-1) * per_page}
                 """
             elif season == "career":
