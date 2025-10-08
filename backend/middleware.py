@@ -14,14 +14,15 @@ def configure_cors(app):
         "http://localhost:3000",  # Local development (Vite dev server)
         "http://localhost:3001",  # Local development (Vite dev server alternate port)
         "http://localhost:4173",  # Local production preview
-        "https://chat-stats.vercel.app",  # Vercel production (new)
+        "https://chat-frisbee-stats.vercel.app",  # Vercel production (actual)
+        "https://chat-stats.vercel.app",  # Vercel production (if renamed)
         "https://chat-with-stats.vercel.app",  # Vercel production (old - temporary)
     ]
 
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
-        allow_origin_regex=r"https://(chat-stats|chat-with-stats).*\.vercel\.app",  # Vercel preview deployments
+        allow_origin_regex=r"https://(chat-frisbee-stats|chat-stats|chat-with-stats).*\.vercel\.app",  # Vercel preview deployments
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
