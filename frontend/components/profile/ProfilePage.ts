@@ -14,10 +14,20 @@ interface SubscriptionData {
   stripe_customer_id?: string;
 }
 
+interface UserProfile {
+  full_name: string | null;
+  theme: string;
+  default_season: number | null;
+  notifications_enabled: boolean;
+  email_digest_frequency: string;
+  favorite_stat_categories: string[];
+}
+
 export class ProfilePage {
   private container: HTMLElement | null = null;
   private session: SessionInfo | null = null;
   private subscription: SubscriptionData | null = null;
+  private profile: UserProfile | null = null;
 
   /**
    * Initialize and render the profile page
@@ -36,8 +46,11 @@ export class ProfilePage {
       return;
     }
 
-    // Fetch subscription data
-    await this.fetchSubscription();
+    // Fetch subscription data and profile
+    await Promise.all([
+      this.fetchSubscription(),
+      this.fetchProfile(),
+    ]);
 
     // Render profile
     this.render();
@@ -62,6 +75,28 @@ export class ProfilePage {
       }
     } catch (error) {
       console.error('Failed to fetch subscription:', error);
+    }
+  }
+
+  /**
+   * Fetch user profile data from API
+   */
+  private async fetchProfile(): Promise<void> {
+    try {
+      const token = this.session?.session?.access_token;
+      if (!token) return;
+
+      const response = await fetch('/api/user/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        this.profile = await response.json();
+      }
+    } catch (error) {
+      console.error('Failed to fetch profile:', error);
     }
   }
 
@@ -96,10 +131,11 @@ export class ProfilePage {
    * Render the profile page
    */
   private render(): void {
-    if (!this.container || !this.session || !this.subscription) return;
+    if (!this.container || !this.session || !this.subscription || !this.profile) return;
 
     const user = this.session.user;
     const sub = this.subscription;
+    const profile = this.profile;
 
     // Calculate usage percentage
     const usagePercentage = (sub.queries_this_month / sub.query_limit) * 100;
@@ -127,6 +163,20 @@ export class ProfilePage {
         <div class="profile-section">
           <h2 class="profile-section-title">Account Information</h2>
           <div class="profile-card">
+            <div class="profile-field">
+              <label>Full Name</label>
+              <div class="profile-field-editable">
+                <input
+                  type="text"
+                  id="full-name-input"
+                  class="profile-input"
+                  placeholder="Enter your full name"
+                  value="${profile.full_name || ''}"
+                />
+                <button class="btn-primary btn-small" id="save-name-btn">Save</button>
+              </div>
+              <div class="profile-field-hint">Used to generate your initials in the user menu</div>
+            </div>
             <div class="profile-field">
               <label>Email</label>
               <div class="profile-value">${user?.email || 'N/A'}</div>
@@ -207,45 +257,6 @@ export class ProfilePage {
             ` : ''}
           </div>
         </div>
-
-        <!-- Quick Actions -->
-        <div class="profile-section">
-          <h2 class="profile-section-title">Quick Actions</h2>
-          <div class="profile-actions">
-            <a href="/" class="profile-action-card">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-              </svg>
-              <div class="profile-action-content">
-                <div class="profile-action-title">Ask a Question</div>
-                <div class="profile-action-description">Query UFA statistics</div>
-              </div>
-            </a>
-
-            <a href="/pricing" class="profile-action-card">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M12 6v6l4 2"></path>
-              </svg>
-              <div class="profile-action-content">
-                <div class="profile-action-title">View Plans</div>
-                <div class="profile-action-description">Compare subscription tiers</div>
-              </div>
-            </a>
-
-            <button class="profile-action-card" id="refresh-data-btn">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="23 4 23 10 17 10"></polyline>
-                <polyline points="1 20 1 14 7 14"></polyline>
-                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-              </svg>
-              <div class="profile-action-content">
-                <div class="profile-action-title">Refresh Data</div>
-                <div class="profile-action-description">Update usage statistics</div>
-              </div>
-            </button>
-          </div>
-        </div>
       </div>
     `;
 
@@ -257,6 +268,10 @@ export class ProfilePage {
    * Attach event listeners
    */
   private attachEventListeners(): void {
+    // Save full name button
+    const saveNameBtn = this.container?.querySelector('#save-name-btn');
+    saveNameBtn?.addEventListener('click', () => this.handleSaveFullName());
+
     // Manage billing button
     const manageBillingBtn = this.container?.querySelector('#manage-billing-btn');
     manageBillingBtn?.addEventListener('click', () => this.handleManageBilling());
@@ -266,10 +281,66 @@ export class ProfilePage {
     upgradeBtn?.addEventListener('click', () => {
       window.location.href = '/pricing';
     });
+  }
 
-    // Refresh data button
-    const refreshBtn = this.container?.querySelector('#refresh-data-btn');
-    refreshBtn?.addEventListener('click', () => this.handleRefresh());
+  /**
+   * Handle save full name
+   */
+  private async handleSaveFullName(): Promise<void> {
+    const input = this.container?.querySelector('#full-name-input') as HTMLInputElement;
+    const saveBtn = this.container?.querySelector('#save-name-btn') as HTMLButtonElement;
+
+    if (!input || !saveBtn) return;
+
+    const fullName = input.value.trim();
+
+    // Update button state
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+
+    try {
+      const token = this.session?.session?.access_token;
+      if (!token) {
+        alert('Not authenticated');
+        return;
+      }
+
+      const response = await fetch('/api/user/profile', {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          full_name: fullName || null,
+        }),
+      });
+
+      if (response.ok) {
+        this.profile = await response.json();
+        saveBtn.textContent = 'Saved!';
+
+        // Dispatch event to update user menu initials
+        window.dispatchEvent(new CustomEvent('profile-updated', {
+          detail: { full_name: fullName },
+        }));
+
+        // Reset button after delay
+        setTimeout(() => {
+          saveBtn.textContent = 'Save';
+          saveBtn.disabled = false;
+        }, 2000);
+      } else {
+        alert('Failed to save full name');
+        saveBtn.textContent = 'Save';
+        saveBtn.disabled = false;
+      }
+    } catch (error) {
+      console.error('Failed to save full name:', error);
+      alert('Failed to save full name');
+      saveBtn.textContent = 'Save';
+      saveBtn.disabled = false;
+    }
   }
 
   /**
@@ -301,14 +372,6 @@ export class ProfilePage {
       console.error('Failed to open billing portal:', error);
       alert('Failed to open billing portal');
     }
-  }
-
-  /**
-   * Handle refresh data
-   */
-  private async handleRefresh(): Promise<void> {
-    await this.fetchSubscription();
-    this.render();
   }
 }
 

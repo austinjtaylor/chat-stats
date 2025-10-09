@@ -19,6 +19,7 @@ class UserProfile(BaseModel):
 class UserPreferences(BaseModel):
     """User preferences and settings."""
 
+    full_name: Optional[str] = None
     theme: str = "light"  # 'light', 'dark', 'auto'
     default_season: Optional[int] = None
     notifications_enabled: bool = True
@@ -29,6 +30,7 @@ class UserPreferences(BaseModel):
 class UpdateUserPreferences(BaseModel):
     """Request model for updating user preferences."""
 
+    full_name: Optional[str] = None
     theme: Optional[str] = None
     default_season: Optional[int] = None
     notifications_enabled: Optional[bool] = None

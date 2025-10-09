@@ -90,16 +90,10 @@ async function initAuth() {
 async function updateUIForAuthState(session: Session | null) {
   const isAuthenticated = !!session;
 
-  // Show/hide login button
-  const loginButton = document.getElementById('loginButton');
-  if (loginButton) {
-    loginButton.style.display = isAuthenticated ? 'none' : 'flex';
-  }
-
-  // Show/hide signup button
-  const signupButton = document.getElementById('signupButton');
-  if (signupButton) {
-    signupButton.style.display = isAuthenticated ? 'none' : 'flex';
+  // Show/hide auth buttons wrapper
+  const authWrapper = document.querySelector('.auth-buttons-wrapper') as HTMLElement;
+  if (authWrapper) {
+    authWrapper.style.display = isAuthenticated ? 'none' : 'flex';
   }
 
   // Initialize or destroy user menu

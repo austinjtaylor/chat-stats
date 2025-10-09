@@ -12,8 +12,10 @@ from models.api import (
     StatsResponse,
     TeamSearchResponse,
 )
+from models.user import UpdateUserPreferences
 from auth import get_current_user
 from services.subscription_service import get_subscription_service
+from services.user_profile_service import get_user_profile_service
 
 
 def create_basic_routes(stats_system):
@@ -90,6 +92,55 @@ def create_basic_routes(stats_system):
                 "current_period_end": subscription.current_period_end.isoformat() if subscription.current_period_end else None,
                 "at_query_limit": subscription.at_query_limit
             }
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e)) from e
+
+    @router.get("/api/user/profile")
+    async def get_user_profile(user: dict = Depends(get_current_user)):
+        """
+        Get current user's profile preferences.
+
+        Requires authentication.
+        """
+        try:
+            user_id = user["user_id"]
+            profile_service = get_user_profile_service(stats_system.db)
+            preferences = profile_service.get_user_preferences(user_id)
+
+            if not preferences:
+                # Return default preferences if none found
+                return {
+                    "full_name": None,
+                    "theme": "light",
+                    "default_season": None,
+                    "notifications_enabled": True,
+                    "email_digest_frequency": "weekly",
+                    "favorite_stat_categories": []
+                }
+
+            return preferences.dict()
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e)) from e
+
+    @router.patch("/api/user/profile")
+    async def update_user_profile(
+        updates: UpdateUserPreferences,
+        user: dict = Depends(get_current_user)
+    ):
+        """
+        Update current user's profile preferences.
+
+        Requires authentication.
+        """
+        try:
+            user_id = user["user_id"]
+            profile_service = get_user_profile_service(stats_system.db)
+            updated_preferences = profile_service.update_user_preferences(user_id, updates)
+            return updated_preferences.dict()
         except HTTPException:
             raise
         except Exception as e:

@@ -8,6 +8,7 @@ import { signOut, getSession, type SessionInfo } from '../../lib/auth';
 export class UserMenu {
   private menu: HTMLElement | null = null;
   private session: SessionInfo | null = null;
+  private fullName: string | null = null;
   private onLogout?: () => void;
 
   constructor(onLogout?: () => void) {
@@ -24,6 +25,9 @@ export class UserMenu {
       return;
     }
 
+    // Fetch user profile to get full name
+    await this.fetchFullName();
+
     const container = document.getElementById(containerId);
     if (!container) {
       console.error(`Container ${containerId} not found`);
@@ -33,6 +37,13 @@ export class UserMenu {
     this.menu = this.createMenu();
     container.appendChild(this.menu);
     this.attachEventListeners();
+
+    // Listen for profile updates
+    window.addEventListener('profile-updated', (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.fullName = customEvent.detail.full_name;
+      this.updateInitials();
+    });
   }
 
   /**
@@ -55,6 +66,41 @@ export class UserMenu {
     const emailEl = this.menu?.querySelector('.user-menu-email');
     if (emailEl) {
       emailEl.textContent = this.session.user?.email || '';
+    }
+  }
+
+  /**
+   * Fetch user's full name from profile API
+   */
+  private async fetchFullName(): Promise<void> {
+    try {
+      const token = this.session?.session?.access_token;
+      if (!token) return;
+
+      const response = await fetch('/api/user/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const profile = await response.json();
+        this.fullName = profile.full_name;
+      }
+    } catch (error) {
+      console.error('Failed to fetch user profile:', error);
+    }
+  }
+
+  /**
+   * Update the initials in the avatar
+   */
+  private updateInitials(): void {
+    const avatar = this.menu?.querySelector('.user-avatar');
+    if (avatar) {
+      const userEmail = this.session?.user?.email || '';
+      const initials = this.getInitials(userEmail);
+      avatar.textContent = initials;
     }
   }
 
@@ -198,9 +244,22 @@ export class UserMenu {
   }
 
   /**
-   * Get user initials from email
+   * Get user initials from full name or email
    */
   private getInitials(email: string): string {
+    // Use full name if available
+    if (this.fullName && this.fullName.trim()) {
+      const nameParts = this.fullName.trim().split(/\s+/);
+      if (nameParts.length >= 2) {
+        // Use first and last name initials
+        return (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
+      } else if (nameParts.length === 1 && nameParts[0].length >= 2) {
+        // Use first two characters of single name
+        return nameParts[0].substring(0, 2).toUpperCase();
+      }
+    }
+
+    // Fall back to email-based initials
     if (!email) return '?';
 
     const parts = email.split('@')[0].split(/[._-]/);

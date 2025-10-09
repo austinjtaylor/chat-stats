@@ -14,13 +14,24 @@ interface SubscriptionData {
   stripe_customer_id?: string;
 }
 
+interface UserProfile {
+  full_name: string | null;
+  theme: string;
+  default_season: number | null;
+  notifications_enabled: boolean;
+  email_digest_frequency: string;
+  favorite_stat_categories: string[];
+}
+
 type TabName = 'profile' | 'billing' | 'usage';
 
 export class SettingsPage {
   private container: HTMLElement | null = null;
   private session: SessionInfo | null = null;
   private subscription: SubscriptionData | null = null;
+  private profile: UserProfile | null = null;
   private activeTab: TabName = 'profile';
+  private saveTimeout: number | null = null;
 
   /**
    * Initialize and render the settings page
@@ -39,8 +50,11 @@ export class SettingsPage {
       return;
     }
 
-    // Fetch subscription data
-    await this.fetchSubscription();
+    // Fetch subscription data and profile
+    await Promise.all([
+      this.fetchSubscription(),
+      this.fetchProfile(),
+    ]);
 
     // Check URL hash for tab
     const hash = window.location.hash.slice(1) as TabName;
@@ -72,6 +86,28 @@ export class SettingsPage {
       }
     } catch (error) {
       console.error('Failed to fetch subscription:', error);
+    }
+  }
+
+  /**
+   * Fetch user profile data from API
+   */
+  private async fetchProfile(): Promise<void> {
+    try {
+      const token = this.session?.session?.access_token;
+      if (!token) return;
+
+      const response = await fetch('/api/user/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        this.profile = await response.json();
+      }
+    } catch (error) {
+      console.error('Failed to fetch profile:', error);
     }
   }
 
@@ -202,18 +238,19 @@ export class SettingsPage {
         <h2 class="settings-section-title">Account Information</h2>
         <div class="settings-card">
           <div class="settings-field">
+            <label>Name</label>
+            <input
+              type="text"
+              id="full-name-input"
+              class="settings-value settings-value-mono"
+              placeholder="Your name here"
+              value="${this.profile?.full_name || ''}"
+              autocomplete="off"
+            />
+          </div>
+          <div class="settings-field">
             <label>Email</label>
             <div class="settings-value">${user?.email || 'N/A'}</div>
-          </div>
-          <div class="settings-field">
-            <label>User ID</label>
-            <div class="settings-value settings-value-mono">${user?.id || 'N/A'}</div>
-          </div>
-          <div class="settings-field">
-            <label>Account Created</label>
-            <div class="settings-value">
-              ${user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
-            </div>
           </div>
         </div>
       </div>
@@ -237,7 +274,6 @@ export class SettingsPage {
               </svg>
               <div>
                 <div class="theme-option-title">Light</div>
-                <div class="theme-option-description">Follow the light wherever it leads.</div>
               </div>
             </button>
             <button class="theme-option ${savedTheme === 'dark' ? 'active' : ''}" data-theme="dark">
@@ -246,49 +282,9 @@ export class SettingsPage {
               </svg>
               <div>
                 <div class="theme-option-title">Dark</div>
-                <div class="theme-option-description">Describe a desert at midnight.</div>
               </div>
             </button>
           </div>
-        </div>
-      </div>
-
-      <!-- Quick Actions -->
-      <div class="settings-section">
-        <h2 class="settings-section-title">Quick Actions</h2>
-        <div class="settings-actions">
-          <a href="/" class="settings-action-card">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-            </svg>
-            <div class="settings-action-content">
-              <div class="settings-action-title">Ask a Question</div>
-              <div class="settings-action-description">Query UFA statistics</div>
-            </div>
-          </a>
-
-          <a href="/pricing" class="settings-action-card">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <path d="M12 6v6l4 2"></path>
-            </svg>
-            <div class="settings-action-content">
-              <div class="settings-action-title">View Plans</div>
-              <div class="settings-action-description">Compare subscription tiers</div>
-            </div>
-          </a>
-
-          <button class="settings-action-card" id="refresh-data-btn">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="23 4 23 10 17 10"></polyline>
-              <polyline points="1 20 1 14 7 14"></polyline>
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-            </svg>
-            <div class="settings-action-content">
-              <div class="settings-action-title">Refresh Data</div>
-              <div class="settings-action-description">Update usage statistics</div>
-            </div>
-          </button>
         </div>
       </div>
     `;
@@ -409,6 +405,13 @@ export class SettingsPage {
       });
     });
 
+    // Full name input with auto-save
+    const fullNameInput = this.container?.querySelector('#full-name-input') as HTMLInputElement;
+    fullNameInput?.addEventListener('input', (e) => {
+      const target = e.target as HTMLInputElement;
+      this.handleFullNameInput(target.value);
+    });
+
     // Manage billing button
     const manageBillingBtn = this.container?.querySelector('#manage-billing-btn');
     manageBillingBtn?.addEventListener('click', () => this.handleManageBilling());
@@ -418,10 +421,6 @@ export class SettingsPage {
     upgradeBtn?.addEventListener('click', () => {
       window.location.href = '/pricing';
     });
-
-    // Refresh data button
-    const refreshBtn = this.container?.querySelector('#refresh-data-btn');
-    refreshBtn?.addEventListener('click', () => this.handleRefresh());
   }
 
   /**
@@ -470,6 +469,53 @@ export class SettingsPage {
     } catch (error) {
       console.error('Failed to open billing portal:', error);
       alert('Failed to open billing portal');
+    }
+  }
+
+  /**
+   * Handle full name input with debouncing
+   */
+  private handleFullNameInput(value: string): void {
+    // Clear existing timeout
+    if (this.saveTimeout !== null) {
+      window.clearTimeout(this.saveTimeout);
+    }
+
+    // Set new timeout to save after 500ms
+    this.saveTimeout = window.setTimeout(async () => {
+      await this.saveFullName(value);
+    }, 500);
+  }
+
+  /**
+   * Save full name to API
+   */
+  private async saveFullName(fullName: string): Promise<void> {
+    try {
+      const token = this.session?.session?.access_token;
+      if (!token) return;
+
+      const response = await fetch('/api/user/profile', {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          full_name: fullName.trim() || null,
+        }),
+      });
+
+      if (response.ok) {
+        this.profile = await response.json();
+
+        // Dispatch event to update user menu initials
+        window.dispatchEvent(new CustomEvent('profile-updated', {
+          detail: { full_name: fullName.trim() },
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to save full name:', error);
     }
   }
 

@@ -65,6 +65,10 @@
     --bg-primary: #2a2e36;
     --bg-secondary: #31363F;
     --bg-hover: rgba(118, 171, 174, 0.15);
+
+    /* Accent color alias (for compatibility) */
+    --accent-color: var(--primary-color);
+    --accent-hover: var(--primary-hover);
 }
 
 /* Light Theme */
@@ -121,6 +125,10 @@
     --bg-primary: #ffffff;
     --bg-secondary: #EEEEEE;
     --bg-hover: rgba(118, 171, 174, 0.08);
+
+    /* Accent color alias (for compatibility) */
+    --accent-color: var(--primary-color);
+    --accent-hover: var(--primary-hover);
 }
 
 /* Apply theme to body */
