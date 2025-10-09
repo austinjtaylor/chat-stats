@@ -60,6 +60,41 @@ def create_basic_routes(stats_system):
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e)) from e
 
+    @router.get("/api/subscription/status")
+    async def get_subscription_status(user: dict = Depends(get_current_user)):
+        """
+        Get current user's subscription status and query usage.
+
+        Requires authentication.
+        """
+        try:
+            user_id = user["user_id"]
+            subscription_service = get_subscription_service(stats_system.db)
+            subscription = subscription_service.get_user_subscription(user_id)
+
+            if not subscription:
+                # Return default free tier if no subscription found
+                return {
+                    "tier": "free",
+                    "status": "active",
+                    "queries_this_month": 0,
+                    "query_limit": 5,
+                    "at_query_limit": False
+                }
+
+            return {
+                "tier": subscription.tier,
+                "status": subscription.status,
+                "queries_this_month": subscription.queries_this_month,
+                "query_limit": subscription.query_limit,
+                "current_period_end": subscription.current_period_end.isoformat() if subscription.current_period_end else None,
+                "at_query_limit": subscription.at_query_limit
+            }
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e)) from e
+
     @router.get("/api/stats", response_model=StatsResponse)
     async def get_stats_summary():
         """Get sports statistics summary"""

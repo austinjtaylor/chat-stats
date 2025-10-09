@@ -51,7 +51,7 @@ export class ProfilePage {
       const token = this.session?.session?.access_token;
       if (!token) return;
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/subscription/status`, {
+      const response = await fetch('/api/subscription/status', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -280,7 +280,7 @@ export class ProfilePage {
       const token = this.session?.session?.access_token;
       if (!token) return;
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/stripe/billing-portal`, {
+      const response = await fetch('/api/stripe/create-billing-portal-session', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

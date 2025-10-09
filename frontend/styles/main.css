@@ -32,6 +32,12 @@
 /* Pricing & Payment Components */
 @import url('pricing-components.css');
 
+/* Page Container */
+.page-container {
+    padding-top: 80px;
+    min-height: 100vh;
+}
+
 /* Auth Button Styles */
 .auth-buttons-wrapper {
     position: fixed;
