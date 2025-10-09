@@ -13,36 +13,32 @@
 .user-menu-trigger {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: var(--background);
+  border: none;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.2s ease;
 }
 
 .user-menu-trigger:hover {
-  background: var(--bg-hover);
-  border-color: var(--accent-color);
-}
-
-.user-menu-wrapper.active .user-menu-trigger {
-  background: var(--bg-hover);
-  border-color: var(--accent-color);
+  background: var(--surface);
 }
 
 /* User avatar */
 .user-avatar {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -59,8 +55,8 @@
 /* Dropdown menu */
 .user-menu-dropdown {
   position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
+  bottom: calc(100% + 8px);
+  left: 0;
   width: 280px;
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
@@ -68,7 +64,7 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   opacity: 0;
   visibility: hidden;
-  transform: translateY(-10px);
+  transform: translateY(10px);
   transition: all 0.2s;
   z-index: 1000;
 }
@@ -142,7 +138,7 @@
 
 .usage-bar-fill {
   height: 100%;
-  background: var(--accent-color);
+  background: var(--primary-color);
   border-radius: 2px;
   transition: width 0.3s;
 }
@@ -190,7 +186,7 @@
 }
 
 .user-menu-item:hover svg {
-  color: var(--accent-color);
+  color: var(--primary-color);
 }
 
 /* Logout button */
@@ -228,25 +224,21 @@
 @media (max-width: 768px) {
   .user-menu-dropdown {
     width: 260px;
-    right: -8px;
-  }
-
-  .user-menu-trigger {
-    padding: 6px 8px;
+    left: 0;
   }
 
   .user-avatar {
-    width: 28px;
-    height: 28px;
-    font-size: 12px;
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
   }
 }
 
 /* Animation for first appearance */
-@keyframes slideDown {
+@keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -255,5 +247,5 @@
 }
 
 .user-menu-wrapper.active .user-menu-dropdown {
-  animation: slideDown 0.2s ease-out;
+  animation: slideUp 0.2s ease-out;
 }

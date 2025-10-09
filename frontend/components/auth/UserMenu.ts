@@ -95,9 +95,6 @@ export class UserMenu {
     menu.innerHTML = `
       <button class="user-menu-trigger" aria-label="User menu" aria-expanded="false">
         <div class="user-avatar">${initials}</div>
-        <svg class="user-menu-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
       </button>
 
       <div class="user-menu-dropdown">

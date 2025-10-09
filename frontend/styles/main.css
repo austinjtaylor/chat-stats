@@ -40,6 +40,14 @@
     z-index: 100;
 }
 
+/* User Menu Container (bottom left corner) */
+#userMenuContainer {
+    position: fixed;
+    bottom: 1rem;
+    left: 1rem;
+    z-index: 1100;
+}
+
 .auth-button {
     padding: 8px 16px;
     border-radius: 8px;
