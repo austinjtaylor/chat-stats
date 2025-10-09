@@ -8,7 +8,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from typing import Optional
 
-from supabase_client import get_supabase_service_key, SUPABASE_URL
+from supabase_client import get_jwt_secret as get_supabase_jwt_secret, SUPABASE_URL
 
 # Security scheme for Bearer tokens
 security = HTTPBearer()
@@ -17,9 +17,9 @@ security = HTTPBearer()
 def get_jwt_secret() -> str:
     """
     Get the JWT secret for token verification.
-    Supabase uses the service key as the JWT secret.
+    Supabase JWTs are signed with the JWT_SECRET (not the service key).
     """
-    return get_supabase_service_key()
+    return get_supabase_jwt_secret()
 
 
 def decode_jwt_token(token: str) -> dict:

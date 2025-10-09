@@ -15,6 +15,7 @@ load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
+JWT_SECRET = os.getenv("JWT_SECRET")
 
 # Database URL for direct PostgreSQL connection
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -41,6 +42,13 @@ def get_supabase_service_key() -> str:
     return SUPABASE_SERVICE_KEY
 
 
+def get_jwt_secret() -> str:
+    """Get JWT secret for token verification."""
+    if not JWT_SECRET:
+        raise ValueError("JWT_SECRET environment variable not set")
+    return JWT_SECRET
+
+
 def get_database_url() -> str:
     """Get PostgreSQL connection URL."""
     if not DATABASE_URL:
@@ -62,6 +70,7 @@ def verify_supabase_config() -> dict[str, Any]:
         "supabase_url": bool(SUPABASE_URL),
         "supabase_anon_key": bool(SUPABASE_ANON_KEY),
         "supabase_service_key": bool(SUPABASE_SERVICE_KEY),
+        "jwt_secret": bool(JWT_SECRET),
         "database_url": bool(DATABASE_URL),
     }
 
@@ -77,6 +86,7 @@ def verify_supabase_config() -> dict[str, Any]:
         "url": SUPABASE_URL,
         "has_anon_key": bool(SUPABASE_ANON_KEY),
         "has_service_key": bool(SUPABASE_SERVICE_KEY),
+        "has_jwt_secret": bool(JWT_SECRET),
         "has_database_url": bool(DATABASE_URL),
     }
 
@@ -88,5 +98,5 @@ try:
 except ValueError as e:
     print(f"⚠️  Supabase configuration warning: {e}")
     print(
-        "   Set SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_KEY, and DATABASE_URL in .env"
+        "   Set SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_KEY, JWT_SECRET, and DATABASE_URL in .env"
     )
