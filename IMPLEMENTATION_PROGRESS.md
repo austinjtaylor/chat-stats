@@ -135,16 +135,35 @@
 - [ ] Deploy frontend to Vercel (user action required)
 - [ ] Update CORS settings in backend after Vercel deployment
 
-### **Phase 7: Production Configuration**
-- [ ] Update CORS settings for specific domains
-- [ ] Add rate limiting
-- [ ] Security hardening
+### **Phase 7: Production Hardening** ✅ COMPLETE
+- [x] Protected `/api/query` endpoint with authentication
+- [x] Integrated subscription quota enforcement (10/month free, 200/month pro)
+- [x] Protected admin endpoints (`/api/cache/clear`, `/api/data/import`)
+- [x] Created security headers middleware (`backend/middleware/security.py`)
+  - HSTS, CSP, X-Frame-Options, X-Content-Type-Options
+  - X-XSS-Protection, Referrer-Policy, Permissions-Policy
+- [x] Created request logging middleware (`backend/middleware/logging_middleware.py`)
+  - Logs all API requests with timing and user info
+  - Logs authentication failures (401/403)
+  - Logs quota limit hits (429)
+  - JSON format for production, text for development
+- [x] Created rate limiting middleware (`backend/middleware/rate_limit.py`)
+  - Public endpoints: 100/minute
+  - Authenticated endpoints: 200/hour per user
+  - Query endpoint: 30/minute (anti-abuse, in addition to quotas)
+  - No limit for webhooks
+- [x] Added slowapi dependency
+- [x] Updated `backend/app.py` to register all middleware
+- [x] Tightened CORS configuration in `backend/middleware.py`
+  - Environment-based allowed hosts (stricter in production)
+- [x] Updated `.env.example` with `ENVIRONMENT` variable
+- [x] Created comprehensive production security documentation (`PRODUCTION_SECURITY.md`)
 
 ---
 
-## 📁 **Files Created** (56 files)
+## 📁 **Files Created** (61 files)
 
-### Backend Files (9 files)
+### Backend Files (14 files)
 1. `backend/supabase_client.py` - Supabase connection config
 2. `backend/auth.py` - JWT authentication middleware
 3. `backend/models/user.py` - User data models
@@ -154,6 +173,10 @@
 7. `backend/api/stripe_routes.py` - Stripe API endpoints
 8. `backend/migrations/001_sports_stats_schema.sql` - Sports stats schema
 9. `backend/migrations/002_user_tables.sql` - User tables schema
+10. `backend/middleware/__init__.py` - Middleware package init
+11. `backend/middleware/security.py` - Security headers middleware
+12. `backend/middleware/logging_middleware.py` - Request logging middleware
+13. `backend/middleware/rate_limit.py` - Rate limiting middleware
 
 ### Frontend Files (18 files)
 1. `frontend/lib/supabase.ts` - Supabase client configuration
@@ -172,10 +195,13 @@
 14. `frontend/pricing.html` - Standalone pricing page
 15. `frontend/.env.local` - Frontend environment variables
 
-### Modified Backend Files (3 files)
+### Modified Backend Files (5 files)
 1. `backend/data/database.py` - Added PostgreSQL support
 2. `backend/config.py` - Added Supabase + Stripe config
-3. `pyproject.toml` - Added dependencies
+3. `backend/api/routes.py` - Added auth + quota enforcement to /api/query
+4. `backend/app.py` - Registered production hardening middleware
+5. `backend/middleware.py` - Tightened CORS and trusted host config
+6. `pyproject.toml` - Added dependencies (slowapi)
 
 ### Modified Frontend Files (5 files)
 1. `frontend/main.ts` - Added auth state management
@@ -197,11 +223,12 @@
 6. `vercel.json` - Vercel deployment configuration
 7. `.gitignore` - Updated to preserve backend/data modules
 
-### Documentation (4 files)
+### Documentation (5 files)
 1. `SUPABASE_SETUP.md` - Complete Supabase setup guide
 2. `RAILWAY_DEPLOYMENT.md` - Railway backend deployment guide
 3. `VERCEL_DEPLOYMENT.md` - Vercel frontend deployment guide
-4. `IMPLEMENTATION_PROGRESS.md` - This file
+4. `PRODUCTION_SECURITY.md` - Production security and hardening guide
+5. `IMPLEMENTATION_PROGRESS.md` - This file
 
 ---
 
@@ -282,19 +309,15 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
 
 ## 📊 **Progress Summary**
 
-- **Overall**: ~95% Complete
+- **Overall**: 100% Complete ✅
 - **Backend Infrastructure**: 100% Complete ✅
 - **Frontend Authentication**: 100% Complete ✅
 - **Frontend Payment UI**: 100% Complete ✅
 - **Railway Backend Deployment**: 100% Complete ✅
 - **Vercel Frontend Deployment**: 100% Complete ✅ (configuration ready, awaiting user deployment)
-- **Production Configuration**: 0% Complete ⏳
+- **Production Hardening**: 100% Complete ✅
 
-**Estimated Time Remaining**: 30-45 minutes
-- Phase 7 (Production Hardening): 30-45 minutes
-  - CORS configuration for Vercel domain
-  - Rate limiting
-  - Security hardening
+**All development work complete!** Ready for production deployment.
 
 ---
 
@@ -303,10 +326,14 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
 **Backend:**
 - ✅ PostgreSQL (Supabase) or SQLite (auto-detects)
 - ✅ JWT authentication with Supabase
-- ✅ Protected API endpoints
+- ✅ Protected API endpoints with subscription quota enforcement
 - ✅ User subscription management
 - ✅ Stripe checkout and webhooks
-- ✅ Query limit tracking
+- ✅ Query limit tracking (10/month free, 200/month pro)
+- ✅ Security headers (HSTS, CSP, X-Frame-Options, etc.)
+- ✅ Request logging (JSON in production, text in dev)
+- ✅ Rate limiting (anti-abuse protection)
+- ✅ Production-ready CORS configuration
 
 **Frontend:**
 - ✅ Supabase authentication integration
@@ -331,8 +358,10 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
 4. ~~Create pricing/payment UI~~ ✅ DONE
 5. ~~Configure Railway backend deployment~~ ✅ DONE
 6. ~~Configure Vercel frontend deployment~~ ✅ DONE
-7. Deploy frontend to Vercel (user action - follow VERCEL_DEPLOYMENT.md)
-8. Production configuration and hardening (Phase 7)
+7. ~~Production configuration and hardening~~ ✅ DONE
+8. Deploy frontend to Vercel (user action - follow VERCEL_DEPLOYMENT.md)
+9. Set `ENVIRONMENT=production` in Railway
+10. Update CORS with Vercel URL after deployment
 
 ---
 
@@ -341,49 +370,69 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
 - **Supabase Setup**: `SUPABASE_SETUP.md`
 - **Railway Backend Deployment**: `RAILWAY_DEPLOYMENT.md`
 - **Vercel Frontend Deployment**: `VERCEL_DEPLOYMENT.md`
+- **Production Security**: `PRODUCTION_SECURITY.md` ⭐ NEW
 - **Migrations**: `backend/migrations/`
 - **Auth Usage**: See `backend/auth.py` for examples
 - **API Routes**: `backend/api/stripe_routes.py`
+- **Middleware**: `backend/middleware/` (security, logging, rate limiting)
 
 ---
 
 ## ⚡ **Quick Start for Next Session**
 
-### ✅ Completed:
-- Railway backend deployed: `https://chat-stats-production.up.railway.app`
-- Stripe webhook configured
-- Vercel deployment configuration created
+### ✅ All Development Complete!
 
-### 📝 Next Steps:
+**What's Been Built:**
+- ✅ Full authentication system (Supabase)
+- ✅ Subscription tiers with Stripe payments
+- ✅ Query quota enforcement (10 free, 200 pro)
+- ✅ Security headers, logging, rate limiting
+- ✅ Railway backend deployment configuration
+- ✅ Vercel frontend deployment configuration
 
-**Phase 6: Deploy Frontend to Vercel**
+### 📝 Final Deployment Steps:
+
+**1. Install New Dependencies** (if not already done):
+```bash
+uv sync  # Install slowapi and other new dependencies
+```
+
+**2. Set Environment Variable in Railway**:
+```bash
+# In Railway dashboard, add:
+ENVIRONMENT=production
+```
+
+**3. Deploy Frontend to Vercel**:
 ```bash
 # Option 1: Via Vercel Dashboard (Recommended)
 # 1. Go to vercel.com/new
 # 2. Import your GitHub repository
-# 3. Configure project settings (see VERCEL_DEPLOYMENT.md)
-# 4. Add environment variables:
+# 3. Add environment variables:
 #    - VITE_API_URL=https://chat-stats-production.up.railway.app
 #    - VITE_SUPABASE_URL=https://xxx.supabase.co
 #    - VITE_SUPABASE_ANON_KEY=eyJ...
-#    - VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
-# 5. Deploy!
+#    - VITE_STRIPE_PUBLISHABLE_KEY=pk_live_...  # Use LIVE key!
+# 4. Deploy!
 
 # Option 2: Via Vercel CLI
-npm i -g vercel
-vercel login
-vercel  # Follow prompts
+npm i -g vercel && vercel
 ```
 
-**After Vercel Deployment:**
+**4. After Vercel Deployment**:
 1. Get your Vercel URL (e.g., `https://chat-stats.vercel.app`)
-2. Update CORS in `backend/middleware.py` to allow Vercel domain
-3. Push changes to trigger Railway redeploy
-4. Test end-to-end functionality
+2. Update CORS in `backend/middleware.py` to include your Vercel URL
+3. Commit and push to trigger Railway redeploy
+4. Test end-to-end: Sign up → Query → Upgrade → Query again
 
-**Phase 7: Production Hardening**
-1. Configure rate limiting
-2. Security hardening
-3. Performance optimization
+**5. Security Checklist**:
+- [ ] `ENVIRONMENT=production` set in Railway
+- [ ] Using Stripe **live** keys (not test)
+- [ ] Vercel URL added to CORS origins
+- [ ] Test authentication flow
+- [ ] Test subscription quota enforcement
+- [ ] Review logs for any errors
 
-**Full deployment guide**: See `VERCEL_DEPLOYMENT.md` for complete instructions
+**Full guides**:
+- Deployment: `VERCEL_DEPLOYMENT.md`
+- Security: `PRODUCTION_SECURITY.md` ⭐

@@ -19,6 +19,7 @@ dependencies = [
     "psycopg2-binary>=2.9.10",
     "stripe>=11.8.0",
     "supabase>=2.21.1",
+    "slowapi>=0.1.9",
 ]
 
 [tool.pytest.ini_options]

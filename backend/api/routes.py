@@ -4,7 +4,7 @@ API routes for sports statistics endpoints.
 
 from config import config
 from data.cache import get_cache, cache_key_for_endpoint
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from models.api import (
     PlayerSearchResponse,
     QueryRequest,
@@ -12,8 +12,8 @@ from models.api import (
     StatsResponse,
     TeamSearchResponse,
 )
-
-from data.cache import get_cache
+from auth import get_current_user
+from services.subscription_service import get_subscription_service
 
 
 def create_basic_routes(stats_system):
@@ -26,9 +26,22 @@ def create_basic_routes(stats_system):
         return {"message": "Sports Statistics Chat System API", "version": "1.0.0"}
 
     @router.post("/api/query", response_model=QueryResponse)
-    async def query_stats(request: QueryRequest):
-        """Process a sports statistics query and return response with data"""
+    async def query_stats(
+        request: QueryRequest,
+        user: dict = Depends(get_current_user),
+    ):
+        """
+        Process a sports statistics query and return response with data.
+
+        Requires authentication. Query counts against user's monthly quota.
+        """
         try:
+            user_id = user["user_id"]
+
+            # Get subscription service and check query limit
+            subscription_service = get_subscription_service(stats_system.db)
+            subscription_service.check_query_limit(user_id)
+
             # Create session if not provided
             session_id = request.session_id
             if not session_id:
@@ -37,7 +50,13 @@ def create_basic_routes(stats_system):
             # Process query using stats system
             answer, data = stats_system.query(request.query, session_id)
 
+            # Increment query count only after successful query
+            subscription_service.increment_query_count(user_id)
+
             return QueryResponse(answer=answer, data=data, session_id=session_id)
+        except HTTPException:
+            # Re-raise HTTP exceptions (like 401, 429) without wrapping
+            raise
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e)) from e
 
@@ -123,8 +142,8 @@ def create_basic_routes(stats_system):
         return stats
 
     @router.post("/api/cache/clear")
-    async def clear_cache():
-        """Clear all cached entries"""
+    async def clear_cache(user: dict = Depends(get_current_user)):
+        """Clear all cached entries (requires authentication)"""
         if not config.ENABLE_CACHE:
             return {"message": "Cache is disabled"}
 
@@ -151,8 +170,12 @@ def create_basic_routes(stats_system):
             raise HTTPException(status_code=500, detail=str(e)) from e
 
     @router.post("/api/data/import")
-    async def import_data(file_path: str, data_type: str = "json"):
-        """Import sports data from file"""
+    async def import_data(
+        file_path: str,
+        data_type: str = "json",
+        user: dict = Depends(get_current_user),
+    ):
+        """Import sports data from file (requires authentication)"""
         try:
             import os
 
@@ -163,6 +186,8 @@ def create_basic_routes(stats_system):
 
             result = stats_system.import_data(file_path, data_type)
             return {"status": "success", "imported": result}
+        except HTTPException:
+            raise
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e)) from e
 

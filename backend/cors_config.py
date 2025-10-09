@@ -31,8 +31,28 @@ def configure_cors(app):
 
 
 def configure_trusted_host(app):
-    """Configure trusted host middleware for proxy support."""
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
+    """
+    Configure trusted host middleware to prevent Host header attacks.
+
+    In production, restricts which hosts can be used to access the application.
+    In development, allows all hosts for flexibility.
+    """
+    import os
+
+    environment = os.getenv("ENVIRONMENT", "development")
+
+    if environment == "production":
+        # Production: Only allow specific hosts
+        allowed_hosts = [
+            "chat-stats-production.up.railway.app",  # Railway backend
+            "chat-stats-production.railway.app",  # Railway alternate domain
+            "localhost",  # For local testing
+            "127.0.0.1",  # For local testing
+        ]
+        app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
+    else:
+        # Development: Allow all hosts for flexibility
+        app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
 
 
 class DevStaticFiles(StaticFiles):

@@ -14,12 +14,30 @@ from api.stripe_routes import create_stripe_routes
 from config import config
 from core.chat_system import get_stats_system
 from fastapi import FastAPI
-from middleware import DevStaticFiles, configure_cors, configure_trusted_host
+
+# Import CORS, trusted host, and static files configuration
+from cors_config import DevStaticFiles, configure_cors, configure_trusted_host
+
+# Import production hardening middleware
+from middleware.security import configure_security_headers
+from middleware.logging_middleware import configure_request_logging
+from middleware.rate_limit import configure_rate_limiting
 
 # Initialize FastAPI app
 app = FastAPI(title="Sports Statistics Chat System", root_path="")
 
-# Configure middleware
+# Configure middleware (order matters!)
+# 1. Security headers (first to ensure all responses have security headers)
+configure_security_headers(app, enable_hsts=True)
+
+# 2. Request logging (early to log all requests)
+log_format = "json" if os.getenv("ENVIRONMENT") == "production" else "text"
+configure_request_logging(app, log_format=log_format)
+
+# 3. Rate limiting (before other business logic)
+configure_rate_limiting(app)
+
+# 4. Trusted host and CORS (after rate limiting)
 configure_trusted_host(app)
 configure_cors(app)
 
