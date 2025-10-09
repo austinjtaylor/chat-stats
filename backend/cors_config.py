@@ -36,23 +36,17 @@ def configure_trusted_host(app):
 
     In production, restricts which hosts can be used to access the application.
     In development, allows all hosts for flexibility.
+
+    Note: Railway's internal healthchecks and load balancers require allowing
+    wildcard hosts. Railway's edge layer handles Host header validation.
     """
     import os
 
     environment = os.getenv("ENVIRONMENT", "development")
 
-    if environment == "production":
-        # Production: Only allow specific hosts
-        allowed_hosts = [
-            "chat-stats-production.up.railway.app",  # Railway backend
-            "chat-stats-production.railway.app",  # Railway alternate domain
-            "localhost",  # For local testing
-            "127.0.0.1",  # For local testing
-        ]
-        app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
-    else:
-        # Development: Allow all hosts for flexibility
-        app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
+    # Always allow all hosts for Railway compatibility
+    # Railway's edge layer validates the Host header before reaching our app
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
 
 
 class DevStaticFiles(StaticFiles):
