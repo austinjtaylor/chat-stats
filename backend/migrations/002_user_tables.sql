@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS user_subscriptions (
 
     -- Usage tracking
     queries_this_month INTEGER DEFAULT 0,
-    query_limit INTEGER DEFAULT 50, -- Free tier limit
+    query_limit INTEGER DEFAULT 10, -- Free tier limit
 
     -- Timestamps
     created_at TIMESTAMP DEFAULT NOW(),
@@ -199,7 +199,7 @@ RETURNS TRIGGER AS $$
 BEGIN
   -- Create default subscription
   INSERT INTO public.user_subscriptions (user_id, tier, status, query_limit)
-  VALUES (NEW.id, 'free', 'active', 50);
+  VALUES (NEW.id, 'free', 'active', 10);
 
   -- Create default preferences
   INSERT INTO public.user_preferences (user_id)

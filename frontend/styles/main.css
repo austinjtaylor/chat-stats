@@ -27,7 +27,7 @@
 /* Authentication Components */
 @import url('auth.css');
 @import url('user-menu.css');
-@import url('profile.css');
+@import url('settings.css');
 
 /* Pricing & Payment Components */
 @import url('pricing-components.css');
