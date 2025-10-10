@@ -18,8 +18,8 @@ class UFAStats {
     dom: typeof window.DOM | null;
 
     constructor() {
-        // Use VITE_API_URL from environment or fall back to relative path
-        this.apiBase = (import.meta as any).env?.VITE_API_URL || '/api';
+        // Use VITE_API_URL from environment or fall back to empty (will be relative)
+        this.apiBase = (import.meta as any).env?.VITE_API_URL || '';
         this.currentPage = this.getCurrentPage();
         // Theme is now handled by header.js
         // Navigation highlighting is also handled by header.js
@@ -48,7 +48,7 @@ class UFAStats {
             }
 
             // Fallback to direct fetch
-            const url = new URL(`${this.apiBase}${endpoint}`, window.location.origin);
+            const url = new URL(`${this.apiBase}/api${endpoint}`, window.location.origin);
             Object.keys(params).forEach(key => {
                 if (params[key] !== null && params[key] !== undefined) {
                     url.searchParams.append(key, String(params[key]));
