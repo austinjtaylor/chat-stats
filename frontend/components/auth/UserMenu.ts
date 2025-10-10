@@ -5,6 +5,9 @@
 
 import { signOut, getSession, type SessionInfo } from '../../lib/auth';
 
+// Get API base URL from environment
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
 export class UserMenu {
   private menu: HTMLElement | null = null;
   private session: SessionInfo | null = null;
@@ -77,7 +80,7 @@ export class UserMenu {
       const token = this.session?.session?.access_token;
       if (!token) return;
 
-      const response = await fetch('/api/user/profile', {
+      const response = await fetch(`${API_BASE_URL}/api/user/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

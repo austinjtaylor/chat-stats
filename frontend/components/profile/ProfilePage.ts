@@ -5,6 +5,9 @@
 
 import { getSession, type SessionInfo } from '../../lib/auth';
 
+// Get API base URL from environment
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
 interface SubscriptionData {
   tier: string;
   status: string;
@@ -64,7 +67,7 @@ export class ProfilePage {
       const token = this.session?.session?.access_token;
       if (!token) return;
 
-      const response = await fetch('/api/subscription/status', {
+      const response = await fetch(`${API_BASE_URL}/api/subscription/status`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -86,7 +89,7 @@ export class ProfilePage {
       const token = this.session?.session?.access_token;
       if (!token) return;
 
-      const response = await fetch('/api/user/profile', {
+      const response = await fetch(`${API_BASE_URL}/api/user/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -305,7 +308,7 @@ export class ProfilePage {
         return;
       }
 
-      const response = await fetch('/api/user/profile', {
+      const response = await fetch(`${API_BASE_URL}/api/user/profile`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -351,7 +354,7 @@ export class ProfilePage {
       const token = this.session?.session?.access_token;
       if (!token) return;
 
-      const response = await fetch('/api/stripe/create-billing-portal-session', {
+      const response = await fetch(`${API_BASE_URL}/api/stripe/create-billing-portal-session`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
