@@ -270,7 +270,7 @@ def create_stripe_routes(stats_system):
 
     @router.get("/payment-methods")
     @auth_limit
-    async def get_payment_methods(user: dict = Depends(get_current_user)):
+    async def get_payment_methods(request: Request, user: dict = Depends(get_current_user)):
         """
         Get the user's default payment method from Stripe.
 
@@ -298,7 +298,7 @@ def create_stripe_routes(stats_system):
 
     @router.get("/invoices")
     @auth_limit
-    async def get_invoices(user: dict = Depends(get_current_user)):
+    async def get_invoices(request: Request, user: dict = Depends(get_current_user)):
         """
         Get the user's invoice history from Stripe.
 
@@ -326,7 +326,7 @@ def create_stripe_routes(stats_system):
 
     @router.post("/cancel-subscription")
     @auth_limit
-    async def cancel_subscription_endpoint(user: dict = Depends(get_current_user)):
+    async def cancel_subscription_endpoint(request: Request, user: dict = Depends(get_current_user)):
         """
         Cancel the user's subscription (at period end).
 
