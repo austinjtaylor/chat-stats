@@ -61,7 +61,7 @@ class APIClient {
     protected baseURL: string;
     protected defaultHeaders: Record<string, string>;
 
-    constructor(baseURL: string = '/api') {
+    constructor(baseURL: string = '') {
         this.baseURL = baseURL;
         this.defaultHeaders = {
             'Content-Type': 'application/json'
@@ -88,7 +88,7 @@ class APIClient {
      * @private
      */
     protected async request<T = any>(endpoint: string, options: RequestOptions = {}): Promise<T | null> {
-        const url = `${this.baseURL}${endpoint}`;
+        const url = `${this.baseURL}/api${endpoint}`;
 
         // Get auth token and add to headers if available
         const token = await this.getAuthToken();
@@ -426,8 +426,8 @@ class StatsAPI extends APIClient {
     }
 }
 
-// Create singleton instance with environment variable or default to relative path
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+// Create singleton instance with environment variable or default to empty (will be relative)
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 const statsAPI = new StatsAPI(API_BASE_URL);
 
 // ES Module exports
