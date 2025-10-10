@@ -157,6 +157,7 @@ class SubscriptionService:
             current_period_start = :current_period_start,
             current_period_end = :current_period_end,
             query_limit = :query_limit,
+            queries_this_month = 0,
             updated_at = NOW()
         WHERE user_id = :user_id
         """
@@ -237,6 +238,7 @@ class SubscriptionService:
             status = 'active',
             stripe_subscription_id = NULL,
             query_limit = :query_limit,
+            queries_this_month = 0,
             cancel_at_period_end = FALSE,
             updated_at = NOW()
         WHERE user_id = :user_id
