@@ -41,6 +41,9 @@ export class UserMenu {
     container.appendChild(this.menu);
     this.attachEventListeners();
 
+    // Fetch subscription status and update tier display
+    await this.fetchSubscription();
+
     // Listen for profile updates
     window.addEventListener('profile-updated', (event: Event) => {
       const customEvent = event as CustomEvent;
@@ -92,6 +95,34 @@ export class UserMenu {
       }
     } catch (error) {
       console.error('Failed to fetch user profile:', error);
+    }
+  }
+
+  /**
+   * Fetch user's subscription status from API
+   */
+  private async fetchSubscription(): Promise<void> {
+    try {
+      const token = this.session?.session?.access_token;
+      if (!token) return;
+
+      const response = await fetch(`${API_BASE_URL}/api/subscription/status`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const subscription = await response.json();
+        // Update the tier display with actual subscription data
+        this.updateTier(
+          subscription.tier,
+          subscription.queries_this_month,
+          subscription.query_limit
+        );
+      }
+    } catch (error) {
+      console.error('Failed to fetch subscription:', error);
     }
   }
 
