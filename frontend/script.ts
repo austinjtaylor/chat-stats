@@ -246,9 +246,18 @@ async function sendMessage(): Promise<void> {
         // Replace loading message with error
         loadingMessage.remove();
         // Better error message handling with APIError
-        const errorMessage = error instanceof APIError
-            ? `Error: ${(error as any).message}`
-            : `Error: Unable to process your request. Please try again.`;
+        let errorMessage: string;
+        if (error instanceof APIError) {
+            const apiError = error as any;
+            // Customize auth error messages
+            if (apiError.status === 401 || apiError.message.includes('Not authenticated')) {
+                errorMessage = 'Log in to Chat Stats';
+            } else {
+                errorMessage = `Error: ${apiError.message}`;
+            }
+        } else {
+            errorMessage = `Error: Unable to process your request. Please try again.`;
+        }
         addMessage(errorMessage, 'assistant');
     } finally {
         chatInput.disabled = false;

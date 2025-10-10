@@ -89,6 +89,7 @@ async function initAuth() {
  */
 async function updateUIForAuthState(session: Session | null) {
   const isAuthenticated = !!session;
+  const wasAuthenticated = !!document.querySelector('.user-menu'); // Check if user menu exists
 
   // Show/hide auth buttons wrapper
   const authWrapper = document.querySelector('.auth-buttons-wrapper') as HTMLElement;
@@ -102,6 +103,16 @@ async function updateUIForAuthState(session: Session | null) {
       // Callback after logout
       await updateUIForAuthState(null);
     });
+
+    // If user just logged in (wasn't authenticated before), start a new chat
+    if (!wasAuthenticated) {
+      // Import startNewChat from script.ts
+      const chatMessages = document.getElementById('chatMessages');
+      if (chatMessages) {
+        chatMessages.innerHTML = '';
+        document.body.classList.remove('chat-active');
+      }
+    }
   } else {
     destroyUserMenu();
   }
