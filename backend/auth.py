@@ -4,11 +4,12 @@ Protects API endpoints and extracts user information from tokens.
 """
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from typing import Optional
 
 from supabase_client import get_jwt_secret as get_supabase_jwt_secret, SUPABASE_URL
+from utils.security_logger import log_auth_failure
 
 # Security scheme for Bearer tokens
 security = HTTPBearer()
@@ -22,12 +23,13 @@ def get_jwt_secret() -> str:
     return get_supabase_jwt_secret()
 
 
-def decode_jwt_token(token: str) -> dict:
+def decode_jwt_token(token: str, ip_address: Optional[str] = None) -> dict:
     """
     Decode and validate a Supabase JWT token.
 
     Args:
         token: JWT token string
+        ip_address: Client IP address for logging
 
     Returns:
         Decoded token payload with user information
@@ -45,12 +47,22 @@ def decode_jwt_token(token: str) -> dict:
         )
         return payload
     except jwt.ExpiredSignatureError:
+        log_auth_failure(
+            reason="expired_token",
+            ip_address=ip_address,
+            details={"error": "Token has expired"}
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has expired",
             headers={"WWW-Authenticate": "Bearer"},
         )
     except jwt.InvalidTokenError as e:
+        log_auth_failure(
+            reason="invalid_token",
+            ip_address=ip_address,
+            details={"error": str(e)}
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid token: {str(e)}",
@@ -59,6 +71,7 @@ def decode_jwt_token(token: str) -> dict:
 
 
 async def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> dict:
     """
@@ -66,6 +79,7 @@ async def get_current_user(
     Use this in protected routes.
 
     Args:
+        request: FastAPI request object (for IP logging)
         credentials: Bearer token from Authorization header
 
     Returns:
@@ -77,7 +91,8 @@ async def get_current_user(
             return {"user_id": user["sub"], "email": user.get("email")}
     """
     token = credentials.credentials
-    payload = decode_jwt_token(token)
+    ip_address = request.client.host if request.client else None
+    payload = decode_jwt_token(token, ip_address=ip_address)
 
     # Extract user information
     user_id = payload.get("sub")

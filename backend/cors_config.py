@@ -10,23 +10,40 @@ from fastapi.staticfiles import StaticFiles
 
 def configure_cors(app):
     """Configure CORS middleware for the application."""
-    origins = [
-        "http://localhost:3000",  # Local development (Vite dev server)
-        "http://localhost:3001",  # Local development (Vite dev server alternate port)
-        "http://localhost:4173",  # Local production preview
-        "https://chat-frisbee-stats.vercel.app",  # Vercel production (actual)
-        "https://chat-stats.vercel.app",  # Vercel production (if renamed)
-        "https://chat-with-stats.vercel.app",  # Vercel production (old - temporary)
-    ]
+    import os
+
+    environment = os.getenv("ENVIRONMENT", "development")
+
+    # Base origins for all environments
+    origins = []
+
+    if environment == "development":
+        # Local development origins
+        origins.extend([
+            "http://localhost:3000",  # Local development (Vite dev server)
+            "http://localhost:3001",  # Local development (Vite dev server alternate port)
+            "http://localhost:4173",  # Local production preview
+        ])
+
+    # Production origins (allowed in all environments for testing)
+    origins.extend([
+        "https://chat-frisbee-stats.vercel.app",  # Vercel production
+        "https://chat-stats.vercel.app",  # Vercel production (alternate)
+        "https://chat-with-stats.vercel.app",  # Vercel production (legacy)
+    ])
+
+    # Stricter regex for Vercel preview deployments
+    # Only allows: chat-frisbee-stats-<hash>.vercel.app or chat-frisbee-stats-git-<branch>.vercel.app
+    origin_regex = r"https://(chat-frisbee-stats|chat-stats|chat-with-stats)(-[a-z0-9]+)?(-git-[a-z0-9-]+)?\.vercel\.app"
 
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
-        allow_origin_regex=r"https://(chat-frisbee-stats|chat-stats|chat-with-stats).*\.vercel\.app",  # Vercel preview deployments
+        allow_origin_regex=origin_regex,  # Vercel preview deployments
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-        expose_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],  # Explicit methods
+        allow_headers=["Authorization", "Content-Type", "Accept"],  # Explicit headers
+        expose_headers=["Content-Type"],  # Only expose necessary headers
     )
 
 

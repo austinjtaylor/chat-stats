@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request
 
 from auth import get_current_user
 from core.chat_system import get_stats_system
+from middleware.rate_limit import auth_limit, public_limit, no_limit
 from models.subscription import (
     StripeBillingPortalRequest,
     StripeBillingPortalResponse,
@@ -17,6 +18,8 @@ from models.subscription import (
 )
 from services.stripe_service import get_stripe_service
 from services.subscription_service import get_subscription_service
+from utils.security_logger import log_webhook_event, log_payment_attempt
+from utils.validators import validate_price_id, validate_redirect_url, validate_customer_email
 
 
 def create_stripe_routes(stats_system):
@@ -26,6 +29,7 @@ def create_stripe_routes(stats_system):
     stripe_service = get_stripe_service()
 
     @router.post("/create-checkout-session", response_model=StripeCheckoutResponse)
+    @auth_limit
     async def create_checkout_session(
         request: StripeCheckoutRequest,
         user: dict = Depends(get_current_user),
@@ -37,6 +41,12 @@ def create_stripe_routes(stats_system):
         """
         user_id = user["user_id"]
         user_email = user.get("email", "")
+
+        # Validate inputs
+        validate_price_id(request.price_id)
+        validate_redirect_url(request.success_url)
+        validate_redirect_url(request.cancel_url)
+        validate_customer_email(user_email)
 
         # Create checkout session
         result = stripe_service.create_checkout_session(
@@ -52,6 +62,7 @@ def create_stripe_routes(stats_system):
         )
 
     @router.post("/create-billing-portal-session", response_model=StripeBillingPortalResponse)
+    @auth_limit
     async def create_billing_portal_session(
         request: StripeBillingPortalRequest,
         user: dict = Depends(get_current_user),
@@ -93,6 +104,7 @@ def create_stripe_routes(stats_system):
         return StripeBillingPortalResponse(portal_url=portal["portal_url"])
 
     @router.post("/webhook")
+    @no_limit
     async def stripe_webhook(
         request: Request, stripe_signature: str = Header(None, alias="Stripe-Signature")
     ):
@@ -101,14 +113,39 @@ def create_stripe_routes(stats_system):
 
         This endpoint receives notifications from Stripe about subscription events.
         """
+        ip_address = request.client.host if request.client else None
+
         if not stripe_signature:
+            log_webhook_event(
+                event_type="unknown",
+                verified=False,
+                ip_address=ip_address,
+                details={"error": "Missing Stripe signature"}
+            )
             raise HTTPException(status_code=400, detail="Missing Stripe signature")
 
         # Get raw body
         payload = await request.body()
 
         # Verify and construct the event
-        event = stripe_service.construct_webhook_event(payload, stripe_signature)
+        try:
+            event = stripe_service.construct_webhook_event(payload, stripe_signature)
+        except HTTPException as e:
+            log_webhook_event(
+                event_type="unknown",
+                verified=False,
+                ip_address=ip_address,
+                details={"error": str(e.detail)}
+            )
+            raise
+
+        # Log successful webhook verification
+        log_webhook_event(
+            event_type=event.type,
+            verified=True,
+            ip_address=ip_address,
+            details={"event_id": event.id}
+        )
 
         subscription_service = get_subscription_service(stats_system.db)
 
@@ -226,11 +263,13 @@ def create_stripe_routes(stats_system):
         return {"status": "success"}
 
     @router.get("/pricing")
+    @public_limit
     async def get_pricing():
         """Get available subscription tiers and pricing."""
         return {"tiers": SUBSCRIPTION_TIERS}
 
     @router.get("/payment-methods")
+    @auth_limit
     async def get_payment_methods(user: dict = Depends(get_current_user)):
         """
         Get the user's default payment method from Stripe.
@@ -258,6 +297,7 @@ def create_stripe_routes(stats_system):
         return {"payment_method": payment_method}
 
     @router.get("/invoices")
+    @auth_limit
     async def get_invoices(user: dict = Depends(get_current_user)):
         """
         Get the user's invoice history from Stripe.
@@ -285,6 +325,7 @@ def create_stripe_routes(stats_system):
         return {"invoices": invoices}
 
     @router.post("/cancel-subscription")
+    @auth_limit
     async def cancel_subscription_endpoint(user: dict = Depends(get_current_user)):
         """
         Cancel the user's subscription (at period end).

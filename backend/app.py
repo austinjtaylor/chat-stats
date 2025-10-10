@@ -23,6 +23,12 @@ from middleware.security import configure_security_headers
 from middleware.logging_middleware import configure_request_logging
 from middleware.rate_limit import configure_rate_limiting
 
+# Import startup validation
+from utils.startup_validation import run_startup_validation
+
+# Run startup validation before initializing the app
+run_startup_validation()
+
 # Initialize FastAPI app
 app = FastAPI(title="Sports Statistics Chat System", root_path="")
 
