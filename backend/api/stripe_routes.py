@@ -264,7 +264,7 @@ def create_stripe_routes(stats_system):
 
     @router.get("/pricing")
     @public_limit
-    async def get_pricing():
+    async def get_pricing(request: Request):
         """Get available subscription tiers and pricing."""
         return {"tiers": SUBSCRIPTION_TIERS}
 
