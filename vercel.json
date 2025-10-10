@@ -4,6 +4,14 @@
   "installCommand": "npm install",
   "rewrites": [
     {
+      "source": "/settings",
+      "destination": "/settings.html"
+    },
+    {
+      "source": "/pricing",
+      "destination": "/pricing.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
