@@ -231,9 +231,9 @@ export class PricingPage {
       return;
     }
 
-    // TODO: Get actual Stripe price ID from backend
+    // Stripe price IDs for each tier
     const STRIPE_PRICE_IDS: Record<string, string> = {
-      'pro': 'price_pro_monthly', // Replace with actual Stripe price ID
+      'pro': 'price_1SEVEqFQ5wQ0K5wX7rwFg6z2', // Pro plan: $5/month
     };
 
     const priceId = STRIPE_PRICE_IDS[tier];

@@ -230,6 +230,99 @@ def create_stripe_routes(stats_system):
         """Get available subscription tiers and pricing."""
         return {"tiers": SUBSCRIPTION_TIERS}
 
+    @router.get("/payment-methods")
+    async def get_payment_methods(user: dict = Depends(get_current_user)):
+        """
+        Get the user's default payment method from Stripe.
+
+        Requires authentication and an existing Stripe customer.
+        """
+        user_id = user["user_id"]
+
+        # Get Stripe customer ID from database
+        query = """
+        SELECT stripe_customer_id
+        FROM user_subscriptions
+        WHERE user_id = :user_id
+        """
+        result = stats_system.db.execute_query(query, {"user_id": user_id})
+
+        if not result or not result[0].get("stripe_customer_id"):
+            return {"payment_method": None}
+
+        stripe_customer_id = result[0]["stripe_customer_id"]
+
+        # Get payment method from Stripe
+        payment_method = stripe_service.get_payment_methods(stripe_customer_id)
+
+        return {"payment_method": payment_method}
+
+    @router.get("/invoices")
+    async def get_invoices(user: dict = Depends(get_current_user)):
+        """
+        Get the user's invoice history from Stripe.
+
+        Requires authentication and an existing Stripe customer.
+        """
+        user_id = user["user_id"]
+
+        # Get Stripe customer ID from database
+        query = """
+        SELECT stripe_customer_id
+        FROM user_subscriptions
+        WHERE user_id = :user_id
+        """
+        result = stats_system.db.execute_query(query, {"user_id": user_id})
+
+        if not result or not result[0].get("stripe_customer_id"):
+            return {"invoices": []}
+
+        stripe_customer_id = result[0]["stripe_customer_id"]
+
+        # Get invoices from Stripe
+        invoices = stripe_service.get_invoices(stripe_customer_id, limit=10)
+
+        return {"invoices": invoices}
+
+    @router.post("/cancel-subscription")
+    async def cancel_subscription_endpoint(user: dict = Depends(get_current_user)):
+        """
+        Cancel the user's subscription (at period end).
+
+        Requires authentication and an active subscription.
+        """
+        user_id = user["user_id"]
+
+        # Get user's subscription
+        subscription_service = get_subscription_service(stats_system.db)
+        subscription = subscription_service.get_user_subscription(user_id)
+
+        if not subscription:
+            raise HTTPException(status_code=404, detail="Subscription not found")
+
+        # Get Stripe subscription ID from database
+        query = """
+        SELECT stripe_subscription_id
+        FROM user_subscriptions
+        WHERE user_id = :user_id
+        """
+        result = stats_system.db.execute_query(query, {"user_id": user_id})
+
+        if not result or not result[0].get("stripe_subscription_id"):
+            raise HTTPException(
+                status_code=400, detail="No active subscription found"
+            )
+
+        stripe_subscription_id = result[0]["stripe_subscription_id"]
+
+        # Cancel subscription in Stripe
+        stripe_service.cancel_subscription(stripe_subscription_id)
+
+        # Update local database
+        subscription_service.cancel_subscription(user_id, cancel_at_period_end=True)
+
+        return {"status": "success", "message": "Subscription will be canceled at period end"}
+
     return router
 
 

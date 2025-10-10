@@ -23,6 +23,27 @@ interface UserProfile {
   favorite_stat_categories: string[];
 }
 
+interface PaymentMethod {
+  id: string;
+  type: string;
+  card: {
+    brand: string;
+    last4: string;
+    exp_month: number;
+    exp_year: number;
+  } | null;
+}
+
+interface Invoice {
+  id: string;
+  date: number;
+  amount_paid: number;
+  currency: string;
+  status: string;
+  invoice_pdf: string;
+  hosted_invoice_url: string;
+}
+
 type TabName = 'profile' | 'billing' | 'usage';
 
 export class SettingsPage {
@@ -30,6 +51,8 @@ export class SettingsPage {
   private session: SessionInfo | null = null;
   private subscription: SubscriptionData | null = null;
   private profile: UserProfile | null = null;
+  private paymentMethod: PaymentMethod | null = null;
+  private invoices: Invoice[] = [];
   private activeTab: TabName = 'profile';
   private saveTimeout: number | null = null;
 
@@ -50,10 +73,12 @@ export class SettingsPage {
       return;
     }
 
-    // Fetch subscription data and profile
+    // Fetch subscription data, profile, payment method, and invoices
     await Promise.all([
       this.fetchSubscription(),
       this.fetchProfile(),
+      this.fetchPaymentMethod(),
+      this.fetchInvoices(),
     ]);
 
     // Check URL hash for tab
@@ -108,6 +133,52 @@ export class SettingsPage {
       }
     } catch (error) {
       console.error('Failed to fetch profile:', error);
+    }
+  }
+
+  /**
+   * Fetch payment method data from API
+   */
+  private async fetchPaymentMethod(): Promise<void> {
+    try {
+      const token = this.session?.session?.access_token;
+      if (!token) return;
+
+      const response = await fetch('/api/stripe/payment-methods', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        this.paymentMethod = data.payment_method;
+      }
+    } catch (error) {
+      console.error('Failed to fetch payment method:', error);
+    }
+  }
+
+  /**
+   * Fetch invoice history from API
+   */
+  private async fetchInvoices(): Promise<void> {
+    try {
+      const token = this.session?.session?.access_token;
+      if (!token) return;
+
+      const response = await fetch('/api/stripe/invoices', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        this.invoices = data.invoices || [];
+      }
+    } catch (error) {
+      console.error('Failed to fetch invoices:', error);
     }
   }
 
@@ -303,21 +374,38 @@ export class SettingsPage {
         })
       : 'N/A';
 
+    // Format payment method display
+    const paymentMethodDisplay = this.paymentMethod?.card
+      ? `${this.paymentMethod.card.brand.charAt(0).toUpperCase() + this.paymentMethod.card.brand.slice(1)} •••• ${this.paymentMethod.card.last4}`
+      : 'No payment method on file';
+
     return `
+      <!-- Subscription Plan Section -->
       <div class="settings-section">
         <h2 class="settings-section-title">Subscription</h2>
         <div class="settings-card">
-          <div class="subscription-header">
-            <div>
-              <div class="subscription-tier">
-                <span class="tier-badge tier-${sub.tier}">${tierName} Plan</span>
-                <span class="subscription-status status-${sub.status}">${sub.status}</span>
+          <div class="subscription-plan-header">
+            <div class="subscription-plan-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                <path d="M2 17l10 5 10-5"></path>
+                <path d="M2 12l10 5 10-5"></path>
+              </svg>
+            </div>
+            <div class="subscription-plan-info">
+              <div class="subscription-plan-name">${tierName} plan</div>
+              <div class="subscription-plan-description">
+                ${sub.query_limit} queries per month
               </div>
-              <div class="subscription-limit">${sub.query_limit} queries per month</div>
+              ${sub.tier !== 'free' && sub.current_period_end ? `
+                <div class="subscription-renewal-info">
+                  Your subscription will auto renew on ${renewalDate}.
+                </div>
+              ` : ''}
             </div>
             ${sub.tier !== 'free' ? `
               <button class="btn-secondary" id="manage-billing-btn">
-                Manage Billing
+                Manage plan
               </button>
             ` : `
               <button class="btn-primary" id="upgrade-btn">
@@ -325,15 +413,73 @@ export class SettingsPage {
               </button>
             `}
           </div>
-
-          ${sub.tier !== 'free' && sub.current_period_end ? `
-            <div class="settings-field" style="margin-top: 16px;">
-              <label>Next Billing Date</label>
-              <div class="settings-value">${renewalDate}</div>
-            </div>
-          ` : ''}
         </div>
       </div>
+
+      <!-- Payment Section -->
+      ${sub.tier !== 'free' ? `
+        <div class="settings-section">
+          <h2 class="settings-section-title">Payment</h2>
+          <div class="settings-card">
+            <div class="payment-method-row">
+              <div class="payment-method-info">
+                <svg class="payment-card-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                  <line x1="1" y1="10" x2="23" y2="10"></line>
+                </svg>
+                <span class="payment-method-display">${paymentMethodDisplay}</span>
+              </div>
+              <button class="btn-secondary btn-small" id="update-payment-btn">
+                Update
+              </button>
+            </div>
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- Invoices Section -->
+      ${sub.tier !== 'free' && this.invoices.length > 0 ? `
+        <div class="settings-section">
+          <h2 class="settings-section-title">Invoices</h2>
+          <div class="settings-card">
+            <table class="invoices-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${this.invoices.map(invoice => `
+                  <tr>
+                    <td>${new Date(invoice.date * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                    <td>$${invoice.amount_paid.toFixed(2)}</td>
+                    <td><span class="invoice-status invoice-status-${invoice.status}">${invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}</span></td>
+                    <td><a href="${invoice.hosted_invoice_url}" target="_blank" class="btn-link">View</a></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- Cancellation Section -->
+      ${sub.tier !== 'free' ? `
+        <div class="settings-section">
+          <h2 class="settings-section-title">Cancellation</h2>
+          <div class="settings-card">
+            <div class="cancellation-row">
+              <span class="cancellation-text">Cancel plan</span>
+              <button class="btn-danger" id="cancel-subscription-btn">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ` : ''}
     `;
   }
 
@@ -416,6 +562,14 @@ export class SettingsPage {
     const manageBillingBtn = this.container?.querySelector('#manage-billing-btn');
     manageBillingBtn?.addEventListener('click', () => this.handleManageBilling());
 
+    // Update payment button
+    const updatePaymentBtn = this.container?.querySelector('#update-payment-btn');
+    updatePaymentBtn?.addEventListener('click', () => this.handleManageBilling());
+
+    // Cancel subscription button
+    const cancelSubscriptionBtn = this.container?.querySelector('#cancel-subscription-btn');
+    cancelSubscriptionBtn?.addEventListener('click', () => this.handleCancelSubscription());
+
     // Upgrade button
     const upgradeBtn = this.container?.querySelector('#upgrade-btn');
     upgradeBtn?.addEventListener('click', () => {
@@ -473,6 +627,43 @@ export class SettingsPage {
   }
 
   /**
+   * Handle cancel subscription click
+   */
+  private async handleCancelSubscription(): Promise<void> {
+    // Confirm cancellation
+    const confirmed = confirm(
+      'Are you sure you want to cancel your subscription? Your subscription will remain active until the end of your billing period.'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const token = this.session?.session?.access_token;
+      if (!token) return;
+
+      const response = await fetch('/api/stripe/cancel-subscription', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        alert('Your subscription has been scheduled for cancellation at the end of your billing period.');
+        // Reload to update UI
+        window.location.reload();
+      } else {
+        const error = await response.json();
+        alert(`Failed to cancel subscription: ${error.detail || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Failed to cancel subscription:', error);
+      alert('Failed to cancel subscription');
+    }
+  }
+
+  /**
    * Handle full name input with debouncing
    */
   private handleFullNameInput(value: string): void {
@@ -519,13 +710,6 @@ export class SettingsPage {
     }
   }
 
-  /**
-   * Handle refresh data
-   */
-  private async handleRefresh(): Promise<void> {
-    await this.fetchSubscription();
-    this.render();
-  }
 }
 
 // Initialize settings page if on settings route

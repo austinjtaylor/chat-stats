@@ -63,7 +63,7 @@ class StripeService:
 
             return {"checkout_url": session.url, "session_id": session.id}
 
-        except stripe.error.StripeError as e:
+        except Exception as e:
             raise HTTPException(status_code=400, detail=f"Stripe error: {str(e)}")
 
     def create_billing_portal_session(
@@ -89,7 +89,7 @@ class StripeService:
 
             return {"portal_url": session.url}
 
-        except stripe.error.StripeError as e:
+        except Exception as e:
             raise HTTPException(status_code=400, detail=f"Stripe error: {str(e)}")
 
     def construct_webhook_event(self, payload: bytes, sig_header: str) -> Any:
@@ -118,8 +118,10 @@ class StripeService:
             return event
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid payload")
-        except stripe.error.SignatureVerificationError:
-            raise HTTPException(status_code=400, detail="Invalid signature")
+        except Exception as e:
+            if "signature" in str(e).lower():
+                raise HTTPException(status_code=400, detail="Invalid signature")
+            raise HTTPException(status_code=400, detail=f"Webhook error: {str(e)}")
 
     def get_subscription(self, subscription_id: str) -> Any:
         """
@@ -133,7 +135,7 @@ class StripeService:
         """
         try:
             return stripe.Subscription.retrieve(subscription_id)
-        except stripe.error.StripeError as e:
+        except Exception as e:
             raise HTTPException(
                 status_code=400, detail=f"Failed to retrieve subscription: {str(e)}"
             )
@@ -152,7 +154,7 @@ class StripeService:
             return stripe.Subscription.modify(
                 subscription_id, cancel_at_period_end=True
             )
-        except stripe.error.StripeError as e:
+        except Exception as e:
             raise HTTPException(
                 status_code=400, detail=f"Failed to cancel subscription: {str(e)}"
             )
@@ -171,9 +173,87 @@ class StripeService:
             return stripe.Subscription.modify(
                 subscription_id, cancel_at_period_end=False
             )
-        except stripe.error.StripeError as e:
+        except Exception as e:
             raise HTTPException(
                 status_code=400, detail=f"Failed to reactivate subscription: {str(e)}"
+            )
+
+    def get_payment_methods(self, stripe_customer_id: str) -> dict[str, Any]:
+        """
+        Get the default payment method for a customer.
+
+        Args:
+            stripe_customer_id: Stripe Customer ID
+
+        Returns:
+            Dictionary with payment method details (brand, last4, exp_month, exp_year)
+        """
+        try:
+            # Get customer to find default payment method
+            customer = stripe.Customer.retrieve(
+                stripe_customer_id,
+                expand=["invoice_settings.default_payment_method"]
+            )
+
+            # Get the default payment method
+            payment_method = customer.invoice_settings.default_payment_method
+
+            if not payment_method:
+                return None
+
+            # Return simplified payment method info
+            return {
+                "id": payment_method.id,
+                "type": payment_method.type,
+                "card": {
+                    "brand": payment_method.card.brand,
+                    "last4": payment_method.card.last4,
+                    "exp_month": payment_method.card.exp_month,
+                    "exp_year": payment_method.card.exp_year,
+                } if payment_method.type == "card" else None
+            }
+
+        except Exception as e:
+            raise HTTPException(
+                status_code=400, detail=f"Failed to retrieve payment methods: {str(e)}"
+            )
+
+    def get_invoices(self, stripe_customer_id: str, limit: int = 10) -> list[dict[str, Any]]:
+        """
+        Get recent invoices for a customer.
+
+        Args:
+            stripe_customer_id: Stripe Customer ID
+            limit: Maximum number of invoices to return (default 10)
+
+        Returns:
+            List of invoice dictionaries with id, date, amount, status, invoice_pdf
+        """
+        try:
+            # Get invoices for customer
+            invoices = stripe.Invoice.list(
+                customer=stripe_customer_id,
+                limit=limit
+            )
+
+            # Format invoice data
+            result = []
+            for invoice in invoices.data:
+                result.append({
+                    "id": invoice.id,
+                    "date": invoice.created,
+                    "amount_paid": invoice.amount_paid / 100,  # Convert from cents
+                    "currency": invoice.currency.upper(),
+                    "status": invoice.status,
+                    "invoice_pdf": invoice.invoice_pdf,
+                    "hosted_invoice_url": invoice.hosted_invoice_url
+                })
+
+            return result
+
+        except Exception as e:
+            raise HTTPException(
+                status_code=400, detail=f"Failed to retrieve invoices: {str(e)}"
             )
 
 
