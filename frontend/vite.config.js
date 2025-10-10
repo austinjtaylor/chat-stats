@@ -14,6 +14,8 @@ export default defineConfig({
         players: path.resolve(__dirname, 'stats/players.html'),
         teams: path.resolve(__dirname, 'stats/teams.html'),
         gameDetail: path.resolve(__dirname, 'stats/game-detail.html'),
+        settings: path.resolve(__dirname, 'settings.html'),
+        pricing: path.resolve(__dirname, 'pricing.html'),
       },
       output: {
         manualChunks: {
