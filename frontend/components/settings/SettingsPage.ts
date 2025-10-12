@@ -491,6 +491,7 @@ export class SettingsPage {
    */
   private renderUsageTab(sub: SubscriptionData): string {
     const usagePercentage = (sub.queries_this_month / sub.query_limit) * 100;
+    const isAtLimit = usagePercentage >= 100;
     const isNearLimit = usagePercentage >= 80;
 
     return `
@@ -519,7 +520,9 @@ export class SettingsPage {
                 <line x1="12" y1="9" x2="12" y2="13"></line>
                 <line x1="12" y1="17" x2="12.01" y2="17"></line>
               </svg>
-              <span>You're approaching your monthly limit. Consider upgrading to continue asking questions.</span>
+              <span>${isAtLimit
+                ? "You've reached your monthly limit. Upgrade to continue asking questions."
+                : "You're approaching your monthly limit. Consider upgrading to continue asking questions."}</span>
             </div>
           ` : ''}
         </div>

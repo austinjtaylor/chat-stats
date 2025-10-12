@@ -110,7 +110,6 @@ export class UpgradeModal {
 
         <p class="upgrade-modal-footer">
           Your free queries will reset on the 1st of next month.
-          <a href="/pricing" class="upgrade-modal-link">View all plans →</a>
         </p>
       </div>
     `;
