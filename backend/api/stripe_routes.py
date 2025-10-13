@@ -31,7 +31,8 @@ def create_stripe_routes(stats_system):
     @router.post("/create-checkout-session", response_model=StripeCheckoutResponse)
     @auth_limit
     async def create_checkout_session(
-        request: StripeCheckoutRequest,
+        request: Request,
+        checkout_request: StripeCheckoutRequest,
         user: dict = Depends(get_current_user),
     ):
         """
@@ -43,18 +44,18 @@ def create_stripe_routes(stats_system):
         user_email = user.get("email", "")
 
         # Validate inputs
-        validate_price_id(request.price_id)
-        validate_redirect_url(request.success_url)
-        validate_redirect_url(request.cancel_url)
+        validate_price_id(checkout_request.price_id)
+        validate_redirect_url(checkout_request.success_url)
+        validate_redirect_url(checkout_request.cancel_url)
         validate_customer_email(user_email)
 
         # Create checkout session
         result = stripe_service.create_checkout_session(
-            price_id=request.price_id,
+            price_id=checkout_request.price_id,
             customer_email=user_email,
             user_id=user_id,
-            success_url=request.success_url,
-            cancel_url=request.cancel_url,
+            success_url=checkout_request.success_url,
+            cancel_url=checkout_request.cancel_url,
         )
 
         return StripeCheckoutResponse(
@@ -64,7 +65,8 @@ def create_stripe_routes(stats_system):
     @router.post("/create-billing-portal-session", response_model=StripeBillingPortalResponse)
     @auth_limit
     async def create_billing_portal_session(
-        request: StripeBillingPortalRequest,
+        request: Request,
+        portal_request: StripeBillingPortalRequest,
         user: dict = Depends(get_current_user),
     ):
         """
@@ -98,7 +100,7 @@ def create_stripe_routes(stats_system):
 
         # Create billing portal session
         portal = stripe_service.create_billing_portal_session(
-            stripe_customer_id=stripe_customer_id, return_url=request.return_url
+            stripe_customer_id=stripe_customer_id, return_url=portal_request.return_url
         )
 
         return StripeBillingPortalResponse(portal_url=portal["portal_url"])
@@ -158,12 +160,16 @@ def create_stripe_routes(stats_system):
             stripe_subscription_id = session.subscription
 
             if user_id and stripe_subscription_id:
-                # Get the subscription to determine tier
-                subscription = stripe_service.get_subscription(stripe_subscription_id)
-                price_id = subscription.items.data[0].price.id
+                # Get price from checkout session line items (more reliable than subscription)
+                import stripe
+                line_items = stripe.checkout.Session.list_line_items(session.id, limit=1)
+                price_id = line_items.data[0].price.id
 
-                # Map price_id to tier (you'll need to configure these in Stripe)
+                # Map price_id to tier
                 tier = _map_price_to_tier(price_id)
+
+                # Use current time as placeholder - invoice.payment_succeeded will update with real dates
+                now = datetime.now()
 
                 # Update user subscription
                 subscription_service.update_subscription_from_stripe(
@@ -173,18 +179,14 @@ def create_stripe_routes(stats_system):
                     stripe_price_id=price_id,
                     tier=tier,
                     status="active",
-                    current_period_start=datetime.fromtimestamp(
-                        subscription.current_period_start
-                    ),
-                    current_period_end=datetime.fromtimestamp(
-                        subscription.current_period_end
-                    ),
+                    current_period_start=now,
+                    current_period_end=now,
                 )
 
         elif event.type == "invoice.payment_succeeded":
             # Recurring payment successful
             invoice = event.data.object
-            stripe_subscription_id = invoice.subscription
+            stripe_subscription_id = invoice.get('subscription')
 
             if stripe_subscription_id:
                 # Reset monthly query count
@@ -217,28 +219,28 @@ def create_stripe_routes(stats_system):
             if result:
                 user_id = str(result[0]["user_id"])
 
-                if subscription.cancel_at_period_end:
+                if subscription.get('cancel_at_period_end'):
                     # User scheduled cancellation
                     subscription_service.cancel_subscription(
                         user_id, cancel_at_period_end=True
                     )
                 else:
                     # Subscription reactivated or upgraded
-                    price_id = subscription.items.data[0].price.id
+                    price_id = subscription['items']['data'][0]['price']['id']
                     tier = _map_price_to_tier(price_id)
 
                     subscription_service.update_subscription_from_stripe(
                         user_id=user_id,
-                        stripe_customer_id=subscription.customer,
+                        stripe_customer_id=subscription['customer'],
                         stripe_subscription_id=stripe_subscription_id,
                         stripe_price_id=price_id,
                         tier=tier,
-                        status=subscription.status,
+                        status=subscription['status'],
                         current_period_start=datetime.fromtimestamp(
-                            subscription.current_period_start
+                            subscription['current_period_start']
                         ),
                         current_period_end=datetime.fromtimestamp(
-                            subscription.current_period_end
+                            subscription['current_period_end']
                         ),
                     )
 
@@ -374,10 +376,9 @@ def _map_price_to_tier(price_id: str) -> str:
     TODO: Configure these in your environment variables or database.
     Create prices in Stripe dashboard and map them here.
     """
-    # Example mapping (replace with your actual Stripe price IDs)
+    # Map your actual Stripe price IDs
     price_tier_map = {
-        "price_1234_pro_monthly": "pro",
-        "price_5678_enterprise_monthly": "enterprise",
+        "price_1SEVEqFQ5wQ0K5wX7rwFg6z2": "pro",  # Pro plan: $4.99/month
     }
 
     return price_tier_map.get(price_id, "free")
