@@ -115,11 +115,7 @@ export class UserMenu {
       if (response.ok) {
         const subscription = await response.json();
         // Update the tier display with actual subscription data
-        this.updateTier(
-          subscription.tier,
-          subscription.queries_this_month,
-          subscription.query_limit
-        );
+        this.updateTier(subscription.tier);
       }
     } catch (error) {
       console.error('Failed to fetch subscription:', error);
@@ -306,38 +302,13 @@ export class UserMenu {
   /**
    * Update subscription tier badge
    */
-  updateTier(tier: string, queryCount?: number, queryLimit?: number): void {
+  updateTier(tier: string): void {
     const tierBadge = this.menu?.querySelector('.tier-badge');
     if (!tierBadge) return;
 
     // Update tier display
     tierBadge.className = `tier-badge tier-${tier}`;
     tierBadge.textContent = `${tier.charAt(0).toUpperCase() + tier.slice(1)} Plan`;
-
-    // Add query count if provided
-    if (queryCount !== undefined && queryLimit !== undefined) {
-      const header = this.menu?.querySelector('.user-menu-header');
-      let usageEl = header?.querySelector('.user-menu-usage');
-
-      if (!usageEl) {
-        usageEl = document.createElement('div');
-        usageEl.className = 'user-menu-usage';
-        header?.appendChild(usageEl);
-      }
-
-      const percentage = (queryCount / queryLimit) * 100;
-      const isNearLimit = percentage >= 80;
-
-      usageEl.innerHTML = `
-        <div class="usage-text ${isNearLimit ? 'usage-warning' : ''}">
-          ${queryCount} / ${queryLimit} queries
-        </div>
-        <div class="usage-bar">
-          <div class="usage-bar-fill ${isNearLimit ? 'usage-warning' : ''}"
-               style="width: ${Math.min(percentage, 100)}%"></div>
-        </div>
-      `;
-    }
   }
 }
 
