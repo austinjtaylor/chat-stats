@@ -81,9 +81,20 @@ class SubscriptionService:
             )
 
         if subscription.at_query_limit:
+            # Format reset date for display
+            reset_date = None
+            if subscription.current_period_end:
+                reset_date = subscription.current_period_end.strftime("%B %d, %Y")
+
             raise HTTPException(
                 status_code=429,
-                detail=f"Query limit reached ({subscription.query_limit}/month). Upgrade to continue.",
+                detail={
+                    "message": f"Query limit reached ({subscription.query_limit}/month). Upgrade to continue.",
+                    "tier": subscription.tier,
+                    "queries_used": subscription.queries_this_month,
+                    "query_limit": subscription.query_limit,
+                    "reset_date": reset_date,
+                },
             )
 
         return True

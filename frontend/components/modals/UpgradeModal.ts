@@ -8,18 +8,22 @@ import { getSession } from '../../lib/auth';
 export class UpgradeModal {
   private modal: HTMLElement | null = null;
   private queryLimit: number = 10;
+  private tier: string = 'free';
+  private resetDate: string | null = null;
 
   constructor() {}
 
   /**
    * Show the upgrade modal
    */
-  show(_queriesUsed: number = 10, queryLimit: number = 10): void {
+  show(_queriesUsed: number = 10, queryLimit: number = 10, tier: string = 'free', resetDate: string | null = null): void {
     this.queryLimit = queryLimit;
+    this.tier = tier;
+    this.resetDate = resetDate;
 
     if (this.modal) {
-      this.modal.classList.add('active');
-      return;
+      this.modal.remove();
+      this.modal = null;
     }
 
     this.modal = this.createModal();
@@ -52,67 +56,124 @@ export class UpgradeModal {
   private createModal(): HTMLElement {
     const modal = document.createElement('div');
     modal.className = 'upgrade-modal';
-    modal.innerHTML = `
-      <div class="upgrade-modal-overlay"></div>
-      <div class="upgrade-modal-content">
-        <button class="upgrade-modal-close" aria-label="Close">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
 
-        <div class="upgrade-modal-icon">
-          <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-            <circle cx="32" cy="32" r="32" fill="currentColor" opacity="0.1"/>
-            <path d="M32 12v28M32 48h.01M12 32h40" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-          </svg>
-        </div>
+    const tierName = this.tier === 'pro' ? 'Pro' : 'Free';
+    const resetMessage = this.resetDate
+      ? `Your queries will reset on ${this.resetDate}.`
+      : `Your ${this.tier === 'free' ? 'free ' : ''}queries will reset on the 1st of next month.`;
 
-        <h2 class="upgrade-modal-title">You've Reached Your Limit</h2>
-        <p class="upgrade-modal-subtitle">
-          You've used all ${this.queryLimit} queries on the Free plan this month.
-        </p>
+    // For pro users who hit the limit, show a simpler modal
+    if (this.tier === 'pro') {
+      modal.innerHTML = `
+        <div class="upgrade-modal-overlay"></div>
+        <div class="upgrade-modal-content">
+          <button class="upgrade-modal-close" aria-label="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
 
-        <div class="upgrade-modal-comparison">
-          <div class="upgrade-modal-plan">
-            <div class="upgrade-modal-plan-header">
-              <h3>Free</h3>
-              <div class="upgrade-modal-plan-price">$0</div>
-            </div>
-            <ul class="upgrade-modal-plan-features">
-              <li>✓ 10 queries/month</li>
-              <li>✓ Basic features</li>
-            </ul>
-            <div class="upgrade-modal-plan-status">Current Plan</div>
+          <div class="upgrade-modal-icon">
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+              <circle cx="32" cy="32" r="32" fill="currentColor" opacity="0.1"/>
+              <path d="M32 12v28M32 48h.01M12 32h40" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+            </svg>
           </div>
 
-          <div class="upgrade-modal-plan upgrade-modal-plan-highlighted">
-            <div class="upgrade-modal-plan-badge">Recommended</div>
-            <div class="upgrade-modal-plan-header">
-              <h3>Pro</h3>
-              <div class="upgrade-modal-plan-price">
-                $4.99<span>/month</span>
+          <h2 class="upgrade-modal-title">You've Reached Your Limit</h2>
+          <p class="upgrade-modal-subtitle">
+            You've used all ${this.queryLimit} queries on the ${tierName} plan this month.
+          </p>
+
+          <div class="upgrade-modal-comparison">
+            <div class="upgrade-modal-plan upgrade-modal-plan-highlighted" style="max-width: 400px; margin: 0 auto;">
+              <div class="upgrade-modal-plan-header">
+                <h3>Pro</h3>
+                <div class="upgrade-modal-plan-price">
+                  $4.99<span>/month</span>
+                </div>
               </div>
+              <ul class="upgrade-modal-plan-features">
+                <li>✓ 200 queries/month</li>
+                <li>✓ Priority response times</li>
+                <li>✓ Advanced analytics</li>
+                <li>✓ Export to CSV</li>
+                <li>✓ Email support</li>
+              </ul>
+              <div class="upgrade-modal-plan-status">Current Plan</div>
             </div>
-            <ul class="upgrade-modal-plan-features">
-              <li>✓ 200 queries/month</li>
-              <li>✓ Priority response times</li>
-              <li>✓ Advanced analytics</li>
-              <li>✓ Export to CSV</li>
-              <li>✓ Email support</li>
-            </ul>
-            <button class="btn-upgrade-pro" id="upgradeProBtn">
-              Upgrade to Pro
-            </button>
           </div>
-        </div>
 
-        <p class="upgrade-modal-footer">
-          Your free queries will reset on the 1st of next month.
-        </p>
-      </div>
-    `;
+          <p class="upgrade-modal-footer">
+            ${resetMessage}
+          </p>
+        </div>
+      `;
+    } else {
+      // Free tier user - show upgrade options
+      modal.innerHTML = `
+        <div class="upgrade-modal-overlay"></div>
+        <div class="upgrade-modal-content">
+          <button class="upgrade-modal-close" aria-label="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+
+          <div class="upgrade-modal-icon">
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+              <circle cx="32" cy="32" r="32" fill="currentColor" opacity="0.1"/>
+              <path d="M32 12v28M32 48h.01M12 32h40" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+          </div>
+
+          <h2 class="upgrade-modal-title">You've Reached Your Limit</h2>
+          <p class="upgrade-modal-subtitle">
+            You've used all ${this.queryLimit} queries on the ${tierName} plan this month.
+          </p>
+
+          <div class="upgrade-modal-comparison">
+            <div class="upgrade-modal-plan">
+              <div class="upgrade-modal-plan-header">
+                <h3>Free</h3>
+                <div class="upgrade-modal-plan-price">$0</div>
+              </div>
+              <ul class="upgrade-modal-plan-features">
+                <li>✓ 10 queries/month</li>
+                <li>✓ Basic features</li>
+              </ul>
+              <div class="upgrade-modal-plan-status">Current Plan</div>
+            </div>
+
+            <div class="upgrade-modal-plan upgrade-modal-plan-highlighted">
+              <div class="upgrade-modal-plan-badge">Recommended</div>
+              <div class="upgrade-modal-plan-header">
+                <h3>Pro</h3>
+                <div class="upgrade-modal-plan-price">
+                  $4.99<span>/month</span>
+                </div>
+              </div>
+              <ul class="upgrade-modal-plan-features">
+                <li>✓ 200 queries/month</li>
+                <li>✓ Priority response times</li>
+                <li>✓ Advanced analytics</li>
+                <li>✓ Export to CSV</li>
+                <li>✓ Email support</li>
+              </ul>
+              <button class="btn-upgrade-pro" id="upgradeProBtn">
+                Upgrade to Pro
+              </button>
+            </div>
+          </div>
+
+          <p class="upgrade-modal-footer">
+            ${resetMessage}
+          </p>
+        </div>
+      `;
+    }
 
     this.attachEventListeners(modal);
     return modal;
@@ -207,11 +268,11 @@ export class UpgradeModal {
 // Export singleton instance
 let upgradeModalInstance: UpgradeModal | null = null;
 
-export function showUpgradeModal(queriesUsed: number = 10, queryLimit: number = 10): void {
+export function showUpgradeModal(queriesUsed: number = 10, queryLimit: number = 10, tier: string = 'free', resetDate: string | null = null): void {
   if (!upgradeModalInstance) {
     upgradeModalInstance = new UpgradeModal();
   }
-  upgradeModalInstance.show(queriesUsed, queryLimit);
+  upgradeModalInstance.show(queriesUsed, queryLimit, tier, resetDate);
 }
 
 export function hideUpgradeModal(): void {

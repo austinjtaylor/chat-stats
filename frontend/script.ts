@@ -256,9 +256,15 @@ async function sendMessage(): Promise<void> {
             if (apiError.status === 401 || apiError.message.includes('Not authenticated')) {
                 errorMessage = 'Log in to Chat Stats';
             } else if (apiError.status === 429) {
-                // Query limit reached - show upgrade modal
-                errorMessage = apiError.message;
-                showUpgradeModal(10, 10);
+                // Query limit reached - show upgrade modal with subscription details
+                const data = apiError.data?.detail || {};
+                const tier = data.tier || 'free';
+                const queriesUsed = data.queries_used || 10;
+                const queryLimit = data.query_limit || 10;
+                const resetDate = data.reset_date || null;
+
+                errorMessage = data.message || apiError.message;
+                showUpgradeModal(queriesUsed, queryLimit, tier, resetDate);
             } else {
                 errorMessage = `Error: ${apiError.message}`;
             }
