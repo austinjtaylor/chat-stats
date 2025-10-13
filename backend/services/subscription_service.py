@@ -86,10 +86,20 @@ class SubscriptionService:
             if subscription.current_period_end:
                 reset_date = subscription.current_period_end.strftime("%B %d, %Y")
 
+            # Customize message based on tier
+            if subscription.tier == "free":
+                message = f"Query limit reached ({subscription.query_limit}/month). Upgrade to continue."
+            else:
+                # Pro tier - no upgrade option, show reset date
+                if reset_date:
+                    message = f"Query limit reached ({subscription.query_limit}/month). Your queries will reset on {reset_date}."
+                else:
+                    message = f"Query limit reached ({subscription.query_limit}/month). Your queries will reset on the 1st of next month."
+
             raise HTTPException(
                 status_code=429,
                 detail={
-                    "message": f"Query limit reached ({subscription.query_limit}/month). Upgrade to continue.",
+                    "message": message,
                     "tier": subscription.tier,
                     "queries_used": subscription.queries_this_month,
                     "query_limit": subscription.query_limit,
