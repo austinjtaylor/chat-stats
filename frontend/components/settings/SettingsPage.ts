@@ -411,8 +411,8 @@ export class SettingsPage {
               ` : ''}
             </div>
             ${sub.tier !== 'free' ? `
-              <button class="btn-secondary" id="manage-billing-btn">
-                Manage plan
+              <button class="btn-danger" id="cancel-subscription-btn">
+                Cancel
               </button>
             ` : `
               <button class="btn-primary" id="upgrade-btn">
@@ -469,21 +469,6 @@ export class SettingsPage {
                 `).join('')}
               </tbody>
             </table>
-          </div>
-        </div>
-      ` : ''}
-
-      <!-- Cancellation Section -->
-      ${sub.tier !== 'free' ? `
-        <div class="settings-section">
-          <h2 class="settings-section-title">Cancellation</h2>
-          <div class="settings-card">
-            <div class="cancellation-row">
-              <span class="cancellation-text">Cancel plan</span>
-              <button class="btn-danger" id="cancel-subscription-btn">
-                Cancel
-              </button>
-            </div>
           </div>
         </div>
       ` : ''}
@@ -567,10 +552,6 @@ export class SettingsPage {
       const target = e.target as HTMLInputElement;
       this.handleFullNameInput(target.value);
     });
-
-    // Manage billing button
-    const manageBillingBtn = this.container?.querySelector('#manage-billing-btn');
-    manageBillingBtn?.addEventListener('click', () => this.handleManageBilling());
 
     // Update payment button
     const updatePaymentBtn = this.container?.querySelector('#update-payment-btn');

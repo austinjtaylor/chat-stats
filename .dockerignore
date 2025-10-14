@@ -1,0 +1,83 @@
+# Python virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Node modules
+node_modules/
+frontend/node_modules/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Linting and formatting
+.mypy_cache/
+.ruff_cache/
+.pylint.d/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Project-specific
+.claude/
+.deepeval/
+.trees/
+.playwright-mcp/
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Documentation
+docs/
+
+# Backups
+backups/
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+logs/
+*.log
+
+# Data files
+/data/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+.githooks/
+
+# Environment files (keep .env in dockerignore for security)
+.env
+.env.*
+!.env.example
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Vite cache
+.vite/
+
+# GitHub
+.github/
