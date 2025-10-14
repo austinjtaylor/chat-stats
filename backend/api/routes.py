@@ -22,6 +22,11 @@ def create_basic_routes(stats_system):
     """Create basic API routes."""
     router = APIRouter()
 
+    @router.get("/health")
+    async def health_check():
+        """Health check endpoint for Railway and monitoring"""
+        return {"status": "healthy", "service": "chat-stats"}
+
     @router.get("/api")
     async def api_root():
         """API root endpoint"""
