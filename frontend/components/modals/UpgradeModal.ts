@@ -227,7 +227,7 @@ export class UpgradeModal {
       }
 
       // Stripe price ID for Pro plan ($5/month)
-      const STRIPE_PRO_PRICE_ID = 'price_1SEVEqFQ5wQ0K5wX7rwFg6z2';
+      const STRIPE_PRO_PRICE_ID = 'price_1SHunhFDSSUl9V6nc8jPnWX7';
 
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/stripe/create-checkout-session`, {
         method: 'POST',

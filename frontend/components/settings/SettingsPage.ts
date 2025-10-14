@@ -15,6 +15,7 @@ interface SubscriptionData {
   query_limit: number;
   current_period_end?: string;
   stripe_customer_id?: string;
+  cancel_at_period_end?: boolean;
 }
 
 interface UserProfile {
@@ -402,7 +403,10 @@ export class SettingsPage {
               </div>
               ${sub.tier !== 'free' && sub.current_period_end ? `
                 <div class="subscription-renewal-info">
-                  Your subscription will auto renew on ${renewalDate}.
+                  ${sub.cancel_at_period_end
+                    ? `Your subscription will end on ${renewalDate}.`
+                    : `Your subscription will auto renew on ${renewalDate}.`
+                  }
                 </div>
               ` : ''}
             </div>
@@ -624,7 +628,8 @@ export class SettingsPage {
         const data = await response.json();
         window.location.href = data.portal_url;
       } else {
-        alert('Failed to open billing portal');
+        const error = await response.json();
+        alert(error.detail || 'Failed to open billing portal');
       }
     } catch (error) {
       console.error('Failed to open billing portal:', error);

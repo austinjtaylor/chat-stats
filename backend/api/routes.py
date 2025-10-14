@@ -90,6 +90,7 @@ def create_basic_routes(stats_system):
                 "queries_this_month": subscription.queries_this_month,
                 "query_limit": subscription.query_limit,
                 "current_period_end": subscription.current_period_end.isoformat() if subscription.current_period_end else None,
+                "cancel_at_period_end": subscription.cancel_at_period_end,
                 "at_query_limit": subscription.at_query_limit
             }
         except HTTPException:

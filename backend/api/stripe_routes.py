@@ -99,11 +99,20 @@ def create_stripe_routes(stats_system):
         stripe_customer_id = result[0]["stripe_customer_id"]
 
         # Create billing portal session
-        portal = stripe_service.create_billing_portal_session(
-            stripe_customer_id=stripe_customer_id, return_url=portal_request.return_url
-        )
-
-        return StripeBillingPortalResponse(portal_url=portal["portal_url"])
+        # Note: This may fail if switching from test to live keys
+        try:
+            portal = stripe_service.create_billing_portal_session(
+                stripe_customer_id=stripe_customer_id, return_url=portal_request.return_url
+            )
+            return StripeBillingPortalResponse(portal_url=portal["portal_url"])
+        except HTTPException as e:
+            # If customer not found in Stripe (e.g., test customer with live keys)
+            if "customer" in str(e.detail).lower() or "not found" in str(e.detail).lower():
+                raise HTTPException(
+                    status_code=400,
+                    detail="Unable to access billing portal. Please cancel your current subscription and subscribe again with live payment information."
+                )
+            raise
 
     @router.post("/webhook")
     @no_limit
@@ -359,12 +368,19 @@ def create_stripe_routes(stats_system):
         stripe_subscription_id = result[0]["stripe_subscription_id"]
 
         # Cancel subscription in Stripe
-        stripe_service.cancel_subscription(stripe_subscription_id)
-
-        # Update local database
-        subscription_service.cancel_subscription(user_id, cancel_at_period_end=True)
-
-        return {"status": "success", "message": "Subscription will be canceled at period end"}
+        # Note: This may fail if switching from test to live keys, which is okay
+        try:
+            stripe_service.cancel_subscription(stripe_subscription_id)
+            # Update local database to mark as canceling at period end
+            subscription_service.cancel_subscription(user_id, cancel_at_period_end=True)
+            return {"status": "success", "message": "Subscription will be canceled at period end"}
+        except HTTPException as e:
+            # If subscription not found in Stripe (e.g., test subscription with live keys),
+            # downgrade to free tier to fully clear the orphaned subscription
+            if "subscription" in str(e.detail).lower() or "not found" in str(e.detail).lower():
+                subscription_service.downgrade_to_free(user_id)
+                return {"status": "success", "message": "Old subscription cleared. You have been moved to the free tier."}
+            raise
 
     return router
 
@@ -378,7 +394,7 @@ def _map_price_to_tier(price_id: str) -> str:
     """
     # Map your actual Stripe price IDs
     price_tier_map = {
-        "price_1SEVEqFQ5wQ0K5wX7rwFg6z2": "pro",  # Pro plan: $4.99/month
+        "price_1SHunhFDSSUl9V6nc8jPnWX7": "pro",  # Pro plan: $4.99/month
     }
 
     return price_tier_map.get(price_id, "free")
