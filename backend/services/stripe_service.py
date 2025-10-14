@@ -256,6 +256,39 @@ class StripeService:
                 status_code=400, detail=f"Failed to retrieve invoices: {str(e)}"
             )
 
+    def update_payment_method(self, stripe_customer_id: str, payment_method_id: str) -> Any:
+        """
+        Update the default payment method for a customer.
+
+        Args:
+            stripe_customer_id: Stripe Customer ID
+            payment_method_id: Stripe Payment Method ID
+
+        Returns:
+            Updated Stripe Customer object
+        """
+        try:
+            # Attach payment method to customer
+            stripe.PaymentMethod.attach(
+                payment_method_id,
+                customer=stripe_customer_id,
+            )
+
+            # Set as default payment method for invoices
+            customer = stripe.Customer.modify(
+                stripe_customer_id,
+                invoice_settings={
+                    "default_payment_method": payment_method_id,
+                },
+            )
+
+            return customer
+
+        except Exception as e:
+            raise HTTPException(
+                status_code=400, detail=f"Failed to update payment method: {str(e)}"
+            )
+
 
 # Singleton instance
 _stripe_service = None

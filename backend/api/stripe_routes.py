@@ -386,6 +386,48 @@ def create_stripe_routes(stats_system):
                 return {"status": "success", "message": "Old subscription cleared. You have been moved to the free tier."}
             raise
 
+    @router.post("/update-payment-method")
+    @auth_limit
+    async def update_payment_method(
+        request: Request,
+        user: dict = Depends(get_current_user),
+    ):
+        """
+        Update the user's default payment method.
+
+        Requires authentication and an existing Stripe customer.
+        """
+        user_id = user["user_id"]
+
+        # Parse request body
+        body = await request.json()
+        payment_method_id = body.get("payment_method_id")
+
+        if not payment_method_id:
+            raise HTTPException(status_code=400, detail="payment_method_id is required")
+
+        # Get Stripe customer ID from database
+        query = """
+        SELECT stripe_customer_id
+        FROM user_subscriptions
+        WHERE user_id = :user_id
+        """
+        result = stats_system.db.execute_query(query, {"user_id": user_id})
+
+        if not result or not result[0].get("stripe_customer_id"):
+            raise HTTPException(
+                status_code=400, detail="No Stripe customer found. Please subscribe first."
+            )
+
+        stripe_customer_id = result[0]["stripe_customer_id"]
+
+        # Update payment method in Stripe
+        try:
+            stripe_service.update_payment_method(stripe_customer_id, payment_method_id)
+            return {"status": "success", "message": "Payment method updated successfully"}
+        except HTTPException as e:
+            raise
+
     return router
 
 

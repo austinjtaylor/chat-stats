@@ -1,0 +1,353 @@
+/**
+ * Payment Method Modal Styles
+ * Matches the design from the screenshot
+ */
+
+/* Modal Overlay */
+.payment-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+}
+
+/* Modal Container */
+.payment-modal {
+  background-color: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 12px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+/* Modal Header */
+.payment-modal-header {
+  padding: 24px 24px 20px;
+  border-bottom: 1px solid #27272a;
+}
+
+.payment-modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #fafafa;
+}
+
+/* Modal Body */
+.payment-modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Form Fields */
+.form-field {
+  margin-bottom: 20px;
+}
+
+.form-field label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #e4e4e7;
+}
+
+.form-input,
+.form-select {
+  width: 100%;
+  padding: 10px 12px;
+  background-color: #30302e;
+  border: 1px solid #3f3f46;
+  border-radius: 6px;
+  color: #fafafa;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.form-input:focus,
+.form-select:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+
+.form-input::placeholder {
+  color: #71717a;
+}
+
+.form-select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23a1a1aa' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 40px;
+}
+
+/* Stripe Link Section */
+.stripe-link-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background-color: #30302e;
+  border: 1px solid #3f3f46;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.stripe-link-email {
+  flex: 1;
+  font-size: 14px;
+  color: #e4e4e7;
+}
+
+.stripe-link-logo {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.stripe-link-logo svg {
+  display: block;
+}
+
+/* Link Menu */
+.stripe-link-menu-container {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.stripe-link-menu-button {
+  background: none;
+  border: none;
+  color: #71717a;
+  cursor: pointer;
+  padding: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.stripe-link-menu-button:hover {
+  background-color: #3f3f46;
+  color: #a1a1aa;
+}
+
+.stripe-link-dropdown {
+  position: absolute;
+  top: -9px;
+  right: 25px;
+  background-color: #1f1f23;
+  border-radius: 4px;
+  z-index: 1000;
+  min-width: 100px;
+  padding: 2px;
+}
+
+.stripe-link-dropdown-item {
+  width: 100%;
+  padding: 8px 10px;
+  background: none;
+  border: none;
+  color: #6366f1;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-family: inherit;
+  white-space: nowrap;
+  border-radius: 3px;
+}
+
+.stripe-link-dropdown-item:hover {
+  background-color: #3f3f46;
+}
+
+/* Payment Method Options */
+.payment-method-options {
+  margin-bottom: 20px;
+}
+
+.payment-option {
+  width: 100%;
+  padding: 14px 16px;
+  background-color: #30302e;
+  border: 1px solid #3f3f46;
+  border-radius: 6px;
+  color: #e4e4e7;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+}
+
+.payment-option:hover {
+  background-color: #2d2d31;
+  border-color: #52525b;
+}
+
+.payment-option.active {
+  background-color: #312e81;
+  border-color: #6366f1;
+  color: #fafafa;
+}
+
+.payment-option svg {
+  flex-shrink: 0;
+  color: #a1a1aa;
+}
+
+.payment-option.active svg {
+  color: #818cf8;
+}
+
+.payment-option-content {
+  flex: 1;
+}
+
+.payment-option-title {
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.payment-option-subtitle {
+  font-size: 12px;
+  color: #a1a1aa;
+}
+
+/* Stripe Card Element */
+#card-element-container {
+  margin-top: 20px;
+}
+
+.stripe-card-element {
+  padding: 12px;
+  background-color: #30302e;
+  border: 1px solid #3f3f46;
+  border-radius: 6px;
+  transition: border-color 0.2s;
+}
+
+.stripe-card-element:focus-within {
+  border-color: #6366f1;
+}
+
+.card-errors {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #ef4444;
+}
+
+/* Form Error */
+.form-error {
+  margin-top: 16px;
+  padding: 12px;
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid #ef4444;
+  border-radius: 6px;
+  color: #fca5a5;
+  font-size: 14px;
+}
+
+/* Modal Footer */
+.payment-modal-footer {
+  padding: 20px 24px;
+  border-top: 1px solid #27272a;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.btn-secondary,
+.btn-primary {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: #e4e4e7;
+  border: 1px solid #3f3f46;
+}
+
+.btn-secondary:hover {
+  background-color: #27272a;
+}
+
+.btn-primary {
+  background-color: #6366f1;
+  color: #ffffff;
+  border: 1px solid transparent;
+}
+
+.btn-primary:hover {
+  background-color: #4f46e5;
+}
+
+.btn-primary:disabled,
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Loading Spinner */
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .payment-modal {
+    max-width: 100%;
+    margin: 0;
+    border-radius: 0;
+    max-height: 100vh;
+  }
+
+  .payment-modal-overlay {
+    padding: 0;
+  }
+}

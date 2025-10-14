@@ -4,6 +4,7 @@
  */
 
 import { getSession, type SessionInfo } from '../../lib/auth';
+import { showPaymentMethodModal } from '../billing/PaymentMethodModal';
 
 // Get API base URL from environment
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
@@ -587,35 +588,30 @@ export class SettingsPage {
   }
 
   /**
-   * Handle manage billing click
+   * Handle manage billing click (opens custom payment method modal)
    */
   private async handleManageBilling(): Promise<void> {
-    try {
-      const token = this.session?.session?.access_token;
-      if (!token) return;
+    const token = this.session?.session?.access_token;
+    const userEmail = this.session?.user?.email;
+    const userName = this.profile?.full_name || '';
 
-      const response = await fetch(`${API_BASE_URL}/api/stripe/create-billing-portal-session`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          return_url: window.location.href,
-        }),
-      });
+    if (!token || !userEmail) return;
 
-      if (response.ok) {
-        const data = await response.json();
-        window.location.href = data.portal_url;
-      } else {
-        const error = await response.json();
-        alert(error.detail || 'Failed to open billing portal');
-      }
-    } catch (error) {
-      console.error('Failed to open billing portal:', error);
-      alert('Failed to open billing portal');
-    }
+    // Show payment method modal
+    showPaymentMethodModal({
+      currentPaymentMethod: this.paymentMethod,
+      userEmail: userEmail,
+      userName: userName,
+      accessToken: token,
+      onSuccess: async () => {
+        // Refresh payment method data after successful update
+        await this.fetchPaymentMethod();
+        this.render();
+      },
+      onCancel: () => {
+        // Do nothing on cancel
+      },
+    });
   }
 
   /**

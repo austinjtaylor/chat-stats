@@ -31,6 +31,7 @@
 
 /* Pricing & Payment Components */
 @import url('pricing-components.css');
+@import url('payment-modal.css');
 
 /* Page Container */
 .page-container {
