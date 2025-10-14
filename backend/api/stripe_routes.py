@@ -177,8 +177,8 @@ def create_stripe_routes(stats_system):
                 # Map price_id to tier
                 tier = _map_price_to_tier(price_id)
 
-                # Use current time as placeholder - invoice.payment_succeeded will update with real dates
-                now = datetime.now()
+                # Fetch the subscription to get accurate period dates
+                subscription = stripe.Subscription.retrieve(stripe_subscription_id)
 
                 # Update user subscription
                 subscription_service.update_subscription_from_stripe(
@@ -188,8 +188,12 @@ def create_stripe_routes(stats_system):
                     stripe_price_id=price_id,
                     tier=tier,
                     status="active",
-                    current_period_start=now,
-                    current_period_end=now,
+                    current_period_start=datetime.fromtimestamp(
+                        subscription['current_period_start']
+                    ),
+                    current_period_end=datetime.fromtimestamp(
+                        subscription['current_period_end']
+                    ),
                 )
 
         elif event.type == "invoice.payment_succeeded":
