@@ -30,12 +30,18 @@ export class PaymentMethodModal {
   private cardElement: StripeCardElement | null = null;
   private options: PaymentMethodModalOptions;
   private useExisting: boolean = true;
+  private isEditingMode: boolean = false;
+  private showNewCardForm: boolean = false;
+  private isEditingCard: boolean = false;
+  private hasCardFieldsChanged: boolean = false;
 
   constructor(options: PaymentMethodModalOptions) {
     this.options = options;
     // If no current payment method, force new card entry
     if (!options.currentPaymentMethod) {
       this.useExisting = false;
+      this.isEditingMode = true;
+      this.showNewCardForm = true;
     }
   }
 
@@ -151,11 +157,7 @@ export class PaymentMethodModal {
               <!-- Payment Method Options -->
               <div class="payment-method-options">
                 ${this.options.currentPaymentMethod ? `
-                  <button
-                    type="button"
-                    class="payment-option ${this.useExisting ? 'active' : ''}"
-                    id="use-existing-btn"
-                  >
+                  <div class="payment-option ${this.isEditingMode ? 'editing' : ''}" id="existing-payment-box">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
                       <line x1="1" y1="10" x2="23" y2="10"></line>
@@ -164,24 +166,137 @@ export class PaymentMethodModal {
                       <div class="payment-option-title">Use ${this.options.currentPaymentMethod.card.brand} •••• ${this.options.currentPaymentMethod.card.last4}</div>
                       <div class="payment-option-subtitle">Expires ${this.options.currentPaymentMethod.card.exp_month}/${this.options.currentPaymentMethod.card.exp_year}</div>
                     </div>
+                    <button type="button" class="payment-option-change-btn" id="change-btn" style="display: ${!this.isEditingMode ? 'block' : 'none'};">
+                      Change
+                    </button>
+                    <div class="stripe-link-logo" id="payment-link-logo" style="display: none;">
+                      <img src="/images/link-logo.png" alt="Link" width="60" height="30" />
+                    </div>
+                    <div class="payment-actions-container" id="payment-actions-container" style="display: ${this.isEditingMode ? 'flex' : 'none'};">
+                      <button type="button" class="payment-action-btn payment-action-btn-remove" id="remove-card-btn" style="display: none;">
+                        Remove
+                      </button>
+                      <button type="button" class="payment-action-btn" id="update-card-btn" style="display: none;">
+                        Update
+                      </button>
+                      <button type="button" class="stripe-link-menu-button" id="payment-menu-btn">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style="color: #5e8d90;">
+                          <circle cx="8" cy="3" r="1.5"></circle>
+                          <circle cx="8" cy="8" r="1.5"></circle>
+                          <circle cx="8" cy="13" r="1.5"></circle>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- New Payment Method Button (shown when editing) -->
+                  <button
+                    type="button"
+                    class="payment-method-add-new"
+                    id="add-new-btn"
+                    style="display: ${this.isEditingMode ? 'flex' : 'none'};"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="12" y1="8" x2="12" y2="16"></line>
+                      <line x1="8" y1="12" x2="16" y2="12"></line>
+                    </svg>
+                    <span>New payment method</span>
+                  </button>
+
+                  <!-- Log out of Link Button (shown when editing) -->
+                  <button
+                    type="button"
+                    class="payment-method-link-button"
+                    id="logout-link-btn-main"
+                    style="display: ${this.isEditingMode ? 'inline-block' : 'none'};"
+                  >
+                    Log out of Link
                   </button>
                 ` : ''}
-
-                <button
-                  type="button"
-                  class="payment-option ${!this.useExisting ? 'active' : ''}"
-                  id="add-new-btn"
-                >
-                  <span>Pay another way</span>
-                </button>
               </div>
 
               <!-- Card Element (shown when adding new card) -->
-              <div id="card-element-container" style="display: ${!this.useExisting ? 'block' : 'none'};">
+              <div id="card-element-container" style="display: ${this.showNewCardForm ? 'block' : 'none'};">
                 <div class="form-field">
                   <label>Card information</label>
                   <div id="card-element" class="stripe-card-element"></div>
                   <div id="card-errors" class="card-errors"></div>
+                </div>
+
+                <!-- Disclaimer -->
+                <div class="payment-method-disclaimer">
+                  By continuing, you agree to save your payment method with Link.
+                </div>
+
+                <!-- Use Saved Payment Method Button (shown when viewing new card form) -->
+                ${this.options.currentPaymentMethod ? `
+                  <button
+                    type="button"
+                    class="payment-method-link-button"
+                    id="use-saved-btn"
+                  >
+                    Use a saved payment method
+                  </button>
+                ` : ''}
+              </div>
+
+              <!-- Card Edit Form (shown when editing existing card) -->
+              <div id="card-edit-container" style="display: ${this.isEditingCard ? 'block' : 'none'};">
+                <div class="form-field">
+                  <label>Card number</label>
+                  <input
+                    type="text"
+                    id="edit-card-number"
+                    class="form-input"
+                    value="•••• •••• •••• ${this.options.currentPaymentMethod?.card.last4 || ''}"
+                    readonly
+                    style="background-color: #1f1f1f; cursor: not-allowed;"
+                  />
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                  <div class="form-field">
+                    <label>Expiration (MM/YY)</label>
+                    <input
+                      type="text"
+                      id="edit-expiration"
+                      class="form-input"
+                      value="${this.options.currentPaymentMethod ? String(this.options.currentPaymentMethod.card.exp_month).padStart(2, '0') + ' / ' + String(this.options.currentPaymentMethod.card.exp_year).slice(-2) : ''}"
+                      placeholder="MM / YY"
+                      maxlength="7"
+                    />
+                  </div>
+
+                  <div class="form-field">
+                    <label>Security code</label>
+                    <input
+                      type="text"
+                      id="edit-security-code"
+                      class="form-input"
+                      placeholder="CVC"
+                      maxlength="4"
+                    />
+                  </div>
+                </div>
+
+                <div class="form-field">
+                  <label>Nickname (optional)</label>
+                  <input
+                    type="text"
+                    id="edit-nickname"
+                    class="form-input"
+                    placeholder="Nickname (optional)"
+                  />
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 20px;">
+                  <button type="button" class="payment-method-link-button" id="card-edit-update-btn" disabled style="opacity: 0.5; cursor: not-allowed;">
+                    Update
+                  </button>
+                  <button type="button" class="payment-method-link-button" id="card-edit-cancel-btn">
+                    Cancel
+                  </button>
                 </div>
               </div>
 
@@ -213,7 +328,7 @@ export class PaymentMethodModal {
    * Initialize Stripe Elements
    */
   private async initializeStripe(): Promise<void> {
-    if (this.useExisting) return; // Don't initialize if using existing
+    if (!this.showNewCardForm) return; // Don't initialize if not showing new card form
 
     const elements = await createStripeElements();
     if (!elements) {
@@ -251,13 +366,90 @@ export class PaymentMethodModal {
     const updateBtn = this.modal.querySelector('#update-btn');
     updateBtn?.addEventListener('click', () => this.handleUpdate());
 
-    // Use existing payment method button
-    const useExistingBtn = this.modal.querySelector('#use-existing-btn');
-    useExistingBtn?.addEventListener('click', () => this.togglePaymentMethod(true));
+    // Change button (enables edit mode)
+    const changeBtn = this.modal.querySelector('#change-btn');
+    changeBtn?.addEventListener('click', () => this.enableEditMode());
 
     // Add new payment method button
     const addNewBtn = this.modal.querySelector('#add-new-btn');
-    addNewBtn?.addEventListener('click', () => this.togglePaymentMethod(false));
+    addNewBtn?.addEventListener('click', () => this.showNewCardFormView());
+
+    // Use saved payment method button
+    const useSavedBtn = this.modal.querySelector('#use-saved-btn');
+    useSavedBtn?.addEventListener('click', () => this.returnToSavedPaymentMethod());
+
+    // Payment menu button - toggles visibility of Update/Remove buttons and Link logo
+    const paymentMenuBtn = this.modal.querySelector('#payment-menu-btn');
+    const updateCardBtn = this.modal.querySelector('#update-card-btn') as HTMLElement;
+    const removeCardBtn = this.modal.querySelector('#remove-card-btn') as HTMLElement;
+    const paymentLinkLogo = this.modal.querySelector('#payment-link-logo') as HTMLElement;
+
+    paymentMenuBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (updateCardBtn && removeCardBtn) {
+        const isVisible = updateCardBtn.style.display === 'flex';
+        updateCardBtn.style.display = isVisible ? 'none' : 'flex';
+        removeCardBtn.style.display = isVisible ? 'none' : 'flex';
+
+        // Toggle Link logo (opposite of buttons)
+        if (paymentLinkLogo) {
+          paymentLinkLogo.style.display = isVisible ? 'flex' : 'none';
+        }
+      }
+    });
+
+    // Update card button
+    updateCardBtn?.addEventListener('click', () => {
+      this.showCardEditForm();
+      // Only restore Link logo if buttons were actually visible
+      const buttonsWereVisible = updateCardBtn.style.display === 'flex';
+      // Hide buttons after clicking
+      updateCardBtn.style.display = 'none';
+      removeCardBtn.style.display = 'none';
+      // Restore Link logo only if buttons were visible
+      if (paymentLinkLogo && buttonsWereVisible) paymentLinkLogo.style.display = 'flex';
+    });
+
+    // Remove card button
+    removeCardBtn?.addEventListener('click', () => {
+      this.handleRemoveCard();
+      // Only restore Link logo if buttons were actually visible
+      const buttonsWereVisible = updateCardBtn.style.display === 'flex';
+      // Hide buttons after clicking
+      updateCardBtn.style.display = 'none';
+      removeCardBtn.style.display = 'none';
+      // Restore Link logo only if buttons were visible
+      if (paymentLinkLogo && buttonsWereVisible) paymentLinkLogo.style.display = 'flex';
+    });
+
+    // Close payment buttons when clicking outside
+    document.addEventListener('click', (e) => {
+      const actionsContainer = this.modal.querySelector('#payment-actions-container');
+      if (actionsContainer && !actionsContainer.contains(e.target as Node)) {
+        // Only restore Link logo if buttons were actually visible
+        const buttonsWereVisible = updateCardBtn && updateCardBtn.style.display === 'flex';
+        if (updateCardBtn) updateCardBtn.style.display = 'none';
+        if (removeCardBtn) removeCardBtn.style.display = 'none';
+        // Restore Link logo only if buttons were visible
+        if (paymentLinkLogo && buttonsWereVisible) paymentLinkLogo.style.display = 'flex';
+      }
+    });
+
+    // Card edit form buttons
+    const cardEditUpdateBtn = this.modal.querySelector('#card-edit-update-btn');
+    cardEditUpdateBtn?.addEventListener('click', () => this.handleCardEditUpdate());
+
+    const cardEditCancelBtn = this.modal.querySelector('#card-edit-cancel-btn');
+    cardEditCancelBtn?.addEventListener('click', () => this.cancelCardEdit());
+
+    // Card field change detection
+    const editExpiration = this.modal.querySelector('#edit-expiration') as HTMLInputElement;
+    const editSecurityCode = this.modal.querySelector('#edit-security-code') as HTMLInputElement;
+    const editNickname = this.modal.querySelector('#edit-nickname') as HTMLInputElement;
+
+    [editExpiration, editSecurityCode, editNickname].forEach(field => {
+      field?.addEventListener('input', () => this.handleCardFieldChange());
+    });
 
     // Link menu button
     const linkMenuBtn = this.modal.querySelector('#link-menu-btn');
@@ -271,7 +463,7 @@ export class PaymentMethodModal {
       }
     });
 
-    // Log out of Link button
+    // Log out of Link button (in dropdown)
     const logoutLinkBtn = this.modal.querySelector('#logout-link-btn');
     logoutLinkBtn?.addEventListener('click', () => {
       // For now, just hide the Link section
@@ -282,6 +474,17 @@ export class PaymentMethodModal {
       }
       if (linkDropdown) {
         linkDropdown.style.display = 'none';
+      }
+    });
+
+    // Log out of Link button (main button shown when editing)
+    const logoutLinkBtnMain = this.modal.querySelector('#logout-link-btn-main');
+    logoutLinkBtnMain?.addEventListener('click', () => {
+      // For now, just hide the Link section
+      // In a real implementation, you would call Stripe API to disconnect Link
+      const linkSection = this.modal?.querySelector('.stripe-link-section') as HTMLElement;
+      if (linkSection) {
+        linkSection.style.display = 'none';
       }
     });
 
@@ -311,29 +514,218 @@ export class PaymentMethodModal {
   }
 
   /**
-   * Toggle between existing and new payment method
+   * Enable edit mode (when Change button is clicked)
    */
-  private async togglePaymentMethod(useExisting: boolean): Promise<void> {
-    this.useExisting = useExisting;
+  private enableEditMode(): void {
+    this.isEditingMode = true;
 
-    // Update button states
-    const useExistingBtn = this.modal?.querySelector('#use-existing-btn');
-    const addNewBtn = this.modal?.querySelector('#add-new-btn');
+    // Update UI
+    const existingPaymentBox = this.modal?.querySelector('#existing-payment-box');
+    const changeBtn = this.modal?.querySelector('#change-btn') as HTMLElement;
+    const paymentLinkLogo = this.modal?.querySelector('#payment-link-logo') as HTMLElement;
+    const paymentActionsContainer = this.modal?.querySelector('#payment-actions-container') as HTMLElement;
+    const addNewBtn = this.modal?.querySelector('#add-new-btn') as HTMLElement;
+    const logoutLinkBtnMain = this.modal?.querySelector('#logout-link-btn-main') as HTMLElement;
+
+    if (existingPaymentBox) {
+      existingPaymentBox.classList.add('editing');
+    }
+
+    if (changeBtn) {
+      changeBtn.style.display = 'none';
+    }
+
+    if (paymentLinkLogo) {
+      paymentLinkLogo.style.display = 'flex';
+    }
+
+    if (paymentActionsContainer) {
+      paymentActionsContainer.style.display = 'flex';
+    }
+
+    if (addNewBtn) {
+      addNewBtn.style.display = 'flex';
+    }
+
+    if (logoutLinkBtnMain) {
+      logoutLinkBtnMain.style.display = 'inline-block';
+    }
+  }
+
+  /**
+   * Show new card form view (when New payment method button is clicked)
+   */
+  private async showNewCardFormView(): Promise<void> {
+    this.showNewCardForm = true;
+    this.useExisting = false;
+
+    // Update UI
     const cardElementContainer = this.modal?.querySelector('#card-element-container') as HTMLElement;
+    const addNewBtn = this.modal?.querySelector('#add-new-btn') as HTMLElement;
+    const logoutLinkBtnMain = this.modal?.querySelector('#logout-link-btn-main') as HTMLElement;
 
-    if (useExisting) {
-      useExistingBtn?.classList.add('active');
-      addNewBtn?.classList.remove('active');
-      if (cardElementContainer) cardElementContainer.style.display = 'none';
-    } else {
-      useExistingBtn?.classList.remove('active');
-      addNewBtn?.classList.add('active');
-      if (cardElementContainer) cardElementContainer.style.display = 'block';
+    if (cardElementContainer) {
+      cardElementContainer.style.display = 'block';
+    }
 
-      // Initialize Stripe if not already done
-      if (!this.cardElement) {
-        await this.initializeStripe();
+    if (addNewBtn) {
+      addNewBtn.style.display = 'none';
+    }
+
+    if (logoutLinkBtnMain) {
+      logoutLinkBtnMain.style.display = 'none';
+    }
+
+    // Initialize Stripe if not already done
+    if (!this.cardElement) {
+      await this.initializeStripe();
+    }
+  }
+
+  /**
+   * Return to saved payment method view (when Use a saved payment method button is clicked)
+   */
+  private returnToSavedPaymentMethod(): void {
+    this.showNewCardForm = false;
+    this.useExisting = true;
+    this.isEditingMode = true; // Keep in edit mode
+
+    // Update UI
+    const cardElementContainer = this.modal?.querySelector('#card-element-container') as HTMLElement;
+    const addNewBtn = this.modal?.querySelector('#add-new-btn') as HTMLElement;
+    const logoutLinkBtnMain = this.modal?.querySelector('#logout-link-btn-main') as HTMLElement;
+
+    if (cardElementContainer) {
+      cardElementContainer.style.display = 'none';
+    }
+
+    if (addNewBtn) {
+      addNewBtn.style.display = 'flex';
+    }
+
+    if (logoutLinkBtnMain) {
+      logoutLinkBtnMain.style.display = 'inline-block';
+    }
+  }
+
+  /**
+   * Show card edit form (when Update is clicked from dropdown)
+   */
+  private showCardEditForm(): void {
+    this.isEditingCard = true;
+    this.hasCardFieldsChanged = false;
+
+    // Hide other sections
+    const existingPaymentBox = this.modal?.querySelector('#existing-payment-box') as HTMLElement;
+    const addNewBtn = this.modal?.querySelector('#add-new-btn') as HTMLElement;
+    const logoutLinkBtnMain = this.modal?.querySelector('#logout-link-btn-main') as HTMLElement;
+    const cardEditContainer = this.modal?.querySelector('#card-edit-container') as HTMLElement;
+
+    if (existingPaymentBox) {
+      existingPaymentBox.style.display = 'none';
+    }
+
+    if (addNewBtn) {
+      addNewBtn.style.display = 'none';
+    }
+
+    if (logoutLinkBtnMain) {
+      logoutLinkBtnMain.style.display = 'none';
+    }
+
+    if (cardEditContainer) {
+      cardEditContainer.style.display = 'block';
+    }
+  }
+
+  /**
+   * Cancel card edit (return to edit mode)
+   */
+  private cancelCardEdit(): void {
+    this.isEditingCard = false;
+    this.hasCardFieldsChanged = false;
+
+    // Show edit mode sections
+    const existingPaymentBox = this.modal?.querySelector('#existing-payment-box') as HTMLElement;
+    const addNewBtn = this.modal?.querySelector('#add-new-btn') as HTMLElement;
+    const logoutLinkBtnMain = this.modal?.querySelector('#logout-link-btn-main') as HTMLElement;
+    const cardEditContainer = this.modal?.querySelector('#card-edit-container') as HTMLElement;
+
+    if (existingPaymentBox) {
+      existingPaymentBox.style.display = 'flex';
+    }
+
+    if (addNewBtn) {
+      addNewBtn.style.display = 'flex';
+    }
+
+    if (logoutLinkBtnMain) {
+      logoutLinkBtnMain.style.display = 'inline-block';
+    }
+
+    if (cardEditContainer) {
+      cardEditContainer.style.display = 'none';
+    }
+  }
+
+  /**
+   * Handle card field change (enable Update button)
+   */
+  private handleCardFieldChange(): void {
+    this.hasCardFieldsChanged = true;
+
+    const updateBtn = this.modal?.querySelector('#card-edit-update-btn') as HTMLButtonElement;
+    if (updateBtn) {
+      updateBtn.disabled = false;
+      updateBtn.style.opacity = '1';
+      updateBtn.style.cursor = 'pointer';
+    }
+  }
+
+  /**
+   * Handle card edit update
+   */
+  private async handleCardEditUpdate(): Promise<void> {
+    if (!this.hasCardFieldsChanged) return;
+
+    // For now, just close the edit form
+    // In a real implementation, you would update the card details via Stripe API
+    console.log('Updating card details...');
+    this.cancelCardEdit();
+  }
+
+  /**
+   * Handle remove card
+   */
+  private async handleRemoveCard(): Promise<void> {
+    // Confirm before removing
+    if (!confirm('Are you sure you want to remove this payment method?')) {
+      return;
+    }
+
+    try {
+      // Call backend to remove payment method
+      const response = await fetch(`${API_BASE_URL}/api/stripe/remove-payment-method`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.options.accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          payment_method_id: this.options.currentPaymentMethod?.id,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to remove payment method');
       }
+
+      // Success - close modal and refresh
+      this.close();
+      this.options.onSuccess?.();
+    } catch (error: any) {
+      console.error('Failed to remove payment method:', error);
+      alert('Failed to remove payment method. Please try again.');
     }
   }
 
