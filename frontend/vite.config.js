@@ -41,6 +41,7 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
+    // https: true,  // Disabled for now - enable only when testing Stripe payment entry
     proxy: {
       // Proxy API requests to backend
       '/api': {

@@ -3,7 +3,6 @@ Security headers middleware for production hardening.
 Adds security headers to all HTTP responses.
 """
 
-import os
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
@@ -28,19 +27,18 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         Args:
             app: FastAPI application instance
-            enable_hsts: Enable HSTS header (only for HTTPS in production)
+            enable_hsts: Enable HSTS header (only enable when HTTPS is available)
         """
         super().__init__(app)
         self.enable_hsts = enable_hsts
-        self.is_production = os.getenv("ENVIRONMENT", "development") == "production"
 
     async def dispatch(self, request: Request, call_next):
         """Add security headers to response."""
         response: Response = await call_next(request)
 
         # Strict-Transport-Security (HSTS)
-        # Only enable in production with HTTPS
-        if self.enable_hsts and self.is_production:
+        # Only enable when explicitly requested (caller should ensure HTTPS is available)
+        if self.enable_hsts:
             response.headers[
                 "Strict-Transport-Security"
             ] = "max-age=31536000; includeSubDomains"
