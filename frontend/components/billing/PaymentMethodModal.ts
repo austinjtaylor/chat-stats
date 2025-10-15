@@ -16,7 +16,7 @@ interface PaymentMethodModalOptions {
       last4: string;
       exp_month: number;
       exp_year: number;
-    };
+    } | null;
   } | null;
   userEmail: string;
   userName?: string;
@@ -156,7 +156,7 @@ export class PaymentMethodModal {
 
               <!-- Payment Method Options -->
               <div class="payment-method-options">
-                ${this.options.currentPaymentMethod ? `
+                ${this.options.currentPaymentMethod && this.options.currentPaymentMethod.card ? `
                   <div class="payment-option ${this.isEditingMode ? 'editing' : ''}" id="existing-payment-box">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
@@ -249,7 +249,7 @@ export class PaymentMethodModal {
                     type="text"
                     id="edit-card-number"
                     class="form-input"
-                    value="•••• •••• •••• ${this.options.currentPaymentMethod?.card.last4 || ''}"
+                    value="•••• •••• •••• ${this.options.currentPaymentMethod?.card?.last4 || ''}"
                     readonly
                     style="background-color: #1f1f1f; cursor: not-allowed;"
                   />
@@ -262,7 +262,7 @@ export class PaymentMethodModal {
                       type="text"
                       id="edit-expiration"
                       class="form-input"
-                      value="${this.options.currentPaymentMethod ? String(this.options.currentPaymentMethod.card.exp_month).padStart(2, '0') + ' / ' + String(this.options.currentPaymentMethod.card.exp_year).slice(-2) : ''}"
+                      value="${this.options.currentPaymentMethod && this.options.currentPaymentMethod.card ? String(this.options.currentPaymentMethod.card.exp_month).padStart(2, '0') + ' / ' + String(this.options.currentPaymentMethod.card.exp_year).slice(-2) : ''}"
                       placeholder="MM / YY"
                       maxlength="7"
                     />
@@ -424,8 +424,8 @@ export class PaymentMethodModal {
 
     // Close payment buttons when clicking outside
     document.addEventListener('click', (e) => {
-      const actionsContainer = this.modal.querySelector('#payment-actions-container');
-      if (actionsContainer && !actionsContainer.contains(e.target as Node)) {
+      const actionsContainer = this.modal?.querySelector('#payment-actions-container');
+      if (actionsContainer && e.target && !actionsContainer.contains(e.target as Node)) {
         // Only restore Link logo if buttons were actually visible
         const buttonsWereVisible = updateCardBtn && updateCardBtn.style.display === 'flex';
         if (updateCardBtn) updateCardBtn.style.display = 'none';
