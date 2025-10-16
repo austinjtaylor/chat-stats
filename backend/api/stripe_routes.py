@@ -180,6 +180,19 @@ def create_stripe_routes(stats_system):
                 # Fetch the subscription to get accurate period dates
                 subscription = stripe.Subscription.retrieve(stripe_subscription_id)
 
+                # Set the payment method as customer's default (so it shows in payment settings)
+                if subscription.get('default_payment_method'):
+                    try:
+                        stripe.Customer.modify(
+                            stripe_customer_id,
+                            invoice_settings={
+                                'default_payment_method': subscription['default_payment_method']
+                            }
+                        )
+                    except Exception as e:
+                        # Log but don't fail the webhook if setting default payment method fails
+                        print(f"Warning: Failed to set default payment method: {e}")
+
                 # Get period dates with fallback (Stripe may not populate these immediately)
                 now = datetime.now()
                 period_start = subscription.get('current_period_start')
@@ -301,9 +314,9 @@ def create_stripe_routes(stats_system):
         """
         user_id = user["user_id"]
 
-        # Get Stripe customer ID from database
+        # Get Stripe customer ID and subscription ID from database
         query = """
-        SELECT stripe_customer_id
+        SELECT stripe_customer_id, stripe_subscription_id
         FROM user_subscriptions
         WHERE user_id = :user_id
         """
@@ -313,9 +326,13 @@ def create_stripe_routes(stats_system):
             return {"payment_method": None}
 
         stripe_customer_id = result[0]["stripe_customer_id"]
+        stripe_subscription_id = result[0].get("stripe_subscription_id")
 
-        # Get payment method from Stripe
-        payment_method = stripe_service.get_payment_methods(stripe_customer_id)
+        # Get payment method from Stripe (pass subscription ID for fallback)
+        payment_method = stripe_service.get_payment_methods(
+            stripe_customer_id,
+            stripe_subscription_id=stripe_subscription_id
+        )
 
         return {"payment_method": payment_method}
 

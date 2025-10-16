@@ -195,12 +195,13 @@ class StripeService:
                 status_code=400, detail=f"Failed to reactivate subscription: {str(e)}"
             )
 
-    def get_payment_methods(self, stripe_customer_id: str) -> dict[str, Any]:
+    def get_payment_methods(self, stripe_customer_id: str, stripe_subscription_id: str = None) -> dict[str, Any]:
         """
         Get the default payment method for a customer.
 
         Args:
             stripe_customer_id: Stripe Customer ID
+            stripe_subscription_id: Optional Stripe Subscription ID to fallback to
 
         Returns:
             Dictionary with payment method details (brand, last4, exp_month, exp_year)
@@ -214,6 +215,30 @@ class StripeService:
 
             # Get the default payment method
             payment_method = customer.invoice_settings.default_payment_method
+
+            # If no default payment method set, try to get from active subscription
+            if not payment_method and stripe_subscription_id:
+                try:
+                    subscription = stripe.Subscription.retrieve(stripe_subscription_id)
+                    payment_method_id = subscription.get('default_payment_method')
+
+                    if payment_method_id:
+                        # Retrieve the full payment method object
+                        payment_method = stripe.PaymentMethod.retrieve(payment_method_id)
+
+                        # Set it as customer's default for future use
+                        try:
+                            stripe.Customer.modify(
+                                stripe_customer_id,
+                                invoice_settings={
+                                    'default_payment_method': payment_method_id
+                                }
+                            )
+                        except Exception as e:
+                            # Log but don't fail if setting default fails
+                            print(f"Warning: Failed to set default payment method: {e}")
+                except Exception as e:
+                    print(f"Warning: Failed to retrieve payment method from subscription: {e}")
 
             if not payment_method:
                 return None

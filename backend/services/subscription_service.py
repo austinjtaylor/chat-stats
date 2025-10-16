@@ -179,6 +179,8 @@ class SubscriptionService:
             current_period_end = :current_period_end,
             query_limit = :query_limit,
             queries_this_month = 0,
+            cancel_at_period_end = FALSE,
+            canceled_at = NULL,
             updated_at = NOW()
         WHERE user_id = :user_id
         """
