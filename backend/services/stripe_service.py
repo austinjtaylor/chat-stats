@@ -140,20 +140,37 @@ class StripeService:
                 status_code=400, detail=f"Failed to retrieve subscription: {str(e)}"
             )
 
-    def cancel_subscription(self, subscription_id: str) -> Any:
+    def cancel_subscription(
+        self,
+        subscription_id: str,
+        cancellation_reason: str = "",
+        cancellation_feedback: str = ""
+    ) -> Any:
         """
         Cancel a subscription (at period end).
 
         Args:
             subscription_id: Stripe Subscription ID
+            cancellation_reason: Reason for cancellation
+            cancellation_feedback: Additional feedback about cancellation
 
         Returns:
             Updated Stripe Subscription object
         """
         try:
-            return stripe.Subscription.modify(
-                subscription_id, cancel_at_period_end=True
-            )
+            # Build metadata dict with cancellation info
+            metadata = {}
+            if cancellation_reason:
+                metadata["cancellation_reason"] = cancellation_reason
+            if cancellation_feedback:
+                metadata["cancellation_feedback"] = cancellation_feedback
+
+            # Modify subscription with cancellation and metadata
+            params = {"cancel_at_period_end": True}
+            if metadata:
+                params["metadata"] = metadata
+
+            return stripe.Subscription.modify(subscription_id, **params)
         except Exception as e:
             raise HTTPException(
                 status_code=400, detail=f"Failed to cancel subscription: {str(e)}"

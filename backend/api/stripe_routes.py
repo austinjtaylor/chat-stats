@@ -354,8 +354,14 @@ def create_stripe_routes(stats_system):
         Cancel the user's subscription (at period end).
 
         Requires authentication and an active subscription.
+        Optionally accepts cancellation_reason and cancellation_feedback.
         """
         user_id = user["user_id"]
+
+        # Parse request body for cancellation feedback
+        body = await request.json()
+        cancellation_reason = body.get("cancellation_reason", "")
+        cancellation_feedback = body.get("cancellation_feedback", "")
 
         # Get user's subscription
         subscription_service = get_subscription_service(stats_system.db)
@@ -382,7 +388,11 @@ def create_stripe_routes(stats_system):
         # Cancel subscription in Stripe
         # Note: This may fail if switching from test to live keys, which is okay
         try:
-            stripe_service.cancel_subscription(stripe_subscription_id)
+            stripe_service.cancel_subscription(
+                stripe_subscription_id,
+                cancellation_reason=cancellation_reason,
+                cancellation_feedback=cancellation_feedback
+            )
             # Update local database to mark as canceling at period end
             subscription_service.cancel_subscription(user_id, cancel_at_period_end=True)
             return {"status": "success", "message": "Subscription will be canceled at period end"}

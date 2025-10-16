@@ -5,6 +5,7 @@
 
 import { getSession, type SessionInfo } from '../../lib/auth';
 import { showPaymentMethodModal } from '../billing/PaymentMethodModal';
+import { showCancelSubscriptionModal } from './CancelSubscriptionModal';
 
 // Get API base URL from environment
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
@@ -406,20 +407,20 @@ export class SettingsPage {
                 <div class="subscription-renewal-info">
                   ${sub.cancel_at_period_end
                     ? `Your subscription will end on ${renewalDate}.`
-                    : `Your subscription will auto renew on ${renewalDate}.`
+                    : `Your subscription will automatically renew on ${renewalDate}.`
                   }
                 </div>
               ` : ''}
             </div>
-            ${sub.tier !== 'free' ? `
+            ${sub.tier !== 'free' && !sub.cancel_at_period_end ? `
               <button class="btn-danger" id="cancel-subscription-btn">
                 Cancel
               </button>
-            ` : `
+            ` : sub.tier === 'free' ? `
               <button class="btn-primary" id="upgrade-btn">
                 Upgrade Plan
               </button>
-            `}
+            ` : ''}
           </div>
         </div>
       </div>
@@ -618,13 +619,31 @@ export class SettingsPage {
    * Handle cancel subscription click
    */
   private async handleCancelSubscription(): Promise<void> {
-    // Confirm cancellation
-    const confirmed = confirm(
-      'Are you sure you want to cancel your subscription? Your subscription will remain active until the end of your billing period.'
-    );
+    // Get end date for display in modal
+    const endDate = this.subscription?.current_period_end
+      ? new Date(this.subscription.current_period_end).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })
+      : 'the end of your billing period';
 
-    if (!confirmed) return;
+    // Show cancel modal
+    showCancelSubscriptionModal({
+      endDate: endDate,
+      onConfirm: async (reason: string, feedback: string) => {
+        await this.processCancellation(reason, feedback);
+      },
+      onCancel: () => {
+        // Do nothing on cancel
+      },
+    });
+  }
 
+  /**
+   * Process subscription cancellation with reason and feedback
+   */
+  private async processCancellation(reason: string, feedback: string): Promise<void> {
     try {
       const token = this.session?.session?.access_token;
       if (!token) return;
@@ -635,6 +654,10 @@ export class SettingsPage {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          cancellation_reason: reason,
+          cancellation_feedback: feedback,
+        }),
       });
 
       if (response.ok) {
