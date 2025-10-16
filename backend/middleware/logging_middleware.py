@@ -16,6 +16,12 @@ from starlette.responses import Response
 logger = logging.getLogger("api")
 logger.setLevel(logging.INFO)
 
+# Add StreamHandler to output to stdout (for Railway log collection)
+if not logger.handlers:  # Avoid adding duplicate handlers
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.INFO)
+    logger.addHandler(handler)
+
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     """

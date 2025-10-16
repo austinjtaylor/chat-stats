@@ -150,12 +150,56 @@ export async function getSession(): Promise<SessionInfo> {
 }
 
 /**
+ * Force refresh the current session to get a new access token
+ */
+export async function refreshSession(): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.auth.refreshSession();
+
+    if (error) {
+      console.error('Failed to refresh session:', error);
+      return false;
+    }
+
+    return !!data.session;
+  } catch (error) {
+    console.error('Failed to refresh session:', error);
+    return false;
+  }
+}
+
+/**
  * Get the current user's access token (JWT)
+ * Automatically refreshes the token if it's expired or close to expiring
  */
 export async function getAccessToken(): Promise<string | null> {
   try {
     const { data } = await supabase.auth.getSession();
-    return data.session?.access_token || null;
+
+    if (!data.session) {
+      return null;
+    }
+
+    // Check if token is expired or expires soon (within 5 minutes)
+    const expiresAt = data.session.expires_at;
+    if (expiresAt) {
+      const now = Math.floor(Date.now() / 1000);
+      const expiresIn = expiresAt - now;
+
+      // If token expires in less than 5 minutes, refresh it
+      if (expiresIn < 300) {
+        console.log('Token expires soon, refreshing...');
+        const refreshed = await refreshSession();
+
+        if (refreshed) {
+          // Get the new session after refresh
+          const { data: newData } = await supabase.auth.getSession();
+          return newData.session?.access_token || null;
+        }
+      }
+    }
+
+    return data.session.access_token;
   } catch (error) {
     console.error('Failed to get access token:', error);
     return null;

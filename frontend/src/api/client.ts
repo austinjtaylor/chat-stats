@@ -87,7 +87,7 @@ class APIClient {
      * Make an API request
      * @private
      */
-    protected async request<T = any>(endpoint: string, options: RequestOptions = {}): Promise<T | null> {
+    protected async request<T = any>(endpoint: string, options: RequestOptions = {}, isRetry: boolean = false): Promise<T | null> {
         const url = `${this.baseURL}/api${endpoint}`;
 
         // Get auth token and add to headers if available
@@ -112,7 +112,25 @@ class APIClient {
             if (!response.ok) {
                 // Handle 401 Unauthorized errors
                 if (response.status === 401) {
-                    // Dispatch event to show login modal
+                    // If this is not a retry, try refreshing the session and retry once
+                    if (!isRetry) {
+                        console.log('Token expired, refreshing session and retrying...');
+
+                        // Force session refresh
+                        try {
+                            const { refreshSession } = await import('../../lib/auth');
+                            const refreshed = await refreshSession();
+
+                            if (refreshed) {
+                                // Retry the request with fresh token
+                                return this.request<T>(endpoint, options, true);
+                            }
+                        } catch (refreshError) {
+                            console.error('Failed to refresh session:', refreshError);
+                        }
+                    }
+
+                    // If retry failed or this was already a retry, show login modal
                     if (typeof window !== 'undefined') {
                         window.dispatchEvent(new CustomEvent('auth-required'));
                     }
