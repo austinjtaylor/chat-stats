@@ -440,7 +440,8 @@ def _map_price_to_tier(price_id: str) -> str:
     """
     # Map your actual Stripe price IDs
     price_tier_map = {
-        "price_1SHunhFDSSUl9V6nc8jPnWX7": "pro",  # Pro plan: $4.99/month
+        "price_1SHunhFDSSUl9V6nc8jPnWX7": "pro",  # Pro plan: $4.99/month (PRODUCTION)
+        "price_1SIsmsFDSSUl9V6nwVqyHUGY": "pro",  # Pro plan: $0.10/month (TEST - LIVE MODE)
     }
 
     return price_tier_map.get(price_id, "free")

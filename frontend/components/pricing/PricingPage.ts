@@ -27,7 +27,7 @@ const PRICING_TIERS: PricingTier[] = [
   },
   {
     name: 'Pro',
-    price: 4.99,
+    price: 0.10,
     queries: 200,
     features: [
       '200 AI queries per month',
@@ -233,7 +233,7 @@ export class PricingPage {
 
     // Stripe price IDs for each tier
     const STRIPE_PRICE_IDS: Record<string, string> = {
-      'pro': 'price_1SHunhFDSSUl9V6nc8jPnWX7', // Pro plan: $5/month
+      'pro': 'price_1SIsmsFDSSUl9V6nwVqyHUGY', // Pro plan: $0.10/month (TEST - LIVE MODE)
     };
 
     const priceId = STRIPE_PRICE_IDS[tier];
