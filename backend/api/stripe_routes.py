@@ -2,7 +2,7 @@
 Stripe payment and subscription API routes.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 
@@ -180,6 +180,17 @@ def create_stripe_routes(stats_system):
                 # Fetch the subscription to get accurate period dates
                 subscription = stripe.Subscription.retrieve(stripe_subscription_id)
 
+                # Get period dates with fallback (Stripe may not populate these immediately)
+                now = datetime.now()
+                period_start = subscription.get('current_period_start')
+                period_end = subscription.get('current_period_end')
+
+                # Calculate defaults if not available (30 days for monthly subscriptions)
+                if not period_start:
+                    period_start = int(now.timestamp())
+                if not period_end:
+                    period_end = int((now + timedelta(days=30)).timestamp())
+
                 # Update user subscription
                 subscription_service.update_subscription_from_stripe(
                     user_id=user_id,
@@ -188,12 +199,8 @@ def create_stripe_routes(stats_system):
                     stripe_price_id=price_id,
                     tier=tier,
                     status="active",
-                    current_period_start=datetime.fromtimestamp(
-                        subscription['current_period_start']
-                    ),
-                    current_period_end=datetime.fromtimestamp(
-                        subscription['current_period_end']
-                    ),
+                    current_period_start=datetime.fromtimestamp(period_start),
+                    current_period_end=datetime.fromtimestamp(period_end),
                 )
 
         elif event.type == "invoice.payment_succeeded":
@@ -242,6 +249,11 @@ def create_stripe_routes(stats_system):
                     price_id = subscription['items']['data'][0]['price']['id']
                     tier = _map_price_to_tier(price_id)
 
+                    # Get period dates with fallback
+                    now = datetime.now()
+                    period_start = subscription.get('current_period_start', int(now.timestamp()))
+                    period_end = subscription.get('current_period_end', int((now + timedelta(days=30)).timestamp()))
+
                     subscription_service.update_subscription_from_stripe(
                         user_id=user_id,
                         stripe_customer_id=subscription['customer'],
@@ -249,12 +261,8 @@ def create_stripe_routes(stats_system):
                         stripe_price_id=price_id,
                         tier=tier,
                         status=subscription['status'],
-                        current_period_start=datetime.fromtimestamp(
-                            subscription['current_period_start']
-                        ),
-                        current_period_end=datetime.fromtimestamp(
-                            subscription['current_period_end']
-                        ),
+                        current_period_start=datetime.fromtimestamp(period_start),
+                        current_period_end=datetime.fromtimestamp(period_end),
                     )
 
         elif event.type == "customer.subscription.deleted":
