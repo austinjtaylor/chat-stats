@@ -189,10 +189,10 @@ def create_stripe_routes(stats_system):
                     tier=tier,
                     status="active",
                     current_period_start=datetime.fromtimestamp(
-                        subscription.get('current_period_start', subscription.created)
+                        subscription.current_period_start
                     ),
                     current_period_end=datetime.fromtimestamp(
-                        subscription.get('current_period_end', subscription.created)
+                        subscription.current_period_end
                     ),
                 )
 
@@ -250,10 +250,10 @@ def create_stripe_routes(stats_system):
                         tier=tier,
                         status=subscription['status'],
                         current_period_start=datetime.fromtimestamp(
-                            subscription.get('current_period_start', subscription.created)
+                            subscription.current_period_start
                         ),
                         current_period_end=datetime.fromtimestamp(
-                            subscription.get('current_period_end', subscription.created)
+                            subscription.current_period_end
                         ),
                     )
 
