@@ -71,7 +71,6 @@
       "Format": "readonly",
       "statsAPI": "readonly",
       "APIError": "readonly",
-      "marked": "readonly",
       "Chart": "readonly"
     }
   },
@@ -93,6 +92,7 @@
   },
   "dependencies": {
     "@stripe/stripe-js": "^8.0.0",
-    "@supabase/supabase-js": "^2.58.0"
+    "@supabase/supabase-js": "^2.58.0",
+    "marked": "^16.4.1"
   }
 }

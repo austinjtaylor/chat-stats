@@ -7,10 +7,8 @@ import type { DOM as DOMType } from './src/utils/dom';
 // Import modal functions
 import { showUpgradeModal } from './components/modals/UpgradeModal';
 
-// Declare marked as a global
-declare const marked: {
-    parse(text: string): string;
-};
+// Import marked for markdown parsing
+import { marked } from 'marked';
 
 // Access globals that are made available via imports in main.ts
 declare const DOM: typeof DOMType;
