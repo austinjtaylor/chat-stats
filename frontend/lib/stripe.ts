@@ -3,7 +3,7 @@
  * Handles Stripe Elements and payment method tokenization
  */
 
-import { loadStripe, Stripe, StripeElements, StripeCardElement } from '@stripe/stripe-js';
+import { loadStripe, Stripe, StripeElements, StripeCardElement, StripeCardNumberElement, StripeCardExpiryElement, StripeCardCvcElement } from '@stripe/stripe-js';
 
 // Get Stripe publishable key from environment
 const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
@@ -35,7 +35,7 @@ export async function createStripeElements(): Promise<StripeElements | null> {
 }
 
 /**
- * Create a payment method from card element
+ * Create a payment method from card element (combined)
  */
 export async function createPaymentMethod(
   cardElement: StripeCardElement,
@@ -44,6 +44,7 @@ export async function createPaymentMethod(
     email?: string;
     address?: {
       line1?: string;
+      line2?: string;
       city?: string;
       state?: string;
       postal_code?: string;
@@ -66,7 +67,39 @@ export async function createPaymentMethod(
 }
 
 /**
- * Card element styling options
+ * Create a payment method from separate card elements
+ */
+export async function createPaymentMethodFromSeparateElements(
+  cardNumberElement: StripeCardNumberElement,
+  billingDetails: {
+    name: string;
+    email?: string;
+    address?: {
+      line1?: string;
+      line2?: string;
+      city?: string;
+      state?: string;
+      postal_code?: string;
+      country?: string;
+    };
+  }
+): Promise<{ paymentMethod?: any; error?: any }> {
+  const stripe = await getStripe();
+  if (!stripe) {
+    return { error: { message: 'Stripe not initialized' } };
+  }
+
+  const { paymentMethod, error } = await stripe.createPaymentMethod({
+    type: 'card',
+    card: cardNumberElement,
+    billing_details: billingDetails,
+  });
+
+  return { paymentMethod, error };
+}
+
+/**
+ * Card element styling options (for combined card element)
  */
 export const cardElementOptions = {
   style: {
@@ -86,4 +119,26 @@ export const cardElementOptions = {
     },
   },
   hidePostalCode: false,
+};
+
+/**
+ * Styling options for separate card elements
+ */
+export const separateCardElementOptions = {
+  style: {
+    base: {
+      fontSize: '16px',
+      color: '#e4e4e7',
+      backgroundColor: 'transparent',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      '::placeholder': {
+        color: '#71717a',
+      },
+      iconColor: '#71717a',
+    },
+    invalid: {
+      color: '#ef4444',
+      iconColor: '#ef4444',
+    },
+  },
 };

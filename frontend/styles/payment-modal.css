@@ -441,6 +441,172 @@ button.payment-option:hover {
   }
 }
 
+/* Field Error States */
+.input-error {
+  border-color: #ef4444 !important;
+}
+
+.field-error {
+  color: #ef4444;
+  font-size: 13px;
+  margin-top: 6px;
+  display: block;
+}
+
+/* Link Toggle Section */
+.link-toggle-section {
+  margin-bottom: 20px;
+}
+
+.link-toggle-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  color: #5e8d90;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 12px 0;
+  transition: all 0.2s;
+}
+
+.link-toggle-button:hover {
+  opacity: 0.8;
+}
+
+.link-toggle-text {
+  flex: 1;
+  text-align: left;
+}
+
+.link-toggle-arrow {
+  transition: transform 0.3s ease;
+}
+
+.link-toggle-arrow.expanded {
+  transform: rotate(180deg);
+}
+
+.link-expanded-content {
+  padding: 16px;
+  background-color: #30302e;
+  border: 1px solid #3f3f46;
+  border-radius: 6px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.link-expanded-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #3f3f46;
+}
+
+.link-expanded-title {
+  flex: 1;
+  color: #fafafa;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.link-close-button {
+  background: none;
+  border: none;
+  color: #a1a1aa;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.link-close-button:hover {
+  background-color: #3f3f46;
+  color: #fafafa;
+}
+
+.link-description {
+  color: #a1a1aa;
+  font-size: 13px;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.link-email-section {
+  padding-top: 16px;
+  border-top: 1px solid #3f3f46;
+}
+
+.link-logo-container {
+  display: flex;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #3f3f46;
+}
+
+/* Checkbox Styles */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #e4e4e7;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #6366f1;
+}
+
+.checkbox-label span {
+  flex: 1;
+}
+
+/* Link Save Fields */
+#link-save-fields {
+  animation: slideDown 0.3s ease;
+}
+
+/* Link Terms */
+.link-terms {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: #27272a;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.link-terms a {
+  text-decoration: underline;
+}
+
+.link-terms a:hover {
+  opacity: 0.8;
+}
+
 /* Responsive */
 @media (max-width: 640px) {
   .payment-modal {
