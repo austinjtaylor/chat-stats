@@ -968,16 +968,40 @@ export class PaymentMethodModal {
 
         const { client_secret } = await setupResponse.json();
 
-        // TODO: Confirm setup - this needs to be completed
-        // For now, we'll just close and show success
-        // In a full implementation, you'd use stripe.confirmSetup() here
-        console.warn('Payment Element integration incomplete - needs confirmSetup implementation');
+        // Confirm the SetupIntent with the Payment Element
+        const { getStripe } = await import('../../lib/stripe');
+        const stripe = await getStripe();
 
-        // Temporary: just use the existing payment method flow
-        throw new Error('Payment Element not fully integrated yet - please contact support');
+        if (!stripe) {
+          throw new Error('Stripe not initialized');
+        }
+
+        // Confirm setup - this will handle 3D Secure if needed
+        const { error: confirmError, setupIntent } = await stripe.confirmSetup({
+          elements: this.elements,
+          clientSecret: client_secret,
+          confirmParams: {
+            // Don't provide return_url to handle everything in-modal
+            // Stripe will handle 3D Secure inline if needed
+          },
+          redirect: 'if_required', // Only redirect if 3D Secure requires it
+        });
+
+        if (confirmError) {
+          throw new Error(confirmError.message);
+        }
+
+        if (!setupIntent || !setupIntent.payment_method) {
+          throw new Error('No payment method was attached to the setup');
+        }
+
+        // Extract payment method ID from the confirmed SetupIntent
+        paymentMethodId = typeof setupIntent.payment_method === 'string'
+          ? setupIntent.payment_method
+          : setupIntent.payment_method.id;
       }
 
-      // Send to backend to update
+      // Send to backend to update (works for both existing and new payment methods)
       await this.updatePaymentMethodOnBackend(paymentMethodId);
 
       // Success - close modal and call callback

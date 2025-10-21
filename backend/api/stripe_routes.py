@@ -14,6 +14,7 @@ from models.subscription import (
     StripeBillingPortalResponse,
     StripeCheckoutRequest,
     StripeCheckoutResponse,
+    StripeSetupIntentResponse,
     SUBSCRIPTION_TIERS,
 )
 from services.stripe_service import get_stripe_service
@@ -462,6 +463,39 @@ def create_stripe_routes(stats_system):
             return {"status": "success", "message": "Payment method updated successfully"}
         except HTTPException as e:
             raise
+
+    @router.post("/create-setup-intent", response_model=StripeSetupIntentResponse)
+    @auth_limit
+    async def create_setup_intent(
+        request: Request,
+        user: dict = Depends(get_current_user),
+    ):
+        """
+        Create a SetupIntent for collecting payment method with Stripe Payment Element.
+
+        Requires authentication and an existing Stripe customer.
+        """
+        user_id = user["user_id"]
+
+        # Get Stripe customer ID from database
+        query = """
+        SELECT stripe_customer_id
+        FROM user_subscriptions
+        WHERE user_id = :user_id
+        """
+        result = stats_system.db.execute_query(query, {"user_id": user_id})
+
+        if not result or not result[0].get("stripe_customer_id"):
+            raise HTTPException(
+                status_code=400, detail="No Stripe customer found. Please subscribe first."
+            )
+
+        stripe_customer_id = result[0]["stripe_customer_id"]
+
+        # Create SetupIntent in Stripe
+        setup_intent = stripe_service.create_setup_intent(stripe_customer_id)
+
+        return StripeSetupIntentResponse(client_secret=setup_intent["client_secret"])
 
     return router
 

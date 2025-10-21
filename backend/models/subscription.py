@@ -57,6 +57,12 @@ class StripeBillingPortalResponse(BaseModel):
     portal_url: str
 
 
+class StripeSetupIntentResponse(BaseModel):
+    """Response with Stripe SetupIntent client secret."""
+
+    client_secret: str
+
+
 # Subscription tier configurations
 SUBSCRIPTION_TIERS = {
     "free": SubscriptionTier(

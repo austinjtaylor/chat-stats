@@ -331,6 +331,33 @@ class StripeService:
                 status_code=400, detail=f"Failed to update payment method: {str(e)}"
             )
 
+    def create_setup_intent(self, stripe_customer_id: str) -> dict[str, str]:
+        """
+        Create a SetupIntent for collecting payment method with Payment Element.
+
+        Args:
+            stripe_customer_id: Stripe Customer ID
+
+        Returns:
+            Dictionary with client_secret for Payment Element
+
+        Raises:
+            HTTPException: If Stripe API call fails
+        """
+        try:
+            setup_intent = stripe.SetupIntent.create(
+                customer=stripe_customer_id,
+                payment_method_types=["card"],
+                usage="off_session",  # For future payments
+            )
+
+            return {"client_secret": setup_intent.client_secret}
+
+        except Exception as e:
+            raise HTTPException(
+                status_code=400, detail=f"Failed to create setup intent: {str(e)}"
+            )
+
 
 # Singleton instance
 _stripe_service = None
