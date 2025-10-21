@@ -124,7 +124,7 @@ export class PaymentMethodModal {
 
               <!-- Address Line 1 -->
               <div class="form-field">
-                <label for="address-line1">Address line 1</label>
+                <label for="address-line1" id="address-line1-label">${this.showAdditionalAddressFields ? 'Address line 1' : 'Address'}</label>
                 <input
                   type="text"
                   id="address-line1"
@@ -403,7 +403,9 @@ export class PaymentMethodModal {
    * Initialize Stripe Payment Element
    */
   private async initializeStripe(): Promise<void> {
-    if (!this.showNewCardForm) return; // Don't initialize if not showing new card form
+    if (!this.showNewCardForm) {
+      return; // Don't initialize if not showing new card form
+    }
 
     // Create Elements instance
     this.elements = await createStripeElements(this.options.userEmail, this.options.userName);
@@ -425,6 +427,16 @@ export class PaymentMethodModal {
     const paymentElementContainer = this.modal?.querySelector('#payment-element');
     if (paymentElementContainer) {
       this.paymentElement.mount('#payment-element');
+
+      // Listen for when the Payment Element is ready
+      this.paymentElement.on('ready', () => {
+        // Remove height restriction from payment element container
+        const container = this.modal?.querySelector('#payment-element-container') as HTMLElement;
+        if (container) {
+          container.style.maxHeight = 'none';
+          container.style.overflow = 'visible';
+        }
+      });
 
       // Listen for payment method selection changes
       this.paymentElement.on('change', (event) => {
@@ -448,6 +460,12 @@ export class PaymentMethodModal {
     const additionalFields = this.modal?.querySelector('#additional-address-fields') as HTMLElement;
     if (additionalFields) {
       additionalFields.style.display = this.showAdditionalAddressFields ? 'block' : 'none';
+    }
+
+    // Update Address line 1 label
+    const addressLabel = this.modal?.querySelector('#address-line1-label') as HTMLLabelElement;
+    if (addressLabel) {
+      addressLabel.textContent = this.showAdditionalAddressFields ? 'Address line 1' : 'Address';
     }
   }
 
