@@ -408,7 +408,7 @@ export class PaymentMethodModal {
     }
 
     // Create Elements instance
-    this.elements = await createStripeElements(this.options.userEmail, this.options.userName);
+    this.elements = await createStripeElements();
     if (!this.elements) {
       console.error('Failed to initialize Stripe Elements');
       return;

@@ -28,7 +28,7 @@ export function getStripe(): Promise<Stripe | null> {
  * Create Stripe Elements instance for Payment Element
  * Always uses setup mode for collecting payment methods
  */
-export async function createStripeElements(userEmail?: string, userName?: string): Promise<StripeElements | null> {
+export async function createStripeElements(): Promise<StripeElements | null> {
   const stripe = await getStripe();
   if (!stripe) return null;
 
