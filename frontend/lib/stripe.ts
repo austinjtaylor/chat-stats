@@ -143,6 +143,9 @@ export function createPaymentElement(
     terms: {
       card: 'never', // Hide the mandate text for cards
     },
+    fields: {
+      billingDetails: 'never', // Don't collect billing details - we handle this separately
+    },
     ...options,
   });
 }

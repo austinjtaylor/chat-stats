@@ -438,36 +438,10 @@ export class PaymentMethodModal {
         }
       });
 
-      // Listen for payment method selection changes
-      this.paymentElement.on('change', (event) => {
-        // Show additional fields only when Card tab is selected
-        // Hide them when Link is selected (Link already has billing info)
-        if (event.value?.type === 'card') {
-          this.showAdditionalAddressFields = true;
-          this.updateAdditionalFieldsVisibility();
-        } else if (event.value?.type === 'link') {
-          this.showAdditionalAddressFields = false;
-          this.updateAdditionalFieldsVisibility();
-        }
-      });
+      // Payment Element change listener removed - fields will show on validation error instead
     }
   }
 
-  /**
-   * Update visibility of additional address fields
-   */
-  private updateAdditionalFieldsVisibility(): void {
-    const additionalFields = this.modal?.querySelector('#additional-address-fields') as HTMLElement;
-    if (additionalFields) {
-      additionalFields.style.display = this.showAdditionalAddressFields ? 'block' : 'none';
-    }
-
-    // Update Address line 1 label
-    const addressLabel = this.modal?.querySelector('#address-line1-label') as HTMLLabelElement;
-    if (addressLabel) {
-      addressLabel.textContent = this.showAdditionalAddressFields ? 'Address line 1' : 'Address';
-    }
-  }
 
 
   /**
@@ -488,24 +462,28 @@ export class PaymentMethodModal {
       this.validationErrors.set('address-line1', 'This field is incomplete.');
     }
 
-    // Only validate additional fields if they're visible (Card payment method)
-    if (this.showAdditionalAddressFields) {
+    // Validate additional fields when using new payment method (not existing)
+    // These fields are required for Card payments but hidden by default
+    if (this.showNewCardForm && !this.useExisting) {
       // Validate city
       const cityInput = this.modal?.querySelector('#city') as HTMLInputElement;
       if (cityInput && !cityInput.value.trim()) {
         this.validationErrors.set('city', 'This field is incomplete.');
+        this.showAdditionalAddressFields = true; // Show fields when validation fails
       }
 
       // Validate state
       const stateSelect = this.modal?.querySelector('#state') as HTMLSelectElement;
       if (stateSelect && !stateSelect.value) {
         this.validationErrors.set('state', 'This field is incomplete.');
+        this.showAdditionalAddressFields = true; // Show fields when validation fails
       }
 
       // Validate ZIP code
       const zipInput = this.modal?.querySelector('#zip-code') as HTMLInputElement;
       if (zipInput && !zipInput.value.trim()) {
         this.validationErrors.set('zip-code', 'This field is incomplete.');
+        this.showAdditionalAddressFields = true; // Show fields when validation fails
       }
     }
 
@@ -513,24 +491,44 @@ export class PaymentMethodModal {
   }
 
   /**
-   * Re-render form with validation errors
+   * Update validation errors in place (without destroying Payment Element)
    */
-  private reRenderWithErrors(): void {
-    // Re-render the modal with errors
-    const oldModal = this.modal?.parentElement;
-    if (oldModal) {
-      oldModal.remove();
+  private updateValidationErrors(): void {
+    // Update field error states and messages in place
+    this.validationErrors.forEach((message, fieldName) => {
+      const input = this.modal?.querySelector(`#${fieldName}`) as HTMLInputElement | HTMLSelectElement;
+      if (input) {
+        // Add error class
+        input.classList.add('input-error');
+
+        // Add or update error message
+        const existingError = input.parentElement?.querySelector('.field-error');
+        if (existingError) {
+          existingError.textContent = message;
+        } else {
+          const errorDiv = document.createElement('div');
+          errorDiv.className = 'field-error';
+          errorDiv.textContent = message;
+          input.parentElement?.appendChild(errorDiv);
+        }
+      }
+    });
+
+    // Show additional fields if needed
+    if (this.showAdditionalAddressFields) {
+      const additionalFields = this.modal?.querySelector('#additional-address-fields') as HTMLElement;
+      if (additionalFields) {
+        additionalFields.style.display = 'block';
+      }
+
+      // Update Address line 1 label
+      const addressLabel = this.modal?.querySelector('#address-line1-label') as HTMLLabelElement;
+      if (addressLabel) {
+        addressLabel.textContent = 'Address line 1';
+      }
     }
-
-    this.render();
-
-    // Restore Stripe elements if they were initialized
-    if (this.showNewCardForm && this.paymentElement) {
-      this.initializeStripe();
-    }
-
-    this.attachEventListeners();
   }
+
 
   /**
    * Attach event listeners
@@ -920,9 +918,28 @@ export class PaymentMethodModal {
 
     if (!updateBtn) return;
 
-    // Validate form before proceeding
-    if (!this.validateForm()) {
-      this.reRenderWithErrors();
+    // If using new payment method, trigger Stripe validation FIRST
+    // This ensures Stripe shows its inline errors before we do custom validation
+    let stripeValid = true;
+    if (!this.useExisting && this.elements && this.paymentElement) {
+      const { error: submitError } = await this.elements.submit();
+      if (submitError) {
+        stripeValid = false;
+        console.log('Stripe validation failed:', submitError);
+        // Stripe automatically shows inline errors in the Payment Element
+      }
+    }
+
+    // Validate custom form fields
+    const customFieldsValid = this.validateForm();
+
+    // If custom validation failed, update errors in place (don't re-render to preserve Stripe state)
+    if (!customFieldsValid) {
+      this.updateValidationErrors();
+    }
+
+    // If either validation failed, stop here
+    if (!stripeValid || !customFieldsValid) {
       return;
     }
 
@@ -947,7 +964,7 @@ export class PaymentMethodModal {
           throw new Error('Payment Element not initialized');
         }
 
-        // Submit the form to validate
+        // Submit the form to validate (again, in case user fixed errors)
         const { error: submitError } = await this.elements.submit();
         if (submitError) {
           throw new Error(submitError.message);
