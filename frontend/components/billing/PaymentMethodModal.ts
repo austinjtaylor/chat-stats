@@ -993,11 +993,35 @@ export class PaymentMethodModal {
           throw new Error('Stripe not initialized');
         }
 
+        // Get billing details from form fields
+        const nameInput = this.modal?.querySelector('#cardholder-name') as HTMLInputElement;
+        const countrySelect = this.modal?.querySelector('#country') as HTMLSelectElement;
+        const addressLine1Input = this.modal?.querySelector('#address-line1') as HTMLInputElement;
+        const addressLine2Input = this.modal?.querySelector('#address-line2') as HTMLInputElement;
+        const cityInput = this.modal?.querySelector('#city') as HTMLInputElement;
+        const stateSelect = this.modal?.querySelector('#state') as HTMLSelectElement;
+        const zipInput = this.modal?.querySelector('#zip-code') as HTMLInputElement;
+
         // Confirm setup - this will handle 3D Secure if needed
         const { error: confirmError, setupIntent } = await stripe.confirmSetup({
           elements: this.elements,
           clientSecret: client_secret,
           confirmParams: {
+            // Pass billing details manually since we set fields.billingDetails: 'never'
+            payment_method_data: {
+              billing_details: {
+                name: nameInput?.value || '',
+                email: this.options.userEmail || '',
+                address: {
+                  line1: addressLine1Input?.value || '',
+                  line2: addressLine2Input?.value || undefined,
+                  city: cityInput?.value || '',
+                  state: stateSelect?.value || '',
+                  postal_code: zipInput?.value || '',
+                  country: countrySelect?.value || 'US',
+                },
+              },
+            },
             // Don't provide return_url to handle everything in-modal
             // Stripe will handle 3D Secure inline if needed
           },
