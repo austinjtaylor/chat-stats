@@ -1020,6 +1020,7 @@ export class PaymentMethodModal {
         const billingDetails = {
           name: nameInput?.value || '',
           email: this.options.userEmail || '',
+          phone: '', // Required by Stripe when fields.billingDetails: 'never'
           address: {
             line1: addressLine1Input?.value || '',
             line2: addressLine2Input?.value || undefined,
