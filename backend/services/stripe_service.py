@@ -347,7 +347,7 @@ class StripeService:
         try:
             setup_intent = stripe.SetupIntent.create(
                 customer=stripe_customer_id,
-                payment_method_types=["card"],
+                payment_method_types=["card", "link"],  # Match Payment Element configuration
                 usage="off_session",  # For future payments
             )
 
