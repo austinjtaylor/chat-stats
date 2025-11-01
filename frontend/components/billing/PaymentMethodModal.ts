@@ -45,6 +45,7 @@ export class PaymentMethodModal {
       this.useExisting = false;
       this.isEditingMode = true;
       this.showNewCardForm = true;
+      this.showAdditionalAddressFields = true; // Show address fields for new cards
     }
   }
 
@@ -736,11 +737,14 @@ export class PaymentMethodModal {
   private async showNewCardFormView(): Promise<void> {
     this.showNewCardForm = true;
     this.useExisting = false;
+    this.showAdditionalAddressFields = true; // Show address fields for new cards
 
     // Update UI
     const paymentElementContainer = this.modal?.querySelector('#payment-element-container') as HTMLElement;
     const addNewBtn = this.modal?.querySelector('#add-new-btn') as HTMLElement;
     const logoutLinkBtnMain = this.modal?.querySelector('#logout-link-btn-main') as HTMLElement;
+    const additionalFields = this.modal?.querySelector('#additional-address-fields') as HTMLElement;
+    const addressLabel = this.modal?.querySelector('#address-line1-label') as HTMLLabelElement;
 
     if (paymentElementContainer) {
       paymentElementContainer.style.display = 'block';
@@ -752,6 +756,16 @@ export class PaymentMethodModal {
 
     if (logoutLinkBtnMain) {
       logoutLinkBtnMain.style.display = 'none';
+    }
+
+    // Show additional address fields
+    if (additionalFields) {
+      additionalFields.style.display = 'block';
+    }
+
+    // Update Address line 1 label
+    if (addressLabel) {
+      addressLabel.textContent = 'Address line 1';
     }
 
     // Initialize Stripe if not already done
@@ -918,6 +932,10 @@ export class PaymentMethodModal {
 
     if (!updateBtn) return;
 
+    // Clear previous errors first
+    formError.style.display = 'none';
+    formError.textContent = '';
+
     // If using new payment method, trigger Stripe validation FIRST
     // This ensures Stripe shows its inline errors before we do custom validation
     let stripeValid = true;
@@ -942,10 +960,6 @@ export class PaymentMethodModal {
     if (!stripeValid || !customFieldsValid) {
       return;
     }
-
-    // Clear errors
-    formError.style.display = 'none';
-    formError.textContent = '';
 
     // Show loading state
     updateBtn.disabled = true;
@@ -1002,6 +1016,23 @@ export class PaymentMethodModal {
         const stateSelect = this.modal?.querySelector('#state') as HTMLSelectElement;
         const zipInput = this.modal?.querySelector('#zip-code') as HTMLInputElement;
 
+        // Build billing details object
+        const billingDetails = {
+          name: nameInput?.value || '',
+          email: this.options.userEmail || '',
+          address: {
+            line1: addressLine1Input?.value || '',
+            line2: addressLine2Input?.value || undefined,
+            city: cityInput?.value || '',
+            state: stateSelect?.value || '',
+            postal_code: zipInput?.value || '',
+            country: countrySelect?.value || 'US',
+          },
+        };
+
+        // Debug: Log billing details being sent
+        console.log('Billing details being sent to Stripe:', billingDetails);
+
         // Confirm setup - this will handle 3D Secure if needed
         const { error: confirmError, setupIntent } = await stripe.confirmSetup({
           elements: this.elements,
@@ -1009,18 +1040,7 @@ export class PaymentMethodModal {
           confirmParams: {
             // Pass billing details manually since we set fields.billingDetails: 'never'
             payment_method_data: {
-              billing_details: {
-                name: nameInput?.value || '',
-                email: this.options.userEmail || '',
-                address: {
-                  line1: addressLine1Input?.value || '',
-                  line2: addressLine2Input?.value || undefined,
-                  city: cityInput?.value || '',
-                  state: stateSelect?.value || '',
-                  postal_code: zipInput?.value || '',
-                  country: countrySelect?.value || 'US',
-                },
-              },
+              billing_details: billingDetails,
             },
             // Don't provide return_url to handle everything in-modal
             // Stripe will handle 3D Secure inline if needed
