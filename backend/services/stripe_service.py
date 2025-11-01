@@ -243,7 +243,7 @@ class StripeService:
             if not payment_method:
                 return None
 
-            # Return simplified payment method info
+            # Return simplified payment method info with billing details
             return {
                 "id": payment_method.id,
                 "type": payment_method.type,
@@ -252,7 +252,20 @@ class StripeService:
                     "last4": payment_method.card.last4,
                     "exp_month": payment_method.card.exp_month,
                     "exp_year": payment_method.card.exp_year,
-                } if payment_method.type == "card" else None
+                } if payment_method.type == "card" else None,
+                "billing_details": {
+                    "name": payment_method.billing_details.name,
+                    "email": payment_method.billing_details.email,
+                    "phone": payment_method.billing_details.phone,
+                    "address": {
+                        "line1": payment_method.billing_details.address.line1,
+                        "line2": payment_method.billing_details.address.line2,
+                        "city": payment_method.billing_details.address.city,
+                        "state": payment_method.billing_details.address.state,
+                        "postal_code": payment_method.billing_details.address.postal_code,
+                        "country": payment_method.billing_details.address.country,
+                    } if payment_method.billing_details.address else None
+                } if payment_method.billing_details else None
             }
 
         except Exception as e:

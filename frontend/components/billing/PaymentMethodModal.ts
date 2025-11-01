@@ -17,6 +17,19 @@ interface PaymentMethodModalOptions {
       exp_month: number;
       exp_year: number;
     } | null;
+    billing_details?: {
+      name?: string | null;
+      email?: string | null;
+      phone?: string | null;
+      address?: {
+        line1?: string | null;
+        line2?: string | null;
+        city?: string | null;
+        state?: string | null;
+        postal_code?: string | null;
+        country?: string | null;
+      } | null;
+    } | null;
   } | null;
   userEmail: string;
   userName?: string;
@@ -78,7 +91,7 @@ export class PaymentMethodModal {
                   type="text"
                   id="cardholder-name"
                   class="form-input ${this.validationErrors.has('cardholder-name') ? 'input-error' : ''}"
-                  value="${this.options.userName || ''}"
+                  value="${this.options.currentPaymentMethod?.billing_details?.name || this.options.userName || ''}"
                   placeholder="Full name"
                   autocomplete="name"
                   required
@@ -130,6 +143,7 @@ export class PaymentMethodModal {
                   type="text"
                   id="address-line1"
                   class="form-input ${this.validationErrors.has('address-line1') ? 'input-error' : ''}"
+                  value="${this.options.currentPaymentMethod?.billing_details?.address?.line1 || ''}"
                   placeholder=""
                   autocomplete="address-line1"
                   required
@@ -146,6 +160,7 @@ export class PaymentMethodModal {
                     type="text"
                     id="address-line2"
                     class="form-input"
+                    value="${this.options.currentPaymentMethod?.billing_details?.address?.line2 || ''}"
                     placeholder="Apt., suite, unit number, etc. (optional)"
                     autocomplete="address-line2"
                   />
@@ -158,6 +173,7 @@ export class PaymentMethodModal {
                     type="text"
                     id="city"
                     class="form-input ${this.validationErrors.has('city') ? 'input-error' : ''}"
+                    value="${this.options.currentPaymentMethod?.billing_details?.address?.city || ''}"
                     placeholder="City"
                     autocomplete="address-level2"
                     required
@@ -231,6 +247,7 @@ export class PaymentMethodModal {
                     type="text"
                     id="zip-code"
                     class="form-input ${this.validationErrors.has('zip-code') ? 'input-error' : ''}"
+                    value="${this.options.currentPaymentMethod?.billing_details?.address?.postal_code || ''}"
                     placeholder="ZIP code"
                     autocomplete="postal-code"
                     required
@@ -398,6 +415,20 @@ export class PaymentMethodModal {
     document.body.appendChild(modalContainer);
 
     this.modal = modalContainer.querySelector('.payment-modal-overlay');
+
+    // Pre-populate country and state dropdowns from saved billing details
+    if (this.options.currentPaymentMethod?.billing_details) {
+      const countrySelect = this.modal?.querySelector('#country') as HTMLSelectElement;
+      const stateSelect = this.modal?.querySelector('#state') as HTMLSelectElement;
+
+      if (countrySelect && this.options.currentPaymentMethod.billing_details.address?.country) {
+        countrySelect.value = this.options.currentPaymentMethod.billing_details.address.country;
+      }
+
+      if (stateSelect && this.options.currentPaymentMethod.billing_details.address?.state) {
+        stateSelect.value = this.options.currentPaymentMethod.billing_details.address.state;
+      }
+    }
   }
 
   /**
