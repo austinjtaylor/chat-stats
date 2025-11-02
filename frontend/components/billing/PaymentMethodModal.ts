@@ -1,66 +1,37 @@
 /**
  * Payment Method Modal Component
- * Allows users to update their payment method with Stripe Payment Element
+ * Refactored to use modular architecture with Stripe Link integration
  */
 
-import { StripePaymentElement, StripeElements } from '@stripe/stripe-js';
-import { createStripeElements, createPaymentElement } from '../../lib/stripe';
+import { PaymentMethodModalOptions } from './PaymentMethodTypes';
+import { PaymentMethodState } from './PaymentMethodState';
+import { PaymentMethodValidator } from './PaymentMethodValidation';
+import { PaymentMethodUI } from './PaymentMethodUI';
+import { StripePaymentHandler } from './StripePaymentHandler';
+import { PaymentMethodEventHandlers } from './PaymentMethodEventHandlers';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
-interface PaymentMethodModalOptions {
-  currentPaymentMethod?: {
-    id: string;
-    type?: string; // Payment method type: 'card', 'link', etc.
-    card: {
-      brand: string;
-      last4: string;
-      exp_month: number;
-      exp_year: number;
-    } | null;
-    billing_details?: {
-      name?: string | null;
-      email?: string | null;
-      phone?: string | null;
-      address?: {
-        line1?: string | null;
-        line2?: string | null;
-        city?: string | null;
-        state?: string | null;
-        postal_code?: string | null;
-        country?: string | null;
-      } | null;
-    } | null;
-  } | null;
-  userEmail: string;
-  userName?: string;
-  accessToken: string;
-  onSuccess?: () => void;
-  onCancel?: () => void;
-}
-
+/**
+ * Payment Method Modal
+ * Manages payment method updates with Stripe Payment Element and Link integration
+ */
 export class PaymentMethodModal {
+  // Core components
   private modal: HTMLElement | null = null;
-  private paymentElement: StripePaymentElement | null = null;
-  private elements: StripeElements | null = null;
+
+  // Modules
   private options: PaymentMethodModalOptions;
-  private useExisting: boolean = true;
-  private isEditingMode: boolean = false;
-  private showNewCardForm: boolean = false;
-  private isEditingCard: boolean = false;
-  private hasCardFieldsChanged: boolean = false;
-  private validationErrors: Map<string, string> = new Map();
-  private showAdditionalAddressFields: boolean = false;
+  private state: PaymentMethodState;
+  private validator: PaymentMethodValidator | null = null;
+  private ui: PaymentMethodUI;
+  private stripeHandler: StripePaymentHandler;
 
   constructor(options: PaymentMethodModalOptions) {
     this.options = options;
-    // If no current payment method, force new card entry
-    if (!options.currentPaymentMethod) {
-      this.useExisting = false;
-      this.isEditingMode = true;
-      this.showNewCardForm = true;
-      this.showAdditionalAddressFields = true; // Show address fields for new cards
-    }
+    this.state = new PaymentMethodState(options);
+    this.ui = new PaymentMethodUI(options, this.state);
+    this.stripeHandler = new StripePaymentHandler(options);
   }
 
   /**
@@ -68,6 +39,12 @@ export class PaymentMethodModal {
    */
   async show(): Promise<void> {
     this.render();
+
+    // Initialize validator now that modal exists
+    if (this.modal) {
+      this.validator = new PaymentMethodValidator(this.modal);
+    }
+
     await this.initializeStripe();
     this.attachEventListeners();
   }
@@ -76,331 +53,7 @@ export class PaymentMethodModal {
    * Render the modal
    */
   private render(): void {
-    const modalHtml = `
-      <div class="payment-modal-overlay">
-        <div class="payment-modal">
-          <div class="payment-modal-header">
-            <h2>Payment method</h2>
-          </div>
-
-          <div class="payment-modal-body">
-            <form id="payment-form">
-              <!-- Full Name -->
-              <div class="form-field">
-                <label for="cardholder-name">Full name</label>
-                <input
-                  type="text"
-                  id="cardholder-name"
-                  class="form-input ${this.validationErrors.has('cardholder-name') ? 'input-error' : ''}"
-                  value="${this.options.currentPaymentMethod?.billing_details?.name || this.options.userName || ''}"
-                  placeholder="Full name"
-                  autocomplete="name"
-                  required
-                />
-                ${this.validationErrors.has('cardholder-name') ? `<div class="field-error">${this.validationErrors.get('cardholder-name')}</div>` : ''}
-              </div>
-
-              <!-- Country/Region -->
-              <div class="form-field">
-                <label for="country">Country or region</label>
-                <select id="country" class="form-select" autocomplete="country" required>
-                  <option value="US" selected>United States</option>
-                  <option value="CA">Canada</option>
-                  <option value="GB">United Kingdom</option>
-                  <option value="AU">Australia</option>
-                  <option value="NZ">New Zealand</option>
-                  <option value="IE">Ireland</option>
-                  <option value="DE">Germany</option>
-                  <option value="FR">France</option>
-                  <option value="ES">Spain</option>
-                  <option value="IT">Italy</option>
-                  <option value="NL">Netherlands</option>
-                  <option value="BE">Belgium</option>
-                  <option value="CH">Switzerland</option>
-                  <option value="AT">Austria</option>
-                  <option value="SE">Sweden</option>
-                  <option value="NO">Norway</option>
-                  <option value="DK">Denmark</option>
-                  <option value="FI">Finland</option>
-                  <option value="PL">Poland</option>
-                  <option value="CZ">Czech Republic</option>
-                  <option value="JP">Japan</option>
-                  <option value="SG">Singapore</option>
-                  <option value="HK">Hong Kong</option>
-                  <option value="KR">South Korea</option>
-                  <option value="IN">India</option>
-                  <option value="BR">Brazil</option>
-                  <option value="MX">Mexico</option>
-                  <option value="AR">Argentina</option>
-                  <option value="CL">Chile</option>
-                  <option value="CO">Colombia</option>
-                </select>
-              </div>
-
-              <!-- Address Line 1 -->
-              <div class="form-field">
-                <label for="address-line1" id="address-line1-label">${this.showAdditionalAddressFields ? 'Address line 1' : 'Address'}</label>
-                <input
-                  type="text"
-                  id="address-line1"
-                  class="form-input ${this.validationErrors.has('address-line1') ? 'input-error' : ''}"
-                  value="${this.options.currentPaymentMethod?.billing_details?.address?.line1 || ''}"
-                  placeholder=""
-                  autocomplete="address-line1"
-                  required
-                />
-                ${this.validationErrors.has('address-line1') ? `<div class="field-error">${this.validationErrors.get('address-line1')}</div>` : ''}
-              </div>
-
-              <!-- Additional Address Fields (shown when entering card manually) -->
-              <div id="additional-address-fields" style="display: ${this.showAdditionalAddressFields ? 'block' : 'none'};">
-                <!-- Address Line 2 -->
-                <div class="form-field">
-                  <label for="address-line2">Address line 2</label>
-                  <input
-                    type="text"
-                    id="address-line2"
-                    class="form-input"
-                    value="${this.options.currentPaymentMethod?.billing_details?.address?.line2 || ''}"
-                    placeholder="Apt., suite, unit number, etc. (optional)"
-                    autocomplete="address-line2"
-                  />
-                </div>
-
-                <!-- City -->
-                <div class="form-field">
-                  <label for="city">City</label>
-                  <input
-                    type="text"
-                    id="city"
-                    class="form-input ${this.validationErrors.has('city') ? 'input-error' : ''}"
-                    value="${this.options.currentPaymentMethod?.billing_details?.address?.city || ''}"
-                    placeholder="City"
-                    autocomplete="address-level2"
-                    required
-                  />
-                  ${this.validationErrors.has('city') ? `<div class="field-error">${this.validationErrors.get('city')}</div>` : ''}
-                </div>
-
-                <!-- State -->
-                <div class="form-field">
-                  <label for="state">State</label>
-                  <select id="state" class="form-select ${this.validationErrors.has('state') ? 'input-error' : ''}" autocomplete="address-level1" required>
-                  <option value="" selected>Select</option>
-                  <option value="AL">Alabama</option>
-                  <option value="AK">Alaska</option>
-                  <option value="AZ">Arizona</option>
-                  <option value="AR">Arkansas</option>
-                  <option value="CA">California</option>
-                  <option value="CO">Colorado</option>
-                  <option value="CT">Connecticut</option>
-                  <option value="DE">Delaware</option>
-                  <option value="FL">Florida</option>
-                  <option value="GA">Georgia</option>
-                  <option value="HI">Hawaii</option>
-                  <option value="ID">Idaho</option>
-                  <option value="IL">Illinois</option>
-                  <option value="IN">Indiana</option>
-                  <option value="IA">Iowa</option>
-                  <option value="KS">Kansas</option>
-                  <option value="KY">Kentucky</option>
-                  <option value="LA">Louisiana</option>
-                  <option value="ME">Maine</option>
-                  <option value="MD">Maryland</option>
-                  <option value="MA">Massachusetts</option>
-                  <option value="MI">Michigan</option>
-                  <option value="MN">Minnesota</option>
-                  <option value="MS">Mississippi</option>
-                  <option value="MO">Missouri</option>
-                  <option value="MT">Montana</option>
-                  <option value="NE">Nebraska</option>
-                  <option value="NV">Nevada</option>
-                  <option value="NH">New Hampshire</option>
-                  <option value="NJ">New Jersey</option>
-                  <option value="NM">New Mexico</option>
-                  <option value="NY">New York</option>
-                  <option value="NC">North Carolina</option>
-                  <option value="ND">North Dakota</option>
-                  <option value="OH">Ohio</option>
-                  <option value="OK">Oklahoma</option>
-                  <option value="OR">Oregon</option>
-                  <option value="PA">Pennsylvania</option>
-                  <option value="RI">Rhode Island</option>
-                  <option value="SC">South Carolina</option>
-                  <option value="SD">South Dakota</option>
-                  <option value="TN">Tennessee</option>
-                  <option value="TX">Texas</option>
-                  <option value="UT">Utah</option>
-                  <option value="VT">Vermont</option>
-                  <option value="VA">Virginia</option>
-                  <option value="WA">Washington</option>
-                  <option value="WV">West Virginia</option>
-                  <option value="WI">Wisconsin</option>
-                  <option value="WY">Wyoming</option>
-                </select>
-                ${this.validationErrors.has('state') ? `<div class="field-error">${this.validationErrors.get('state')}</div>` : ''}
-              </div>
-
-                <!-- ZIP Code -->
-                <div class="form-field">
-                  <label for="zip-code">ZIP code</label>
-                  <input
-                    type="text"
-                    id="zip-code"
-                    class="form-input ${this.validationErrors.has('zip-code') ? 'input-error' : ''}"
-                    value="${this.options.currentPaymentMethod?.billing_details?.address?.postal_code || ''}"
-                    placeholder="ZIP code"
-                    autocomplete="postal-code"
-                    required
-                  />
-                  ${this.validationErrors.has('zip-code') ? `<div class="field-error">${this.validationErrors.get('zip-code')}</div>` : ''}
-                </div>
-              </div>
-
-              <!-- Payment Method Options -->
-              <div class="payment-method-options">
-                ${this.options.currentPaymentMethod && this.options.currentPaymentMethod.card ? `
-                  <div class="payment-option ${this.isEditingMode ? 'editing' : ''}" id="existing-payment-box">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-                      <line x1="1" y1="10" x2="23" y2="10"></line>
-                    </svg>
-                    <div class="payment-option-content">
-                      <div class="payment-option-title">Use ${this.options.currentPaymentMethod.card.brand} •••• ${this.options.currentPaymentMethod.card.last4}</div>
-                      <div class="payment-option-subtitle">Expires ${this.options.currentPaymentMethod.card.exp_month}/${this.options.currentPaymentMethod.card.exp_year}</div>
-                    </div>
-                    <button type="button" class="payment-option-change-btn" id="change-btn" style="display: ${!this.isEditingMode ? 'block' : 'none'};">
-                      Change
-                    </button>
-                    ${this.options.currentPaymentMethod?.type === 'link' ? `
-                    <div class="stripe-link-logo" id="payment-link-logo" style="display: none;">
-                      <img src="/images/link-logo.png" alt="Link" width="60" height="30" />
-                    </div>
-                    ` : ''}
-                    <div class="payment-actions-container" id="payment-actions-container" style="display: ${this.isEditingMode ? 'flex' : 'none'};">
-                      <button type="button" class="payment-action-btn payment-action-btn-remove" id="remove-card-btn" style="display: none;">
-                        Remove
-                      </button>
-                      <button type="button" class="payment-action-btn" id="update-card-btn" style="display: none;">
-                        Update
-                      </button>
-                      <button type="button" class="stripe-link-menu-button" id="payment-menu-btn">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                          <circle cx="8" cy="3" r="1.5"></circle>
-                          <circle cx="8" cy="8" r="1.5"></circle>
-                          <circle cx="8" cy="13" r="1.5"></circle>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- New Payment Method Button (shown when editing) -->
-                  <button
-                    type="button"
-                    class="payment-method-add-new"
-                    id="add-new-btn"
-                    style="display: ${this.isEditingMode ? 'flex' : 'none'};"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                      <line x1="12" y1="8" x2="12" y2="16"></line>
-                      <line x1="8" y1="12" x2="16" y2="12"></line>
-                    </svg>
-                    <span>New payment method</span>
-                  </button>
-                ` : ''}
-              </div>
-
-              <!-- Payment Element (shown when adding new card) -->
-              <div id="payment-element-container" style="display: ${this.showNewCardForm ? 'block' : 'none'};">
-                <div id="payment-element" class="payment-element"></div>
-
-                <!-- Use Saved Payment Method Button (shown when viewing new card form) -->
-                ${this.options.currentPaymentMethod ? `
-                  <button
-                    type="button"
-                    class="payment-method-link-button"
-                    id="use-saved-btn"
-                  >
-                    Use a saved payment method
-                  </button>
-                ` : ''}
-              </div>
-
-              <!-- Card Edit Form (shown when editing existing card) -->
-              <div id="card-edit-container" style="display: ${this.isEditingCard ? 'block' : 'none'};">
-                <div class="form-field">
-                  <label>Card number</label>
-                  <input
-                    type="text"
-                    id="edit-card-number"
-                    class="form-input"
-                    value="•••• •••• •••• ${this.options.currentPaymentMethod?.card?.last4 || ''}"
-                    readonly
-                    style="background-color: #1f1f1f; cursor: not-allowed;"
-                  />
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                  <div class="form-field">
-                    <label>Expiration (MM/YY)</label>
-                    <input
-                      type="text"
-                      id="edit-expiration"
-                      class="form-input"
-                      value="${this.options.currentPaymentMethod && this.options.currentPaymentMethod.card ? String(this.options.currentPaymentMethod.card.exp_month).padStart(2, '0') + ' / ' + String(this.options.currentPaymentMethod.card.exp_year).slice(-2) : ''}"
-                      placeholder="MM / YY"
-                      maxlength="7"
-                    />
-                  </div>
-
-                  <div class="form-field">
-                    <label>Security code</label>
-                    <input
-                      type="text"
-                      id="edit-security-code"
-                      class="form-input"
-                      placeholder="CVC"
-                      maxlength="4"
-                    />
-                  </div>
-                </div>
-
-                <div class="form-field">
-                  <label>Nickname (optional)</label>
-                  <input
-                    type="text"
-                    id="edit-nickname"
-                    class="form-input"
-                    placeholder="Nickname (optional)"
-                  />
-                </div>
-
-                <div style="display: flex; gap: 12px; margin-top: 20px;">
-                  <button type="button" class="payment-method-link-button" id="card-edit-update-btn" disabled style="opacity: 0.5; cursor: not-allowed;">
-                    Update
-                  </button>
-                  <button type="button" class="payment-method-link-button" id="card-edit-cancel-btn">
-                    Cancel
-                  </button>
-                </div>
-              </div>
-
-              <!-- Form Error -->
-              <div id="form-error" class="form-error" style="display: none;"></div>
-            </form>
-          </div>
-
-          <div class="payment-modal-footer">
-            <button type="button" class="btn-secondary" id="cancel-btn">Cancel</button>
-            <button type="button" class="btn-primary" id="update-btn">
-              <span id="update-btn-text">Update</span>
-              <span id="update-btn-spinner" class="spinner" style="display: none;"></span>
-            </button>
-          </div>
-        </div>
-      </div>
-    `;
+    const modalHtml = this.ui.generateModalHTML();
 
     // Add to body
     const modalContainer = document.createElement('div');
@@ -410,17 +63,29 @@ export class PaymentMethodModal {
     this.modal = modalContainer.querySelector('.payment-modal-overlay');
 
     // Pre-populate country and state dropdowns from saved billing details
-    if (this.options.currentPaymentMethod?.billing_details) {
-      const countrySelect = this.modal?.querySelector('#country') as HTMLSelectElement;
-      const stateSelect = this.modal?.querySelector('#state') as HTMLSelectElement;
+    this.populateBillingDetails();
+  }
 
-      if (countrySelect && this.options.currentPaymentMethod.billing_details.address?.country) {
-        countrySelect.value = this.options.currentPaymentMethod.billing_details.address.country;
-      }
+  /**
+   * Populate billing details from saved payment method
+   */
+  private populateBillingDetails(): void {
+    if (!this.options.currentPaymentMethod?.billing_details || !this.modal) {
+      return;
+    }
 
-      if (stateSelect && this.options.currentPaymentMethod.billing_details.address?.state) {
-        stateSelect.value = this.options.currentPaymentMethod.billing_details.address.state;
-      }
+    const billingDetails = this.options.currentPaymentMethod.billing_details;
+
+    // Populate country
+    const countrySelect = this.modal.querySelector('#country') as HTMLSelectElement;
+    if (countrySelect && billingDetails.address?.country) {
+      countrySelect.value = billingDetails.address.country;
+    }
+
+    // Populate state
+    const stateSelect = this.modal.querySelector('#state') as HTMLSelectElement;
+    if (stateSelect && billingDetails.address?.state) {
+      stateSelect.value = billingDetails.address.state;
     }
   }
 
@@ -428,133 +93,111 @@ export class PaymentMethodModal {
    * Initialize Stripe Payment Element
    */
   private async initializeStripe(): Promise<void> {
-    if (!this.showNewCardForm) {
+    if (!this.state.showNewCardForm) {
       return; // Don't initialize if not showing new card form
     }
 
-    // Create Elements instance
-    this.elements = await createStripeElements();
-    if (!this.elements) {
-      console.error('Failed to initialize Stripe Elements');
+    const paymentElementContainer = this.modal?.querySelector('#payment-element');
+    if (!paymentElementContainer) {
+      console.error('Payment element container not found');
       return;
     }
 
-    // Create and mount Payment Element
-    // Note: Email is intentionally NOT included in defaultValues to prevent
-    // automatic Link enrollment. Email is still passed during confirmSetup.
-    this.paymentElement = createPaymentElement(this.elements, {
-      defaultValues: {
-        billingDetails: {
-          name: this.options.userName || '',
-        },
-      },
-    });
+    // Initialize Stripe handler with callbacks
+    const success = await this.stripeHandler.initialize(
+      paymentElementContainer as HTMLElement,
+      () => this.handlePaymentElementReady(),
+      () => this.handleLinkAuthenticationComplete()
+    );
 
-    const paymentElementContainer = this.modal?.querySelector('#payment-element');
-    if (paymentElementContainer) {
-      this.paymentElement.mount('#payment-element');
-
-      // Listen for when the Payment Element is ready
-      this.paymentElement.on('ready', () => {
-        // Remove height restriction from payment element container
-        const container = this.modal?.querySelector('#payment-element-container') as HTMLElement;
-        if (container) {
-          container.style.maxHeight = 'none';
-          container.style.overflow = 'visible';
-        }
-      });
-
-      // Payment Element change listener removed - fields will show on validation error instead
+    if (!success) {
+      console.error('Failed to initialize Stripe Payment Element');
     }
-  }
-
-
-
-  /**
-   * Validate form fields
-   */
-  private validateForm(): boolean {
-    this.validationErrors.clear();
-
-    // Validate full name
-    const nameInput = this.modal?.querySelector('#cardholder-name') as HTMLInputElement;
-    if (nameInput && !nameInput.value.trim()) {
-      this.validationErrors.set('cardholder-name', 'This field is incomplete.');
-    }
-
-    // Validate address line 1
-    const addressLine1Input = this.modal?.querySelector('#address-line1') as HTMLInputElement;
-    if (addressLine1Input && !addressLine1Input.value.trim()) {
-      this.validationErrors.set('address-line1', 'This field is incomplete.');
-    }
-
-    // Validate additional fields when using new payment method (not existing)
-    // These fields are required for Card payments but hidden by default
-    if (this.showNewCardForm && !this.useExisting) {
-      // Validate city
-      const cityInput = this.modal?.querySelector('#city') as HTMLInputElement;
-      if (cityInput && !cityInput.value.trim()) {
-        this.validationErrors.set('city', 'This field is incomplete.');
-        this.showAdditionalAddressFields = true; // Show fields when validation fails
-      }
-
-      // Validate state
-      const stateSelect = this.modal?.querySelector('#state') as HTMLSelectElement;
-      if (stateSelect && !stateSelect.value) {
-        this.validationErrors.set('state', 'This field is incomplete.');
-        this.showAdditionalAddressFields = true; // Show fields when validation fails
-      }
-
-      // Validate ZIP code
-      const zipInput = this.modal?.querySelector('#zip-code') as HTMLInputElement;
-      if (zipInput && !zipInput.value.trim()) {
-        this.validationErrors.set('zip-code', 'This field is incomplete.');
-        this.showAdditionalAddressFields = true; // Show fields when validation fails
-      }
-    }
-
-    return this.validationErrors.size === 0;
   }
 
   /**
-   * Update validation errors in place (without destroying Payment Element)
+   * Handle Payment Element ready event
    */
-  private updateValidationErrors(): void {
-    // Update field error states and messages in place
-    this.validationErrors.forEach((message, fieldName) => {
-      const input = this.modal?.querySelector(`#${fieldName}`) as HTMLInputElement | HTMLSelectElement;
-      if (input) {
-        // Add error class
-        input.classList.add('input-error');
-
-        // Add or update error message
-        const existingError = input.parentElement?.querySelector('.field-error');
-        if (existingError) {
-          existingError.textContent = message;
-        } else {
-          const errorDiv = document.createElement('div');
-          errorDiv.className = 'field-error';
-          errorDiv.textContent = message;
-          input.parentElement?.appendChild(errorDiv);
-        }
-      }
-    });
-
-    // Show additional fields if needed
-    if (this.showAdditionalAddressFields) {
-      const additionalFields = this.modal?.querySelector('#additional-address-fields') as HTMLElement;
-      if (additionalFields) {
-        additionalFields.style.display = 'block';
-      }
-
-      // Update Address line 1 label
-      const addressLabel = this.modal?.querySelector('#address-line1-label') as HTMLLabelElement;
-      if (addressLabel) {
-        addressLabel.textContent = 'Address line 1';
-      }
+  private handlePaymentElementReady(): void {
+    // Remove height restriction from payment element container
+    const container = this.modal?.querySelector('#payment-element-container') as HTMLElement;
+    if (container) {
+      container.style.maxHeight = 'none';
+      container.style.overflow = 'visible';
     }
   }
 
+  /**
+   * Handle Link authentication completion
+   * Automatically submits the Link payment method to backend
+   */
+  private async handleLinkAuthenticationComplete(): Promise<void> {
+    // Prevent duplicate processing
+    if (this.state.isProcessingLinkAuth || !this.state.showNewCardForm) {
+      return;
+    }
+
+    this.state.setProcessingLinkAuth(true);
+    console.log('Auto-submitting Link payment method...');
+
+    // Show loading state
+    this.setUpdateButtonLoading(true);
+
+    try {
+      // Submit the Payment Element
+      const submitResult = await this.stripeHandler.submit();
+      if (submitResult.error) {
+        console.error('Error submitting Payment Element:', submitResult.error);
+        return;
+      }
+
+      // Create SetupIntent
+      const setupResult = await this.stripeHandler.createSetupIntent(this.options.accessToken);
+      if (setupResult.error || !setupResult.client_secret) {
+        console.error('Failed to create setup intent:', setupResult.error);
+        return;
+      }
+
+      // Confirm setup and get payment method ID
+      const confirmResult = await this.stripeHandler.confirmSetup(setupResult.client_secret);
+      if (confirmResult.error || !confirmResult.paymentMethodId) {
+        console.error('Error confirming setup:', confirmResult.error);
+        return;
+      }
+
+      // Update on backend
+      const updateResult = await this.stripeHandler.updatePaymentMethod(
+        confirmResult.paymentMethodId,
+        this.options.accessToken
+      );
+
+      if (!updateResult.success) {
+        console.error('Failed to update payment method:', updateResult.error);
+        return;
+      }
+
+      console.log('Successfully updated Link payment method');
+
+      // Wait for Stripe to propagate the change before refreshing
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      console.log('Refreshing billing page data');
+
+      // Call onSuccess to refresh the billing page
+      if (this.options.onSuccess) {
+        this.options.onSuccess();
+      }
+
+      // Reset button state
+      this.setUpdateButtonLoading(false);
+
+    } catch (error) {
+      console.error('Error in handleLinkAuthenticationComplete:', error);
+      this.setUpdateButtonLoading(false);
+    } finally {
+      this.state.setProcessingLinkAuth(false);
+    }
+  }
 
   /**
    * Attach event listeners
@@ -562,303 +205,86 @@ export class PaymentMethodModal {
   private attachEventListeners(): void {
     if (!this.modal) return;
 
-    // Cancel button
-    const cancelBtn = this.modal.querySelector('#cancel-btn');
-    cancelBtn?.addEventListener('click', () => this.close());
-
-    // Update button
-    const updateBtn = this.modal.querySelector('#update-btn');
-    updateBtn?.addEventListener('click', () => this.handleUpdate());
-
-    // Change button (enables edit mode)
-    const changeBtn = this.modal.querySelector('#change-btn');
-    changeBtn?.addEventListener('click', () => this.enableEditMode());
-
-    // Add new payment method button
-    const addNewBtn = this.modal.querySelector('#add-new-btn');
-    addNewBtn?.addEventListener('click', () => this.showNewCardFormView());
-
-    // Use saved payment method button
-    const useSavedBtn = this.modal.querySelector('#use-saved-btn');
-    useSavedBtn?.addEventListener('click', () => this.returnToSavedPaymentMethod());
-
-    // Payment menu button - toggles visibility of Update/Remove buttons and Link logo
-    const paymentMenuBtn = this.modal.querySelector('#payment-menu-btn');
-    const updateCardBtn = this.modal.querySelector('#update-card-btn') as HTMLElement;
-    const removeCardBtn = this.modal.querySelector('#remove-card-btn') as HTMLElement;
-    const paymentLinkLogo = this.modal.querySelector('#payment-link-logo') as HTMLElement;
-
-    paymentMenuBtn?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (updateCardBtn && removeCardBtn) {
-        const isVisible = updateCardBtn.style.display === 'flex';
-        updateCardBtn.style.display = isVisible ? 'none' : 'flex';
-        removeCardBtn.style.display = isVisible ? 'none' : 'flex';
-
-        // Toggle Link logo (opposite of buttons)
-        if (paymentLinkLogo) {
-          paymentLinkLogo.style.display = isVisible ? 'flex' : 'none';
-        }
-      }
+    const eventHandlers = new PaymentMethodEventHandlers(this.modal, {
+      onClose: () => this.close(),
+      onUpdate: () => this.handleUpdate(),
+      onEnableEditMode: () => this.enableEditMode(),
+      onShowNewCardForm: () => this.showNewCardFormView(),
+      onReturnToSavedPayment: () => this.returnToSavedPaymentMethod(),
+      onShowCardEdit: () => this.showCardEditForm(),
+      onCancelCardEdit: () => this.cancelCardEdit(),
+      onCardFieldChange: () => this.handleCardFieldChange(),
+      onCardEditUpdate: () => this.handleCardEditUpdate(),
+      onRemoveCard: () => this.handleRemoveCard(),
     });
 
-    // Update card button
-    updateCardBtn?.addEventListener('click', () => {
-      this.showCardEditForm();
-      // Only restore Link logo if buttons were actually visible
-      const buttonsWereVisible = updateCardBtn.style.display === 'flex';
-      // Hide buttons after clicking
-      updateCardBtn.style.display = 'none';
-      removeCardBtn.style.display = 'none';
-      // Restore Link logo only if buttons were visible
-      if (paymentLinkLogo && buttonsWereVisible) paymentLinkLogo.style.display = 'flex';
-    });
-
-    // Remove card button
-    removeCardBtn?.addEventListener('click', () => {
-      this.handleRemoveCard();
-      // Only restore Link logo if buttons were actually visible
-      const buttonsWereVisible = updateCardBtn.style.display === 'flex';
-      // Hide buttons after clicking
-      updateCardBtn.style.display = 'none';
-      removeCardBtn.style.display = 'none';
-      // Restore Link logo only if buttons were visible
-      if (paymentLinkLogo && buttonsWereVisible) paymentLinkLogo.style.display = 'flex';
-    });
-
-    // Close payment buttons when clicking outside
-    document.addEventListener('click', (e) => {
-      const actionsContainer = this.modal?.querySelector('#payment-actions-container');
-      if (actionsContainer && e.target && !actionsContainer.contains(e.target as Node)) {
-        // Only restore Link logo if buttons were actually visible
-        const buttonsWereVisible = updateCardBtn && updateCardBtn.style.display === 'flex';
-        if (updateCardBtn) updateCardBtn.style.display = 'none';
-        if (removeCardBtn) removeCardBtn.style.display = 'none';
-        // Restore Link logo only if buttons were visible
-        if (paymentLinkLogo && buttonsWereVisible) paymentLinkLogo.style.display = 'flex';
-      }
-    });
-
-    // Card edit form buttons
-    const cardEditUpdateBtn = this.modal.querySelector('#card-edit-update-btn');
-    cardEditUpdateBtn?.addEventListener('click', () => this.handleCardEditUpdate());
-
-    const cardEditCancelBtn = this.modal.querySelector('#card-edit-cancel-btn');
-    cardEditCancelBtn?.addEventListener('click', () => this.cancelCardEdit());
-
-    // Card field change detection
-    const editExpiration = this.modal.querySelector('#edit-expiration') as HTMLInputElement;
-    const editSecurityCode = this.modal.querySelector('#edit-security-code') as HTMLInputElement;
-    const editNickname = this.modal.querySelector('#edit-nickname') as HTMLInputElement;
-
-    [editExpiration, editSecurityCode, editNickname].forEach(field => {
-      field?.addEventListener('input', () => this.handleCardFieldChange());
-    });
-
-    // Link menu button
-    const linkMenuBtn = this.modal.querySelector('#link-menu-btn');
-    const linkDropdown = this.modal.querySelector('#link-dropdown') as HTMLElement;
-
-    linkMenuBtn?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (linkDropdown) {
-        const isVisible = linkDropdown.style.display === 'block';
-        linkDropdown.style.display = isVisible ? 'none' : 'block';
-      }
-    });
-
-    // Log out of Link button (in dropdown)
-    const logoutLinkBtn = this.modal.querySelector('#logout-link-btn');
-    logoutLinkBtn?.addEventListener('click', () => {
-      // For now, just hide the Link section
-      // In a real implementation, you would call Stripe API to disconnect Link
-      const linkSection = this.modal?.querySelector('.stripe-link-section') as HTMLElement;
-      if (linkSection) {
-        linkSection.style.display = 'none';
-      }
-      if (linkDropdown) {
-        linkDropdown.style.display = 'none';
-      }
-    });
-
-    // Close dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-      if (linkDropdown && !linkMenuBtn?.contains(e.target as Node)) {
-        linkDropdown.style.display = 'none';
-      }
-    });
-
-    // Close on overlay click
-    this.modal.addEventListener('click', (e) => {
-      if (e.target === this.modal) {
-        this.close();
-      }
-    });
-
-    // Close on Escape key
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        this.close();
-        if (linkDropdown) {
-          linkDropdown.style.display = 'none';
-        }
-      }
-    });
+    eventHandlers.attachAll();
   }
 
   /**
    * Enable edit mode (when Change button is clicked)
    */
   private enableEditMode(): void {
-    this.isEditingMode = true;
-
-    // Update UI
-    const existingPaymentBox = this.modal?.querySelector('#existing-payment-box');
-    const changeBtn = this.modal?.querySelector('#change-btn') as HTMLElement;
-    const paymentLinkLogo = this.modal?.querySelector('#payment-link-logo') as HTMLElement;
-    const paymentActionsContainer = this.modal?.querySelector('#payment-actions-container') as HTMLElement;
-    const addNewBtn = this.modal?.querySelector('#add-new-btn') as HTMLElement;
-
-    if (existingPaymentBox) {
-      existingPaymentBox.classList.add('editing');
+    this.state.enableEditMode();
+    if (this.modal) {
+      this.ui.updateUI(this.modal);
     }
-
-    if (changeBtn) {
-      changeBtn.style.display = 'none';
-    }
-
-    if (paymentLinkLogo) {
-      paymentLinkLogo.style.display = 'flex';
-    }
-
-    if (paymentActionsContainer) {
-      paymentActionsContainer.style.display = 'flex';
-    }
-
-    if (addNewBtn) {
-      addNewBtn.style.display = 'flex';
-    }
-
   }
 
   /**
    * Show new card form view (when New payment method button is clicked)
    */
   private async showNewCardFormView(): Promise<void> {
-    this.showNewCardForm = true;
-    this.useExisting = false;
-    this.showAdditionalAddressFields = true; // Show address fields for new cards
+    this.state.showNewPaymentForm();
 
-    // Update UI
-    const paymentElementContainer = this.modal?.querySelector('#payment-element-container') as HTMLElement;
-    const addNewBtn = this.modal?.querySelector('#add-new-btn') as HTMLElement;
-    const additionalFields = this.modal?.querySelector('#additional-address-fields') as HTMLElement;
-    const addressLabel = this.modal?.querySelector('#address-line1-label') as HTMLLabelElement;
-
-    if (paymentElementContainer) {
-      paymentElementContainer.style.display = 'block';
-    }
-
-    if (addNewBtn) {
-      addNewBtn.style.display = 'none';
-    }
-
-
-    // Show additional address fields
-    if (additionalFields) {
-      additionalFields.style.display = 'block';
-    }
-
-    // Update Address line 1 label
-    if (addressLabel) {
-      addressLabel.textContent = 'Address line 1';
+    if (this.modal) {
+      this.ui.updateUI(this.modal);
     }
 
     // Initialize Stripe if not already done
-    if (!this.paymentElement) {
+    if (!this.stripeHandler.getElements()) {
       await this.initializeStripe();
     }
   }
 
   /**
-   * Return to saved payment method view (when Use a saved payment method button is clicked)
+   * Return to saved payment method view
    */
   private returnToSavedPaymentMethod(): void {
-    this.showNewCardForm = false;
-    this.useExisting = true;
-    this.isEditingMode = true; // Keep in edit mode
+    this.state.returnToExistingPayment();
 
-    // Update UI
-    const paymentElementContainer = this.modal?.querySelector('#payment-element-container') as HTMLElement;
-    const addNewBtn = this.modal?.querySelector('#add-new-btn') as HTMLElement;
-
-    if (paymentElementContainer) {
-      paymentElementContainer.style.display = 'none';
+    if (this.modal) {
+      this.ui.updateUI(this.modal);
     }
-
-    if (addNewBtn) {
-      addNewBtn.style.display = 'flex';
-    }
-
   }
 
   /**
-   * Show card edit form (when Update is clicked from dropdown)
+   * Show card edit form
    */
   private showCardEditForm(): void {
-    this.isEditingCard = true;
-    this.hasCardFieldsChanged = false;
+    this.state.showCardEditForm();
 
-    // Hide other sections
-    const existingPaymentBox = this.modal?.querySelector('#existing-payment-box') as HTMLElement;
-    const addNewBtn = this.modal?.querySelector('#add-new-btn') as HTMLElement;
-    const cardEditContainer = this.modal?.querySelector('#card-edit-container') as HTMLElement;
-
-    if (existingPaymentBox) {
-      existingPaymentBox.style.display = 'none';
-    }
-
-    if (addNewBtn) {
-      addNewBtn.style.display = 'none';
-    }
-
-
-    if (cardEditContainer) {
-      cardEditContainer.style.display = 'block';
+    if (this.modal) {
+      this.ui.updateUI(this.modal);
     }
   }
 
   /**
-   * Cancel card edit (return to edit mode)
+   * Cancel card edit
    */
   private cancelCardEdit(): void {
-    this.isEditingCard = false;
-    this.hasCardFieldsChanged = false;
+    this.state.cancelCardEdit();
 
-    // Show edit mode sections
-    const existingPaymentBox = this.modal?.querySelector('#existing-payment-box') as HTMLElement;
-    const addNewBtn = this.modal?.querySelector('#add-new-btn') as HTMLElement;
-    const cardEditContainer = this.modal?.querySelector('#card-edit-container') as HTMLElement;
-
-    if (existingPaymentBox) {
-      existingPaymentBox.style.display = 'flex';
-    }
-
-    if (addNewBtn) {
-      addNewBtn.style.display = 'flex';
-    }
-
-
-    if (cardEditContainer) {
-      cardEditContainer.style.display = 'none';
+    if (this.modal) {
+      this.ui.updateUI(this.modal);
     }
   }
 
   /**
-   * Handle card field change (enable Update button)
+   * Handle card field change
    */
   private handleCardFieldChange(): void {
-    this.hasCardFieldsChanged = true;
+    this.state.markCardFieldsChanged();
 
     const updateBtn = this.modal?.querySelector('#card-edit-update-btn') as HTMLButtonElement;
     if (updateBtn) {
@@ -872,7 +298,7 @@ export class PaymentMethodModal {
    * Handle card edit update
    */
   private async handleCardEditUpdate(): Promise<void> {
-    if (!this.hasCardFieldsChanged) return;
+    if (!this.state.hasCardFieldsChanged) return;
 
     // For now, just close the edit form
     // In a real implementation, you would update the card details via Stripe API
@@ -919,35 +345,36 @@ export class PaymentMethodModal {
    * Handle update button click
    */
   private async handleUpdate(): Promise<void> {
-    const updateBtn = this.modal?.querySelector('#update-btn') as HTMLButtonElement;
-    const updateBtnText = this.modal?.querySelector('#update-btn-text') as HTMLElement;
-    const updateBtnSpinner = this.modal?.querySelector('#update-btn-spinner') as HTMLElement;
     const formError = this.modal?.querySelector('#form-error') as HTMLElement;
 
-    if (!updateBtn) return;
+    if (!formError) return;
 
-    // Clear previous errors first
+    // Clear previous errors
     formError.style.display = 'none';
     formError.textContent = '';
 
     // If using new payment method, trigger Stripe validation FIRST
-    // This ensures Stripe shows its inline errors before we do custom validation
     let stripeValid = true;
-    if (!this.useExisting && this.elements && this.paymentElement) {
-      const { error: submitError } = await this.elements.submit();
-      if (submitError) {
+    if (!this.state.useExisting) {
+      const submitResult = await this.stripeHandler.submit();
+      if (submitResult.error) {
         stripeValid = false;
-        console.log('Stripe validation failed:', submitError);
+        console.log('Stripe validation failed:', submitResult.error);
         // Stripe automatically shows inline errors in the Payment Element
       }
     }
 
-    // Validate custom form fields
-    const customFieldsValid = this.validateForm();
+    // Validate custom form fields (if using new payment)
+    let customFieldsValid = true;
+    if (!this.state.useExisting && this.validator) {
+      const errors = this.validator.validate(true); // Include address fields
 
-    // If custom validation failed, update errors in place (don't re-render to preserve Stripe state)
-    if (!customFieldsValid) {
-      this.updateValidationErrors();
+      if (errors.size > 0) {
+        customFieldsValid = false;
+        this.state.showAddressFields();
+        this.validator.updateValidationUI(errors);
+        this.validator.showAdditionalAddressFields();
+      }
     }
 
     // If either validation failed, stop here
@@ -956,109 +383,50 @@ export class PaymentMethodModal {
     }
 
     // Show loading state
-    updateBtn.disabled = true;
-    updateBtnText.style.display = 'none';
-    updateBtnSpinner.style.display = 'inline-block';
+    this.setUpdateButtonLoading(true);
 
     try {
       let paymentMethodId: string;
 
-      if (this.useExisting && this.options.currentPaymentMethod) {
+      console.log('Update button clicked. useExisting:', this.state.useExisting);
+
+      if (this.state.useExisting && this.options.currentPaymentMethod) {
         // Use existing payment method
         paymentMethodId = this.options.currentPaymentMethod.id;
+        console.log('Using existing payment method:', paymentMethodId);
       } else {
-        // Use Payment Element - submit and create SetupIntent
-        if (!this.elements || !this.paymentElement) {
-          throw new Error('Payment Element not initialized');
+        // Create new payment method via SetupIntent
+        console.log('Creating new payment method via SetupIntent...');
+
+        // Create SetupIntent
+        const setupResult = await this.stripeHandler.createSetupIntent(this.options.accessToken);
+        if (setupResult.error || !setupResult.client_secret) {
+          throw new Error(setupResult.error || 'Failed to create setup intent');
         }
 
-        // Submit the form to validate (again, in case user fixed errors)
-        const { error: submitError } = await this.elements.submit();
-        if (submitError) {
-          throw new Error(submitError.message);
+        // Confirm setup and get payment method ID
+        const confirmResult = await this.stripeHandler.confirmSetup(setupResult.client_secret);
+        if (confirmResult.error || !confirmResult.paymentMethodId) {
+          throw new Error(confirmResult.error || 'No payment method was attached to the setup');
         }
 
-        // Create SetupIntent on backend
-        const setupResponse = await fetch(`${API_BASE_URL}/api/stripe/create-setup-intent`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${this.options.accessToken}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!setupResponse.ok) {
-          throw new Error('Failed to create setup intent');
-        }
-
-        const { client_secret } = await setupResponse.json();
-
-        // Confirm the SetupIntent with the Payment Element
-        const { getStripe } = await import('../../lib/stripe');
-        const stripe = await getStripe();
-
-        if (!stripe) {
-          throw new Error('Stripe not initialized');
-        }
-
-        // Get billing details from form fields
-        const nameInput = this.modal?.querySelector('#cardholder-name') as HTMLInputElement;
-        const countrySelect = this.modal?.querySelector('#country') as HTMLSelectElement;
-        const addressLine1Input = this.modal?.querySelector('#address-line1') as HTMLInputElement;
-        const addressLine2Input = this.modal?.querySelector('#address-line2') as HTMLInputElement;
-        const cityInput = this.modal?.querySelector('#city') as HTMLInputElement;
-        const stateSelect = this.modal?.querySelector('#state') as HTMLSelectElement;
-        const zipInput = this.modal?.querySelector('#zip-code') as HTMLInputElement;
-
-        // Build billing details object
-        const billingDetails = {
-          name: nameInput?.value || '',
-          email: this.options.userEmail || '',
-          phone: '', // Required by Stripe when fields.billingDetails: 'never'
-          address: {
-            line1: addressLine1Input?.value || '',
-            line2: addressLine2Input?.value || undefined,
-            city: cityInput?.value || '',
-            state: stateSelect?.value || '',
-            postal_code: zipInput?.value || '',
-            country: countrySelect?.value || 'US',
-          },
-        };
-
-        // Debug: Log billing details being sent
-        console.log('Billing details being sent to Stripe:', billingDetails);
-
-        // Confirm setup - this will handle 3D Secure if needed
-        const { error: confirmError, setupIntent } = await stripe.confirmSetup({
-          elements: this.elements,
-          clientSecret: client_secret,
-          confirmParams: {
-            // Pass billing details manually since we set fields.billingDetails: 'never'
-            payment_method_data: {
-              billing_details: billingDetails,
-            },
-            // Don't provide return_url to handle everything in-modal
-            // Stripe will handle 3D Secure inline if needed
-          },
-          redirect: 'if_required', // Only redirect if 3D Secure requires it
-        });
-
-        if (confirmError) {
-          throw new Error(confirmError.message);
-        }
-
-        if (!setupIntent || !setupIntent.payment_method) {
-          throw new Error('No payment method was attached to the setup');
-        }
-
-        // Extract payment method ID from the confirmed SetupIntent
-        paymentMethodId = typeof setupIntent.payment_method === 'string'
-          ? setupIntent.payment_method
-          : setupIntent.payment_method.id;
+        paymentMethodId = confirmResult.paymentMethodId;
+        console.log('Extracted payment method ID from SetupIntent:', paymentMethodId);
       }
 
-      // Send to backend to update (works for both existing and new payment methods)
-      await this.updatePaymentMethodOnBackend(paymentMethodId);
+      console.log('Calling backend to update payment method:', paymentMethodId);
+
+      // Update on backend
+      const updateResult = await this.stripeHandler.updatePaymentMethod(
+        paymentMethodId,
+        this.options.accessToken
+      );
+
+      if (!updateResult.success) {
+        throw new Error(updateResult.error || 'Failed to update payment method');
+      }
+
+      console.log('Successfully updated payment method on backend');
 
       // Success - close modal and call callback
       this.close();
@@ -1068,31 +436,22 @@ export class PaymentMethodModal {
       formError.textContent = error.message || 'Failed to update payment method. Please try again.';
       formError.style.display = 'block';
     } finally {
-      // Reset button state
-      updateBtn.disabled = false;
-      updateBtnText.style.display = 'inline';
-      updateBtnSpinner.style.display = 'none';
+      this.setUpdateButtonLoading(false);
     }
   }
 
   /**
-   * Update payment method on backend
+   * Set update button loading state
    */
-  private async updatePaymentMethodOnBackend(paymentMethodId: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/api/stripe/update-payment-method`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.options.accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        payment_method_id: paymentMethodId,
-      }),
-    });
+  private setUpdateButtonLoading(isLoading: boolean): void {
+    const updateBtn = this.modal?.querySelector('#update-btn') as HTMLButtonElement;
+    const updateBtnText = this.modal?.querySelector('#update-btn-text') as HTMLElement;
+    const updateBtnSpinner = this.modal?.querySelector('#update-btn-spinner') as HTMLElement;
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to update payment method');
+    if (updateBtn && updateBtnText && updateBtnSpinner) {
+      updateBtn.disabled = isLoading;
+      updateBtnText.style.display = isLoading ? 'none' : 'inline';
+      updateBtnSpinner.style.display = isLoading ? 'inline-block' : 'none';
     }
   }
 
@@ -1101,14 +460,7 @@ export class PaymentMethodModal {
    */
   close(): void {
     // Clean up Stripe elements
-    if (this.paymentElement) {
-      this.paymentElement.destroy();
-      this.paymentElement = null;
-    }
-    if (this.elements) {
-      // Elements instance doesn't need explicit cleanup
-      this.elements = null;
-    }
+    this.stripeHandler.destroy();
 
     // Remove modal from DOM
     this.modal?.parentElement?.remove();
