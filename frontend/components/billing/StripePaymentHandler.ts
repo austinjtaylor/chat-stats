@@ -125,7 +125,21 @@ export class StripePaymentHandler {
   /**
    * Confirm SetupIntent and return payment method ID
    */
-  async confirmSetup(clientSecret: string): Promise<{ paymentMethodId?: string; error?: string }> {
+  async confirmSetup(
+    clientSecret: string,
+    billingDetails?: {
+      name?: string;
+      email?: string;
+      address?: {
+        line1?: string;
+        line2?: string;
+        city?: string;
+        state?: string;
+        postal_code?: string;
+        country?: string;
+      };
+    }
+  ): Promise<{ paymentMethodId?: string; error?: string }> {
     if (!this.elements) {
       return { error: 'Payment Element not initialized' };
     }
@@ -138,13 +152,25 @@ export class StripePaymentHandler {
         return { error: 'Stripe not initialized' };
       }
 
-      console.log('Confirming SetupIntent...');
+      console.log('Confirming SetupIntent with billing details:', billingDetails);
 
-      const { error: confirmError, setupIntent } = await stripe.confirmSetup({
+      // Build confirmParams with billing details if provided
+      const confirmParams: any = {
         elements: this.elements,
         clientSecret: clientSecret,
         redirect: 'if_required',
-      });
+      };
+
+      // Add billing details if provided
+      if (billingDetails) {
+        confirmParams.confirmParams = {
+          payment_method_data: {
+            billing_details: billingDetails,
+          },
+        };
+      }
+
+      const { error: confirmError, setupIntent } = await stripe.confirmSetup(confirmParams);
 
       if (confirmError) {
         return { error: confirmError.message };

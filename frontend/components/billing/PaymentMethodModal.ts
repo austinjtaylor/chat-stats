@@ -158,8 +158,14 @@ export class PaymentMethodModal {
         return;
       }
 
+      // Collect billing details from form
+      const billingDetails = this.collectBillingDetails();
+
       // Confirm setup and get payment method ID
-      const confirmResult = await this.stripeHandler.confirmSetup(setupResult.client_secret);
+      const confirmResult = await this.stripeHandler.confirmSetup(
+        setupResult.client_secret,
+        billingDetails || undefined
+      );
       if (confirmResult.error || !confirmResult.paymentMethodId) {
         console.error('Error confirming setup:', confirmResult.error);
         return;
@@ -404,8 +410,14 @@ export class PaymentMethodModal {
           throw new Error(setupResult.error || 'Failed to create setup intent');
         }
 
+        // Collect billing details from form
+        const billingDetails = this.collectBillingDetails();
+
         // Confirm setup and get payment method ID
-        const confirmResult = await this.stripeHandler.confirmSetup(setupResult.client_secret);
+        const confirmResult = await this.stripeHandler.confirmSetup(
+          setupResult.client_secret,
+          billingDetails || undefined
+        );
         if (confirmResult.error || !confirmResult.paymentMethodId) {
           throw new Error(confirmResult.error || 'No payment method was attached to the setup');
         }
@@ -438,6 +450,43 @@ export class PaymentMethodModal {
     } finally {
       this.setUpdateButtonLoading(false);
     }
+  }
+
+  /**
+   * Collect billing details from form fields
+   */
+  private collectBillingDetails(): {
+    name: string;
+    address: {
+      line1: string;
+      line2?: string;
+      city: string;
+      state: string;
+      postal_code: string;
+      country: string;
+    };
+  } | null {
+    if (!this.modal) return null;
+
+    const nameInput = this.modal.querySelector('#cardholder-name') as HTMLInputElement;
+    const countrySelect = this.modal.querySelector('#country') as HTMLSelectElement;
+    const addressLine1Input = this.modal.querySelector('#address-line1') as HTMLInputElement;
+    const addressLine2Input = this.modal.querySelector('#address-line2') as HTMLInputElement;
+    const cityInput = this.modal.querySelector('#city') as HTMLInputElement;
+    const stateSelect = this.modal.querySelector('#state') as HTMLSelectElement;
+    const zipInput = this.modal.querySelector('#zip-code') as HTMLInputElement;
+
+    return {
+      name: nameInput?.value || '',
+      address: {
+        line1: addressLine1Input?.value || '',
+        line2: addressLine2Input?.value || undefined,
+        city: cityInput?.value || '',
+        state: stateSelect?.value || '',
+        postal_code: zipInput?.value || '',
+        country: countrySelect?.value || 'US',
+      },
+    };
   }
 
   /**

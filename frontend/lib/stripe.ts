@@ -144,7 +144,13 @@ export function createPaymentElement(
       card: 'never', // Hide the mandate text for cards
     },
     fields: {
-      billingDetails: 'never', // Don't collect billing details - we handle this separately
+      billingDetails: {
+        // Don't collect billing details in Payment Element - we'll collect manually
+        name: 'never',
+        email: 'never',
+        phone: 'never',
+        address: 'never',
+      },
     },
     ...options,
   });

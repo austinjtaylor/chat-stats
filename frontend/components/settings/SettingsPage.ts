@@ -38,6 +38,9 @@ interface PaymentMethod {
     exp_month: number;
     exp_year: number;
   } | null;
+  link: {
+    email: string;
+  } | null;
 }
 
 interface Invoice {
@@ -159,9 +162,36 @@ export class SettingsPage {
       if (response.ok) {
         const data = await response.json();
         this.paymentMethod = data.payment_method;
+        console.log('Fetched payment method:', this.paymentMethod ? 'Found' : 'None', this.paymentMethod);
       }
     } catch (error) {
       console.error('Failed to fetch payment method:', error);
+    }
+  }
+
+  /**
+   * Fetch payment method with retry logic (for handling Stripe propagation delays)
+   */
+  private async fetchPaymentMethodWithRetry(maxRetries: number = 3, delayMs: number = 500): Promise<void> {
+    console.log('Fetching payment method with retry logic...');
+
+    // Initial delay to allow Stripe to propagate the update
+    await new Promise(resolve => setTimeout(resolve, delayMs));
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      await this.fetchPaymentMethod();
+
+      if (this.paymentMethod) {
+        console.log(`Payment method found on attempt ${attempt}`);
+        return;
+      }
+
+      if (attempt < maxRetries) {
+        console.log(`Payment method not found on attempt ${attempt}, retrying in ${delayMs}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      } else {
+        console.warn(`Payment method not found after ${maxRetries} attempts`);
+      }
     }
   }
 
@@ -381,9 +411,15 @@ export class SettingsPage {
       : 'N/A';
 
     // Format payment method display
-    const paymentMethodDisplay = this.paymentMethod?.card
-      ? `${this.paymentMethod.card.brand.charAt(0).toUpperCase() + this.paymentMethod.card.brand.slice(1)} •••• ${this.paymentMethod.card.last4}`
-      : 'No payment method on file';
+    let paymentMethodDisplay = 'No payment method on file';
+
+    if (this.paymentMethod?.card) {
+      // Regular card payment method
+      paymentMethodDisplay = `${this.paymentMethod.card.brand.charAt(0).toUpperCase() + this.paymentMethod.card.brand.slice(1)} •••• ${this.paymentMethod.card.last4}`;
+    } else if (this.paymentMethod?.link) {
+      // Link payment method (doesn't expose card details)
+      paymentMethodDisplay = `Payment method via Link`;
+    }
 
     return `
       <!-- Subscription Plan Section -->
@@ -606,7 +642,8 @@ export class SettingsPage {
       accessToken: token,
       onSuccess: async () => {
         // Refresh payment method data after successful update
-        await this.fetchPaymentMethod();
+        // Use retry logic to handle Stripe propagation delays
+        await this.fetchPaymentMethodWithRetry();
         this.render();
       },
       onCancel: () => {

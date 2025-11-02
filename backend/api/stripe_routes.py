@@ -439,6 +439,8 @@ def create_stripe_routes(stats_system):
         body = await request.json()
         payment_method_id = body.get("payment_method_id")
 
+        print(f"Update payment method called - User: {user_id}, Payment Method: {payment_method_id}")
+
         if not payment_method_id:
             raise HTTPException(status_code=400, detail="payment_method_id is required")
 
@@ -457,11 +459,15 @@ def create_stripe_routes(stats_system):
 
         stripe_customer_id = result[0]["stripe_customer_id"]
 
+        print(f"Updating payment method for customer: {stripe_customer_id}")
+
         # Update payment method in Stripe
         try:
             stripe_service.update_payment_method(stripe_customer_id, payment_method_id)
+            print(f"Payment method updated successfully for customer: {stripe_customer_id}")
             return {"status": "success", "message": "Payment method updated successfully"}
         except HTTPException as e:
+            print(f"Error updating payment method: {e.detail}")
             raise
 
     @router.post("/remove-payment-method")
