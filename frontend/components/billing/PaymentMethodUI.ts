@@ -4,7 +4,6 @@
 
 import {
   PaymentMethodModalOptions,
-  CurrentPaymentMethod,
 } from './PaymentMethodTypes';
 import { PaymentMethodState } from './PaymentMethodState';
 
@@ -33,6 +32,7 @@ export class PaymentMethodUI {
 
           <div class="payment-modal-body">
             <form id="payment-form">
+              ${this.generateBillingFields()}
               ${this.generatePaymentMethodSection()}
               ${this.generatePaymentElementSection()}
               ${this.generateCardEditSection()}
@@ -47,6 +47,53 @@ export class PaymentMethodUI {
   }
 
   /**
+   * Generate billing fields (always shown at top)
+   */
+  private generateBillingFields(): string {
+    const pm = this.options.currentPaymentMethod;
+    const billingDetails = pm?.billing_details;
+
+    return `
+      <!-- Manual Billing Fields - Always Shown -->
+      <div class="form-field">
+        <label for="cardholder-name">Full name</label>
+        <input
+          type="text"
+          id="cardholder-name"
+          class="form-input"
+          value="${billingDetails?.name || this.options.userName || ''}"
+          placeholder="Full name"
+          autocomplete="name"
+          required
+        />
+      </div>
+
+      <div class="form-field">
+        <label for="country">Country or region</label>
+        <select id="country" class="form-select" autocomplete="country" required>
+          <option value="US" ${billingDetails?.address?.country === 'US' || !billingDetails?.address?.country ? 'selected' : ''}>United States</option>
+          <option value="CA" ${billingDetails?.address?.country === 'CA' ? 'selected' : ''}>Canada</option>
+          <option value="GB" ${billingDetails?.address?.country === 'GB' ? 'selected' : ''}>United Kingdom</option>
+          <option value="AU" ${billingDetails?.address?.country === 'AU' ? 'selected' : ''}>Australia</option>
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label for="address-line1">Address</label>
+        <input
+          type="text"
+          id="address-line1"
+          class="form-input"
+          value="${billingDetails?.address?.line1 || ''}"
+          placeholder=""
+          autocomplete="address-line1"
+          required
+        />
+      </div>
+    `;
+  }
+
+  /**
    * Generate payment method options section
    */
   private generatePaymentMethodSection(): string {
@@ -54,8 +101,13 @@ export class PaymentMethodUI {
       return '';
     }
 
+    const pm = this.options.currentPaymentMethod;
+    const isLinkPayment = pm.type === 'link' || pm.link;
+    const userEmail = pm.billing_details?.email || pm.link?.email || this.options.userEmail;
+
     return `
       <div class="payment-method-options">
+        ${isLinkPayment && userEmail ? this.generateEmailField(userEmail) : ''}
         ${this.generateExistingPaymentBox()}
         ${this.generateAddNewButton()}
       </div>
@@ -63,42 +115,24 @@ export class PaymentMethodUI {
   }
 
   /**
-   * Generate existing payment method box
+   * Generate email field with Link logo
    */
-  private generateExistingPaymentBox(): string {
-    const pm = this.options.currentPaymentMethod;
-    if (!pm) return '';
-
-    const isLinkPayment = pm.type === 'link' || pm.link;
-    const hasCard = !!pm.card;
-
+  private generateEmailField(email: string): string {
     return `
-      <div class="payment-option ${this.state.isEditingMode ? 'editing' : ''}" id="existing-payment-box">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-          <line x1="1" y1="10" x2="23" y2="10"></line>
-        </svg>
-        <div class="payment-option-content">
-          ${this.generatePaymentMethodDetails(pm)}
-        </div>
-        <button type="button" class="payment-option-change-btn" id="change-btn" style="display: ${!this.state.isEditingMode ? 'block' : 'none'};">
-          Change
-        </button>
-        ${isLinkPayment ? `
-        <div class="stripe-link-logo" id="payment-link-logo" style="display: ${this.state.isEditingMode ? 'flex' : 'none'};">
-          <img src="/images/link-logo.png" alt="Link" width="60" height="30" />
-        </div>
-        ` : ''}
-        <div class="payment-actions-container" id="payment-actions-container" style="display: ${this.state.isEditingMode ? 'flex' : 'none'};">
-          ${hasCard ? `
-          <button type="button" class="payment-action-btn payment-action-btn-remove" id="remove-card-btn" style="display: none;">
-            Remove
-          </button>
-          <button type="button" class="payment-action-btn" id="update-card-btn" style="display: none;">
-            Update
-          </button>
-          ` : ''}
-          <button type="button" class="stripe-link-menu-button" id="payment-menu-btn">
+      <div class="form-field" style="position: relative;">
+        <input
+          type="email"
+          id="link-email"
+          class="form-input"
+          value="${email}"
+          readonly
+          style="padding-right: 100px;"
+        />
+        <div style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 8px;">
+          <svg width="60" height="30" viewBox="0 0 60 30" fill="none">
+            <text x="5" y="20" font-family="Arial, sans-serif" font-size="16" font-weight="600" fill="#00D66F">link</text>
+          </svg>
+          <button type="button" class="stripe-link-menu-button" id="link-menu-btn" style="padding: 4px;">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
               <circle cx="8" cy="3" r="1.5"></circle>
               <circle cx="8" cy="8" r="1.5"></circle>
@@ -111,46 +145,37 @@ export class PaymentMethodUI {
   }
 
   /**
-   * Generate payment method details (card or Link)
+   * Generate existing payment method box
    */
-  private generatePaymentMethodDetails(pm: CurrentPaymentMethod): string {
-    if (pm.card) {
-      return `
-        <div class="payment-option-title">Use ${pm.card.brand} •••• ${pm.card.last4}</div>
-        <div class="payment-option-subtitle">Expires ${pm.card.exp_month}/${pm.card.exp_year}</div>
-      `;
-    } else if (pm.link) {
-      return `
-        <div class="payment-option-title">${pm.link.email}</div>
-        <div class="payment-option-subtitle">Payment method via Link</div>
-      `;
-    } else {
-      return `
-        <div class="payment-option-title">Payment method</div>
-        <div class="payment-option-subtitle">Managed through Stripe</div>
-      `;
-    }
+  private generateExistingPaymentBox(): string {
+    const pm = this.options.currentPaymentMethod;
+    if (!pm) return '';
+
+    // Only show card box if we have card details
+    if (!pm.card) return '';
+
+    return `
+      <div class="payment-option" id="existing-payment-box">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+          <line x1="1" y1="10" x2="23" y2="10"></line>
+        </svg>
+        <div class="payment-option-content">
+          <div class="payment-option-title">${pm.card.brand} •••• ${pm.card.last4}</div>
+        </div>
+        <button type="button" class="payment-option-change-btn" id="change-btn">
+          Change
+        </button>
+      </div>
+    `;
   }
 
   /**
    * Generate "Add new payment method" button
    */
   private generateAddNewButton(): string {
-    return `
-      <button
-        type="button"
-        class="payment-method-add-new"
-        id="add-new-btn"
-        style="display: ${this.state.isEditingMode && this.options.currentPaymentMethod ? 'flex' : 'none'};"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-          <line x1="12" y1="8" x2="12" y2="16"></line>
-          <line x1="8" y1="12" x2="16" y2="12"></line>
-        </svg>
-        <span>New payment method</span>
-      </button>
-    `;
+    // Don't show Add New button for now - user can click Change
+    return '';
   }
 
   /**
@@ -159,42 +184,6 @@ export class PaymentMethodUI {
   private generatePaymentElementSection(): string {
     return `
       <div id="payment-element-container" style="display: ${this.state.showNewCardForm ? 'block' : 'none'};">
-        <!-- Manual Billing Fields -->
-        <div class="form-field">
-          <label for="cardholder-name">Full name</label>
-          <input
-            type="text"
-            id="cardholder-name"
-            class="form-input"
-            value="${this.options.userName || ''}"
-            placeholder="Full name"
-            autocomplete="name"
-            required
-          />
-        </div>
-
-        <div class="form-field">
-          <label for="country">Country or region</label>
-          <select id="country" class="form-select" autocomplete="country" required>
-            <option value="US" selected>United States</option>
-            <option value="CA">Canada</option>
-            <option value="GB">United Kingdom</option>
-            <option value="AU">Australia</option>
-          </select>
-        </div>
-
-        <div class="form-field">
-          <label for="address-line1" id="address-line1-label">${this.state.showAdditionalAddressFields ? 'Address line 1' : 'Address'}</label>
-          <input
-            type="text"
-            id="address-line1"
-            class="form-input"
-            placeholder=""
-            autocomplete="address-line1"
-            required
-          />
-        </div>
-
         <!-- Additional Address Fields (shown when validation fails) -->
         <div id="additional-address-fields" style="display: ${this.state.showAdditionalAddressFields ? 'block' : 'none'};">
           <div class="form-field">
