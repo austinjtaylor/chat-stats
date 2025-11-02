@@ -11,6 +11,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 interface PaymentMethodModalOptions {
   currentPaymentMethod?: {
     id: string;
+    type?: string; // Payment method type: 'card', 'link', etc.
     card: {
       brand: string;
       last4: string;
@@ -271,9 +272,11 @@ export class PaymentMethodModal {
                     <button type="button" class="payment-option-change-btn" id="change-btn" style="display: ${!this.isEditingMode ? 'block' : 'none'};">
                       Change
                     </button>
+                    ${this.options.currentPaymentMethod?.type === 'link' ? `
                     <div class="stripe-link-logo" id="payment-link-logo" style="display: none;">
                       <img src="/images/link-logo.png" alt="Link" width="60" height="30" />
                     </div>
+                    ` : ''}
                     <div class="payment-actions-container" id="payment-actions-container" style="display: ${this.isEditingMode ? 'flex' : 'none'};">
                       <button type="button" class="payment-action-btn payment-action-btn-remove" id="remove-card-btn" style="display: none;">
                         Remove
@@ -282,7 +285,7 @@ export class PaymentMethodModal {
                         Update
                       </button>
                       <button type="button" class="stripe-link-menu-button" id="payment-menu-btn">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style="color: #5e8d90;">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                           <circle cx="8" cy="3" r="1.5"></circle>
                           <circle cx="8" cy="8" r="1.5"></circle>
                           <circle cx="8" cy="13" r="1.5"></circle>
