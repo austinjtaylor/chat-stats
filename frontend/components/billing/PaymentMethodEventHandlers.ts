@@ -64,6 +64,14 @@ export class PaymentMethodEventHandlers {
     // Use saved payment method button
     const useSavedBtn = this.modal.querySelector('#use-saved-btn');
     useSavedBtn?.addEventListener('click', () => this.callbacks.onReturnToSavedPayment());
+
+    // Link menu button (3-dot menu on email field)
+    const linkMenuBtn = this.modal.querySelector('#link-menu-btn');
+    linkMenuBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // TODO: Show Link menu dropdown (logout, manage, etc.)
+      console.log('Link menu clicked - menu not yet implemented');
+    });
   }
 
   /**

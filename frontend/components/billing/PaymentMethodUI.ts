@@ -151,8 +151,18 @@ export class PaymentMethodUI {
     const pm = this.options.currentPaymentMethod;
     if (!pm) return '';
 
-    // Only show card box if we have card details
-    if (!pm.card) return '';
+    // Show card box if we have card details OR if we have Link (which may have associated cards)
+    if (!pm.card && !pm.link) return '';
+
+    // Determine what to display
+    let displayText = '';
+    if (pm.card) {
+      displayText = `${pm.card.brand} •••• ${pm.card.last4}`;
+    } else if (pm.link) {
+      displayText = 'Payment method via Link';
+    } else {
+      return '';
+    }
 
     return `
       <div class="payment-option" id="existing-payment-box">
@@ -161,7 +171,7 @@ export class PaymentMethodUI {
           <line x1="1" y1="10" x2="23" y2="10"></line>
         </svg>
         <div class="payment-option-content">
-          <div class="payment-option-title">${pm.card.brand} •••• ${pm.card.last4}</div>
+          <div class="payment-option-title">${displayText}</div>
         </div>
         <button type="button" class="payment-option-change-btn" id="change-btn">
           Change
