@@ -305,16 +305,6 @@ export class PaymentMethodModal {
                     </svg>
                     <span>New payment method</span>
                   </button>
-
-                  <!-- Log out of Link Button (shown when editing) -->
-                  <button
-                    type="button"
-                    class="payment-method-link-button"
-                    id="logout-link-btn-main"
-                    style="display: ${this.isEditingMode ? 'inline-block' : 'none'};"
-                  >
-                    Log out of Link
-                  </button>
                 ` : ''}
               </div>
 
@@ -688,17 +678,6 @@ export class PaymentMethodModal {
       }
     });
 
-    // Log out of Link button (main button shown when editing)
-    const logoutLinkBtnMain = this.modal.querySelector('#logout-link-btn-main');
-    logoutLinkBtnMain?.addEventListener('click', () => {
-      // For now, just hide the Link section
-      // In a real implementation, you would call Stripe API to disconnect Link
-      const linkSection = this.modal?.querySelector('.stripe-link-section') as HTMLElement;
-      if (linkSection) {
-        linkSection.style.display = 'none';
-      }
-    });
-
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
       if (linkDropdown && !linkMenuBtn?.contains(e.target as Node)) {
@@ -736,7 +715,6 @@ export class PaymentMethodModal {
     const paymentLinkLogo = this.modal?.querySelector('#payment-link-logo') as HTMLElement;
     const paymentActionsContainer = this.modal?.querySelector('#payment-actions-container') as HTMLElement;
     const addNewBtn = this.modal?.querySelector('#add-new-btn') as HTMLElement;
-    const logoutLinkBtnMain = this.modal?.querySelector('#logout-link-btn-main') as HTMLElement;
 
     if (existingPaymentBox) {
       existingPaymentBox.classList.add('editing');
@@ -758,9 +736,6 @@ export class PaymentMethodModal {
       addNewBtn.style.display = 'flex';
     }
 
-    if (logoutLinkBtnMain) {
-      logoutLinkBtnMain.style.display = 'inline-block';
-    }
   }
 
   /**
@@ -774,7 +749,6 @@ export class PaymentMethodModal {
     // Update UI
     const paymentElementContainer = this.modal?.querySelector('#payment-element-container') as HTMLElement;
     const addNewBtn = this.modal?.querySelector('#add-new-btn') as HTMLElement;
-    const logoutLinkBtnMain = this.modal?.querySelector('#logout-link-btn-main') as HTMLElement;
     const additionalFields = this.modal?.querySelector('#additional-address-fields') as HTMLElement;
     const addressLabel = this.modal?.querySelector('#address-line1-label') as HTMLLabelElement;
 
@@ -786,9 +760,6 @@ export class PaymentMethodModal {
       addNewBtn.style.display = 'none';
     }
 
-    if (logoutLinkBtnMain) {
-      logoutLinkBtnMain.style.display = 'none';
-    }
 
     // Show additional address fields
     if (additionalFields) {
@@ -817,7 +788,6 @@ export class PaymentMethodModal {
     // Update UI
     const paymentElementContainer = this.modal?.querySelector('#payment-element-container') as HTMLElement;
     const addNewBtn = this.modal?.querySelector('#add-new-btn') as HTMLElement;
-    const logoutLinkBtnMain = this.modal?.querySelector('#logout-link-btn-main') as HTMLElement;
 
     if (paymentElementContainer) {
       paymentElementContainer.style.display = 'none';
@@ -827,9 +797,6 @@ export class PaymentMethodModal {
       addNewBtn.style.display = 'flex';
     }
 
-    if (logoutLinkBtnMain) {
-      logoutLinkBtnMain.style.display = 'inline-block';
-    }
   }
 
   /**
@@ -842,7 +809,6 @@ export class PaymentMethodModal {
     // Hide other sections
     const existingPaymentBox = this.modal?.querySelector('#existing-payment-box') as HTMLElement;
     const addNewBtn = this.modal?.querySelector('#add-new-btn') as HTMLElement;
-    const logoutLinkBtnMain = this.modal?.querySelector('#logout-link-btn-main') as HTMLElement;
     const cardEditContainer = this.modal?.querySelector('#card-edit-container') as HTMLElement;
 
     if (existingPaymentBox) {
@@ -853,9 +819,6 @@ export class PaymentMethodModal {
       addNewBtn.style.display = 'none';
     }
 
-    if (logoutLinkBtnMain) {
-      logoutLinkBtnMain.style.display = 'none';
-    }
 
     if (cardEditContainer) {
       cardEditContainer.style.display = 'block';
@@ -872,7 +835,6 @@ export class PaymentMethodModal {
     // Show edit mode sections
     const existingPaymentBox = this.modal?.querySelector('#existing-payment-box') as HTMLElement;
     const addNewBtn = this.modal?.querySelector('#add-new-btn') as HTMLElement;
-    const logoutLinkBtnMain = this.modal?.querySelector('#logout-link-btn-main') as HTMLElement;
     const cardEditContainer = this.modal?.querySelector('#card-edit-container') as HTMLElement;
 
     if (existingPaymentBox) {
@@ -883,9 +845,6 @@ export class PaymentMethodModal {
       addNewBtn.style.display = 'flex';
     }
 
-    if (logoutLinkBtnMain) {
-      logoutLinkBtnMain.style.display = 'inline-block';
-    }
 
     if (cardEditContainer) {
       cardEditContainer.style.display = 'none';

@@ -464,6 +464,48 @@ def create_stripe_routes(stats_system):
         except HTTPException as e:
             raise
 
+    @router.post("/remove-payment-method")
+    @auth_limit
+    async def remove_payment_method(
+        request: Request,
+        user: dict = Depends(get_current_user),
+    ):
+        """
+        Remove (detach) a payment method from the user's Stripe customer.
+
+        Requires authentication and an existing Stripe customer.
+        """
+        user_id = user["user_id"]
+
+        # Parse request body
+        body = await request.json()
+        payment_method_id = body.get("payment_method_id")
+
+        if not payment_method_id:
+            raise HTTPException(status_code=400, detail="payment_method_id is required")
+
+        # Get Stripe customer ID from database
+        query = """
+        SELECT stripe_customer_id
+        FROM user_subscriptions
+        WHERE user_id = :user_id
+        """
+        result = stats_system.db.execute_query(query, {"user_id": user_id})
+
+        if not result or not result[0].get("stripe_customer_id"):
+            raise HTTPException(
+                status_code=400, detail="No Stripe customer found. Please subscribe first."
+            )
+
+        stripe_customer_id = result[0]["stripe_customer_id"]
+
+        # Remove payment method in Stripe
+        try:
+            response = stripe_service.remove_payment_method(stripe_customer_id, payment_method_id)
+            return {"status": "success", **response}
+        except HTTPException as e:
+            raise
+
     @router.post("/create-setup-intent", response_model=StripeSetupIntentResponse)
     @auth_limit
     async def create_setup_intent(

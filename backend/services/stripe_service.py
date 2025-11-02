@@ -344,6 +344,45 @@ class StripeService:
                 status_code=400, detail=f"Failed to update payment method: {str(e)}"
             )
 
+    def remove_payment_method(self, stripe_customer_id: str, payment_method_id: str) -> dict[str, str]:
+        """
+        Remove (detach) a payment method from a customer.
+
+        Args:
+            stripe_customer_id: Stripe Customer ID
+            payment_method_id: Stripe Payment Method ID to remove
+
+        Returns:
+            Dictionary with success message
+
+        Raises:
+            HTTPException: If Stripe API call fails
+        """
+        try:
+            # Get customer to check if this is the default payment method
+            customer = stripe.Customer.retrieve(
+                stripe_customer_id,
+                expand=["invoice_settings.default_payment_method"]
+            )
+
+            # If removing the default payment method, clear it first
+            if (customer.invoice_settings.default_payment_method and
+                customer.invoice_settings.default_payment_method.id == payment_method_id):
+                stripe.Customer.modify(
+                    stripe_customer_id,
+                    invoice_settings={"default_payment_method": None}
+                )
+
+            # Detach payment method from customer
+            stripe.PaymentMethod.detach(payment_method_id)
+
+            return {"message": "Payment method removed successfully"}
+
+        except Exception as e:
+            raise HTTPException(
+                status_code=400, detail=f"Failed to remove payment method: {str(e)}"
+            )
+
     def create_setup_intent(self, stripe_customer_id: str) -> dict[str, str]:
         """
         Create a SetupIntent for collecting payment method with Payment Element.
