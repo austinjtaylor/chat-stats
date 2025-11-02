@@ -249,24 +249,28 @@ button.payment-option:hover {
 
 /* Stripe Link Menu Button (3-dot menu) */
 .stripe-link-menu-button {
-  background: none;
+  width: 40px;
+  height: 40px;
+  background: #2a2e36;
   border: none;
-  padding: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  border-radius: 4px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  padding: 0;
   flex-shrink: 0;
 }
 
 .stripe-link-menu-button:hover {
-  background-color: #3f3f46;
+  background: #3f3f46;
 }
 
 .stripe-link-menu-button svg {
-  color: #a1a1aa;
+  width: 20px;
+  height: 20px;
+  color: #fafafa;
 }
 
 /* Payment Method Disclaimer */
