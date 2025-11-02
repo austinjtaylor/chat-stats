@@ -447,11 +447,12 @@ export class PaymentMethodModal {
     }
 
     // Create and mount Payment Element
+    // Note: Email is intentionally NOT included in defaultValues to prevent
+    // automatic Link enrollment. Email is still passed during confirmSetup.
     this.paymentElement = createPaymentElement(this.elements, {
       defaultValues: {
         billingDetails: {
           name: this.options.userName || '',
-          email: this.options.userEmail || '',
         },
       },
     });
