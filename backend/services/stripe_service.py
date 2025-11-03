@@ -282,35 +282,17 @@ class StripeService:
                     "exp_year": payment_method.card.exp_year,
                 }
             elif payment_method.type == 'link':
-                # Link payment methods don't expose card details for security/privacy
-                # Fetch associated card payment methods to get card details
-                print(f"Payment method is type 'link' - fetching associated card")
-                try:
-                    card_pms = stripe.PaymentMethod.list(
-                        customer=stripe_customer_id,
-                        type='card',
-                        limit=1  # Get most recent card
-                    )
-
-                    if card_pms.data:
-                        # Get card details from associated card PM
-                        card_pm = card_pms.data[0]
-                        card_info = {
-                            "brand": card_pm.card.brand,
-                            "last4": card_pm.card.last4,
-                            "exp_month": card_pm.card.exp_month,
-                            "exp_year": card_pm.card.exp_year,
-                        }
-                        print(f"Found associated card: {card_pm.card.brand} {card_pm.card.last4}")
-                except Exception as e:
-                    print(f"Warning: Could not fetch card PMs: {e}")
+                # NOTE: Stripe Link payment methods intentionally hide card details for security/privacy
+                # Once a card is saved to Link, Stripe no longer exposes the underlying card information
+                # This is a Stripe security feature, not a bug
+                print(f"Payment method is type 'link' - card details not available (Stripe security limitation)")
 
                 # Get Link email info
                 if hasattr(payment_method, 'link') and payment_method.link:
                     link_info = {
                         "email": payment_method.link.get('email') if hasattr(payment_method.link, 'get') else getattr(payment_method.link, 'email', None)
                     }
-                    print(f"Link email: {link_info['email']}")
+                    print(f"Link email: {link_info.get('email') if link_info else 'N/A'}")
             else:
                 print(f"Warning: Payment method type '{payment_method.type}' has no card details")
                 print(f"Has 'card' attribute: {hasattr(payment_method, 'card')}")

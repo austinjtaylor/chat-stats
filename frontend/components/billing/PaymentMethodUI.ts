@@ -156,20 +156,34 @@ export class PaymentMethodUI {
 
     // Determine what to display
     let displayText = '';
+    let iconType = 'card'; // 'card' or 'link'
+
     if (pm.card) {
       displayText = `${pm.card.brand} •••• ${pm.card.last4}`;
+      iconType = 'card';
     } else if (pm.link) {
-      displayText = 'Payment method via Link';
+      displayText = 'Linked Payment Method';
+      iconType = 'link';
     } else {
       return '';
     }
 
+    // Choose appropriate icon based on type
+    const icon = iconType === 'link' ? `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+      </svg>
+    ` : `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+        <line x1="1" y1="10" x2="23" y2="10"></line>
+      </svg>
+    `;
+
     return `
       <div class="payment-option" id="existing-payment-box">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-          <line x1="1" y1="10" x2="23" y2="10"></line>
-        </svg>
+        ${icon}
         <div class="payment-option-content">
           <div class="payment-option-title">${displayText}</div>
         </div>
