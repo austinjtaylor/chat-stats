@@ -80,16 +80,6 @@ class PaymentMethodModal {
    * Render modal HTML
    */
   private renderModal(): void {
-    const currentPM = this.options.currentPaymentMethod;
-    let currentPaymentDisplay = 'No payment method on file';
-
-    if (currentPM?.card) {
-      const brand = currentPM.card.brand.charAt(0).toUpperCase() + currentPM.card.brand.slice(1);
-      currentPaymentDisplay = `${brand} •••• ${currentPM.card.last4}`;
-    } else if (currentPM?.link) {
-      currentPaymentDisplay = 'Payment method via Link';
-    }
-
     const html = `
       <div class="payment-modal-overlay">
         <div class="payment-modal">
@@ -98,23 +88,8 @@ class PaymentMethodModal {
           </div>
 
           <div class="payment-modal-body">
-            ${currentPM ? `
-              <div class="form-field">
-                <label>Current Payment Method</label>
-                <div class="payment-option">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="2" y="5" width="20" height="14" rx="2"/>
-                    <line x1="2" y1="10" x2="22" y2="10"/>
-                  </svg>
-                  <div class="payment-option-content">
-                    <div class="payment-option-title">${currentPaymentDisplay}</div>
-                  </div>
-                </div>
-              </div>
-            ` : ''}
-
             <div class="form-field">
-              <label>New Payment Method</label>
+              <label>Payment Method</label>
               <div id="payment-element-container">
                 <div id="payment-element"></div>
               </div>
