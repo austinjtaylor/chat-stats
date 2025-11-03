@@ -78,7 +78,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "geolocation=()",
             "microphone=()",
             "camera=()",
-            "payment=()",
+            "payment=(self)",
             "usb=()",
             "magnetometer=()",
             "gyroscope=()",
