@@ -94,7 +94,7 @@ class PaymentMethodModal {
       <div class="payment-modal-overlay">
         <div class="payment-modal">
           <div class="payment-modal-header">
-            <h2>Update Payment Method</h2>
+            <h2>Payment Method</h2>
           </div>
 
           <div class="payment-modal-body">
@@ -128,7 +128,7 @@ class PaymentMethodModal {
               Cancel
             </button>
             <button type="button" class="btn-primary" id="submit-button">
-              <span id="button-text">Update Payment Method</span>
+              <span id="button-text">Update</span>
               <div class="spinner" id="button-spinner" style="display: none;"></div>
             </button>
           </div>
