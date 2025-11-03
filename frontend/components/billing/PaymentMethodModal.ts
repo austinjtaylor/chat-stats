@@ -89,7 +89,6 @@ class PaymentMethodModal {
 
           <div class="payment-modal-body">
             <div class="form-field">
-              <label>Payment Method</label>
               <div id="payment-element-container">
                 <div id="payment-element"></div>
               </div>
