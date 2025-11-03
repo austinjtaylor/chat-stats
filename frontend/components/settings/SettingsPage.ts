@@ -474,9 +474,16 @@ export class SettingsPage {
                 </svg>
                 <span class="payment-method-display">${paymentMethodDisplay}</span>
               </div>
-              <button class="btn-secondary btn-small" id="update-payment-btn">
-                Update
-              </button>
+              <div style="display: flex; gap: 8px;">
+                ${this.paymentMethod ? `
+                  <button class="btn-secondary btn-small" id="remove-payment-btn" style="color: #ef4444;">
+                    Remove
+                  </button>
+                ` : ''}
+                <button class="btn-secondary btn-small" id="update-payment-btn">
+                  ${this.paymentMethod ? 'Update' : 'Add'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -595,6 +602,10 @@ export class SettingsPage {
     const updatePaymentBtn = this.container?.querySelector('#update-payment-btn');
     updatePaymentBtn?.addEventListener('click', () => this.handleManageBilling());
 
+    // Remove payment button
+    const removePaymentBtn = this.container?.querySelector('#remove-payment-btn');
+    removePaymentBtn?.addEventListener('click', () => this.handleRemovePaymentMethod());
+
     // Cancel subscription button
     const cancelSubscriptionBtn = this.container?.querySelector('#cancel-subscription-btn');
     cancelSubscriptionBtn?.addEventListener('click', () => this.handleCancelSubscription());
@@ -650,6 +661,47 @@ export class SettingsPage {
         // Do nothing on cancel
       },
     });
+  }
+
+  /**
+   * Handle remove payment method click
+   */
+  private async handleRemovePaymentMethod(): Promise<void> {
+    if (!this.paymentMethod) return;
+
+    // Confirm removal
+    if (!confirm('Are you sure you want to remove this payment method? Your subscription will remain active until the end of the current billing period.')) {
+      return;
+    }
+
+    const token = this.session?.session?.access_token;
+    if (!token) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/stripe/remove-payment-method`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          payment_method_id: this.paymentMethod.id,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.detail || 'Failed to remove payment method');
+      }
+
+      // Success - refresh payment method
+      this.paymentMethod = null;
+      this.render();
+      alert('Payment method removed successfully');
+    } catch (error) {
+      console.error('Error removing payment method:', error);
+      alert(error instanceof Error ? error.message : 'Failed to remove payment method');
+    }
   }
 
   /**
