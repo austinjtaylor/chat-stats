@@ -25,7 +25,6 @@
   border-radius: 12px;
   max-width: 500px;
   width: 100%;
-  min-height: 600px;
   max-height: 95vh;
   overflow-y: auto;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
@@ -285,13 +284,7 @@ button.payment-option:hover {
 /* Payment Element Container */
 #payment-element-container {
   margin-top: 20px;
-  min-height: 200px;
-  max-height: 200px;
-  overflow: hidden;
-}
-
-#payment-element {
-  min-height: 180px;
+  overflow: visible;
 }
 
 .payment-element {
