@@ -4,6 +4,13 @@
  */
 
 import { getSession, type SessionInfo } from '../../lib/auth';
+import {
+  getCachedProfile,
+  getCachedSubscription,
+  updateCachedProfile,
+  updateCachedSubscription,
+  clearCachedUserData,
+} from '../../lib/userCache';
 
 // Get API base URL from environment
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
@@ -47,33 +54,90 @@ export class Sidebar {
   async init(): Promise<void> {
     this.session = await getSession();
 
-    // Fetch user data if authenticated
+    // Load cached data first for instant display
     if (this.session.isAuthenticated) {
-      await Promise.all([
-        this.fetchUserProfile(),
-        this.fetchSubscription(),
-      ]);
+      this.profile = getCachedProfile();
+      this.subscription = getCachedSubscription();
     }
 
-    this.sidebar = this.createSidebar();
-    this.backdrop = this.createBackdrop();
+    // Check if sidebar already exists in the DOM (pre-rendered)
+    const existingSidebar = document.getElementById('appSidebar');
 
-    document.body.appendChild(this.sidebar);
-    document.body.appendChild(this.backdrop);
+    if (existingSidebar) {
+      // Enhance existing sidebar
+      this.sidebar = existingSidebar;
+      this.backdrop = document.querySelector('.sidebar-backdrop');
 
-    // Apply initial state
-    if (this.isExpanded) {
-      this.sidebar.classList.add('expanded');
-      document.body.classList.add('sidebar-expanded');
+      // Render user section with cached data (instant display, no fetching!)
+      this.renderUserSection(false);
+
+      // Apply initial state
+      if (this.isExpanded) {
+        this.sidebar.classList.add('expanded');
+        document.body.classList.add('sidebar-expanded');
+      }
+
+      // Remove loading class if present
+      document.documentElement.classList.remove('sidebar-expanded-loading');
+
+      // Attach all event listeners (including user section)
+      this.attachEventListeners();
+
+      // Fetch fresh data in background if authenticated
+      if (this.session.isAuthenticated) {
+        this.fetchUserDataInBackground();
+      }
+    } else {
+      // Fallback: create sidebar dynamically (for pages without pre-rendered sidebar)
+      this.sidebar = this.createSidebar();
+      this.backdrop = this.createBackdrop();
+
+      document.body.appendChild(this.sidebar);
+      document.body.appendChild(this.backdrop);
+
+      // Apply initial state
+      if (this.isExpanded) {
+        this.sidebar.classList.add('expanded');
+        document.body.classList.add('sidebar-expanded');
+      }
+
+      this.attachEventListeners();
+
+      // Fetch fresh data in background if authenticated
+      if (this.session.isAuthenticated) {
+        this.fetchUserDataInBackground();
+      }
     }
-
-    this.attachEventListeners();
 
     // Listen for auth state changes
     window.addEventListener('auth-state-changed', async () => {
       this.session = await getSession();
+
+      if (!this.session.isAuthenticated) {
+        // Clear cache on logout
+        clearCachedUserData();
+      }
+
       await this.updateUserSection();
     });
+  }
+
+  /**
+   * Fetch user data in background and update cache
+   */
+  private async fetchUserDataInBackground(): Promise<void> {
+    try {
+      await Promise.all([
+        this.fetchUserProfile(),
+        this.fetchSubscription(),
+      ]);
+
+      // Re-render user section with fresh data
+      // Need to re-attach listeners since we're replacing the HTML
+      this.renderUserSection(true);
+    } catch (error) {
+      console.error('Failed to fetch user data in background:', error);
+    }
   }
 
   /**
@@ -211,7 +275,20 @@ export class Sidebar {
   }
 
   /**
-   * Update user section (when auth state changes)
+   * Render user section with current data (no fetching)
+   */
+  private renderUserSection(attachListeners: boolean = true): void {
+    const userSection = this.sidebar?.querySelector('#sidebarUserSection');
+    if (userSection) {
+      userSection.innerHTML = this.createUserSectionHTML();
+      if (attachListeners) {
+        this.attachUserSectionListeners();
+      }
+    }
+  }
+
+  /**
+   * Update user section (fetch fresh data and re-render)
    */
   private async updateUserSection(): Promise<void> {
     // Re-fetch user data
@@ -220,11 +297,8 @@ export class Sidebar {
       this.fetchSubscription(),
     ]);
 
-    const userSection = this.sidebar?.querySelector('#sidebarUserSection');
-    if (userSection) {
-      userSection.innerHTML = this.createUserSectionHTML();
-      this.attachUserSectionListeners();
-    }
+    // Re-render with fresh data
+    this.renderUserSection(true);
   }
 
   /**
@@ -243,6 +317,10 @@ export class Sidebar {
 
       if (response.ok) {
         this.profile = await response.json();
+        // Update cache with fresh data
+        if (this.profile) {
+          updateCachedProfile(this.profile);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch profile:', error);
@@ -265,6 +343,10 @@ export class Sidebar {
 
       if (response.ok) {
         this.subscription = await response.json();
+        // Update cache with fresh data
+        if (this.subscription) {
+          updateCachedSubscription(this.subscription);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch subscription:', error);

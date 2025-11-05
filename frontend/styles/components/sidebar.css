@@ -592,6 +592,37 @@ body:not(.sidebar-expanded) .settings-container {
   z-index: 1;
 }
 
+/* Loading state - applied immediately before JavaScript loads */
+/* This prevents layout shift when page loads with expanded sidebar */
+:root.sidebar-expanded-loading .chat-page-container,
+:root.sidebar-expanded-loading .stats-container,
+:root.sidebar-expanded-loading .settings-container {
+  margin-left: 220px;
+}
+
+:root.sidebar-expanded-loading .app-sidebar {
+  width: 220px;
+  background: var(--surface);
+}
+
+:root.sidebar-expanded-loading .app-sidebar .sidebar-title {
+  display: block;
+}
+
+:root.sidebar-expanded-loading .app-sidebar .sidebar-nav-item span {
+  opacity: 1;
+  width: auto;
+}
+
+:root.sidebar-expanded-loading .app-sidebar .sidebar-user-info {
+  opacity: 1;
+  width: auto;
+}
+
+:root.sidebar-expanded-loading .app-sidebar .sidebar-user-dropdown-arrow {
+  opacity: 1;
+}
+
 /* Mobile Responsive */
 @media (max-width: 768px) {
   /* Sidebar as overlay on mobile */

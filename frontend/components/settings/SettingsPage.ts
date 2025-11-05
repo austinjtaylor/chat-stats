@@ -6,6 +6,16 @@
 import { getSession, type SessionInfo } from '../../lib/auth';
 import { showPaymentMethodModal } from '../billing/PaymentMethodModal';
 import { showCancelSubscriptionModal } from './CancelSubscriptionModal';
+import {
+  getCachedProfile,
+  getCachedSubscription,
+  getCachedPaymentMethod,
+  getCachedInvoices,
+  updateCachedProfile,
+  updateCachedSubscription,
+  updateCachedPaymentMethod,
+  updateCachedInvoices,
+} from '../../lib/userCache';
 
 // Get API base URL from environment
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
@@ -82,13 +92,11 @@ export class SettingsPage {
       return;
     }
 
-    // Fetch subscription data, profile, payment method, and invoices
-    await Promise.all([
-      this.fetchSubscription(),
-      this.fetchProfile(),
-      this.fetchPaymentMethod(),
-      this.fetchInvoices(),
-    ]);
+    // Load cached data FIRST for instant rendering
+    this.profile = getCachedProfile();
+    this.subscription = getCachedSubscription();
+    this.paymentMethod = getCachedPaymentMethod();
+    this.invoices = getCachedInvoices();
 
     // Check URL hash for tab
     const hash = window.location.hash.slice(1) as TabName;
@@ -96,9 +104,32 @@ export class SettingsPage {
       this.activeTab = hash;
     }
 
-    // Render settings
+    // Render immediately with cached data (instant display!)
     this.render();
     this.setupHashNavigation();
+
+    // Fetch fresh data in background
+    this.fetchAllDataInBackground();
+  }
+
+  /**
+   * Fetch all data in background and update UI
+   */
+  private async fetchAllDataInBackground(): Promise<void> {
+    try {
+      // Fetch all data in parallel
+      await Promise.all([
+        this.fetchSubscription(),
+        this.fetchProfile(),
+        this.fetchPaymentMethod(),
+        this.fetchInvoices(),
+      ]);
+
+      // Re-render with fresh data
+      this.render();
+    } catch (error) {
+      console.error('Failed to fetch data in background:', error);
+    }
   }
 
   /**
@@ -117,6 +148,10 @@ export class SettingsPage {
 
       if (response.ok) {
         this.subscription = await response.json();
+        // Update cache with fresh data
+        if (this.subscription) {
+          updateCachedSubscription(this.subscription);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch subscription:', error);
@@ -139,6 +174,10 @@ export class SettingsPage {
 
       if (response.ok) {
         this.profile = await response.json();
+        // Update cache with fresh data
+        if (this.profile) {
+          updateCachedProfile(this.profile);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch profile:', error);
@@ -162,6 +201,8 @@ export class SettingsPage {
       if (response.ok) {
         const data = await response.json();
         this.paymentMethod = data.payment_method;
+        // Update cache with fresh data
+        updateCachedPaymentMethod(this.paymentMethod);
         console.log('Fetched payment method:', this.paymentMethod ? 'Found' : 'None', this.paymentMethod);
       }
     } catch (error) {
@@ -212,6 +253,8 @@ export class SettingsPage {
       if (response.ok) {
         const data = await response.json();
         this.invoices = data.invoices || [];
+        // Update cache with fresh data
+        updateCachedInvoices(this.invoices);
       }
     } catch (error) {
       console.error('Failed to fetch invoices:', error);
@@ -799,6 +842,11 @@ export class SettingsPage {
 
       if (response.ok) {
         this.profile = await response.json();
+
+        // Update cache with fresh profile data
+        if (this.profile) {
+          updateCachedProfile(this.profile);
+        }
 
         // Dispatch event to update user menu initials
         window.dispatchEvent(new CustomEvent('profile-updated', {
