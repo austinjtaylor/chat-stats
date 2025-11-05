@@ -5,12 +5,35 @@
 
 import { getSession, type SessionInfo } from '../../lib/auth';
 
+// Get API base URL from environment
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
+interface UserProfile {
+  full_name: string | null;
+  theme: string;
+  default_season: number | null;
+  notifications_enabled: boolean;
+  email_digest_frequency: string;
+  favorite_stat_categories: string[];
+}
+
+interface SubscriptionData {
+  tier: string;
+  status: string;
+  queries_this_month: number;
+  query_limit: number;
+  current_period_end?: string;
+  cancel_at_period_end?: boolean;
+}
+
 export class Sidebar {
   private sidebar: HTMLElement | null = null;
   private backdrop: HTMLElement | null = null;
   private isExpanded: boolean = false;
   private session: SessionInfo | null = null;
   private userDropdown: HTMLElement | null = null;
+  private profile: UserProfile | null = null;
+  private subscription: SubscriptionData | null = null;
 
   constructor() {
     // Load saved state from localStorage
@@ -23,6 +46,15 @@ export class Sidebar {
    */
   async init(): Promise<void> {
     this.session = await getSession();
+
+    // Fetch user data if authenticated
+    if (this.session.isAuthenticated) {
+      await Promise.all([
+        this.fetchUserProfile(),
+        this.fetchSubscription(),
+      ]);
+    }
+
     this.sidebar = this.createSidebar();
     this.backdrop = this.createBackdrop();
 
@@ -40,7 +72,7 @@ export class Sidebar {
     // Listen for auth state changes
     window.addEventListener('auth-state-changed', async () => {
       this.session = await getSession();
-      this.updateUserSection();
+      await this.updateUserSection();
     });
   }
 
@@ -137,14 +169,22 @@ export class Sidebar {
     }
 
     const email = this.session.user?.email || '';
-    const initials = this.getInitials(email);
+    const fullName = this.profile?.full_name || null;
+    const initials = this.getInitials(fullName, email);
+
+    // Display name: use full_name if available, otherwise use email username
+    const displayName = fullName || email.split('@')[0];
+
+    // Display plan tier
+    const tier = this.subscription?.tier || 'free';
+    const planDisplay = tier.charAt(0).toUpperCase() + tier.slice(1) + ' Plan';
 
     return `
       <button class="sidebar-user-button" aria-label="User menu" aria-expanded="false">
         <div class="sidebar-user-avatar">${initials}</div>
         <div class="sidebar-user-info">
-          <div class="sidebar-user-name">${email.split('@')[0]}</div>
-          <div class="sidebar-user-plan">Free Plan</div>
+          <div class="sidebar-user-name">${displayName}</div>
+          <div class="sidebar-user-plan">${planDisplay}</div>
         </div>
         <svg class="sidebar-user-dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="6 9 12 15 18 9"></polyline>
@@ -173,11 +213,61 @@ export class Sidebar {
   /**
    * Update user section (when auth state changes)
    */
-  private updateUserSection(): void {
+  private async updateUserSection(): Promise<void> {
+    // Re-fetch user data
+    await Promise.all([
+      this.fetchUserProfile(),
+      this.fetchSubscription(),
+    ]);
+
     const userSection = this.sidebar?.querySelector('#sidebarUserSection');
     if (userSection) {
       userSection.innerHTML = this.createUserSectionHTML();
       this.attachUserSectionListeners();
+    }
+  }
+
+  /**
+   * Fetch user profile data from API
+   */
+  private async fetchUserProfile(): Promise<void> {
+    try {
+      const token = this.session?.session?.access_token;
+      if (!token) return;
+
+      const response = await fetch(`${API_BASE_URL}/api/user/profile`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        this.profile = await response.json();
+      }
+    } catch (error) {
+      console.error('Failed to fetch profile:', error);
+    }
+  }
+
+  /**
+   * Fetch subscription data from API
+   */
+  private async fetchSubscription(): Promise<void> {
+    try {
+      const token = this.session?.session?.access_token;
+      if (!token) return;
+
+      const response = await fetch(`${API_BASE_URL}/api/subscription/status`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        this.subscription = await response.json();
+      }
+    } catch (error) {
+      console.error('Failed to fetch subscription:', error);
     }
   }
 
@@ -380,9 +470,22 @@ export class Sidebar {
   }
 
   /**
-   * Get user initials
+   * Get user initials from full name or email
    */
-  private getInitials(email: string): string {
+  private getInitials(fullName: string | null, email: string): string {
+    // If full name is available, use it
+    if (fullName) {
+      const nameParts = fullName.trim().split(/\s+/);
+      if (nameParts.length >= 2) {
+        // Use first letter of first name and first letter of last name
+        return (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
+      } else if (nameParts.length === 1 && nameParts[0].length >= 2) {
+        // Single name: use first two letters
+        return nameParts[0].substring(0, 2).toUpperCase();
+      }
+    }
+
+    // Fall back to email-based logic
     if (!email) return '?';
 
     const parts = email.split('@')[0].split(/[._-]/);
