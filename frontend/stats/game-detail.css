@@ -22,7 +22,7 @@ body.stats-page[data-page="games"] {
 /* Game Search Icon */
 .game-search-wrapper {
     position: fixed;
-    top: 4.5rem;
+    top: 1.5rem;
     left: 1rem;
     z-index: 1000;
 }
@@ -37,7 +37,7 @@ body.stats-page[data-page="games"] {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 80px 10px 20px 60px; /* Top padding to avoid menu button */
+    padding: 20px 10px 20px 60px; /* Top padding to avoid menu button */
     flex-shrink: 0; /* Prevent header from shrinking */
 }
 

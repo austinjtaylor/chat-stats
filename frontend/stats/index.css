@@ -4,7 +4,7 @@
 
 /* Stats Header */
 .stats-header {
-  padding: 2rem 2rem 1rem;
+  padding: 0rem 2rem 0rem;
 }
 
 .stats-title {
@@ -52,7 +52,8 @@
 .tab-content {
   position: relative;
   width: 100%;
-  height: calc(100vh - 180px);
+  flex: 1;
+  overflow: hidden;
 }
 
 .tab-pane {
@@ -90,9 +91,5 @@
   .tab-button {
     padding: 0.75rem 1rem;
     font-size: 0.8125rem;
-  }
-
-  .tab-content {
-    height: calc(100vh - 150px);
   }
 }

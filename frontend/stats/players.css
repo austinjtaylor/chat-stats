@@ -4,7 +4,7 @@
 .stats-page[data-page="players"] .stats-main {
     max-width: min(1400px, calc(100vw - 40px)); /* Responsive: never exceed viewport - THIS IS THE FIX */
     /* Keep padding on larger screens */
-    padding-left: 2rem;
+    padding-left: 0rem;
     padding-right: 2rem;
     /* Keep overflow hidden to contain content */
     overflow: hidden;

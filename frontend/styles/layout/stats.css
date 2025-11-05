@@ -30,12 +30,13 @@ body.stats-page {
 .stats-main {
     max-width: none; /* Remove max-width constraint */
     margin: 0;
-    padding: 3rem 1.5rem 1rem 1.5rem; /* Reduced side padding */
+    padding: 1rem 1.5rem 0rem 1.5rem; /* Reduced side padding, no bottom padding */
     height: 100vh;
     overflow: hidden; /* Prevent main area scrolling */
     display: flex;
     flex-direction: column;
 }
+
 
 /* Page Title Style - Similar to Chat Stats title */
 .stats-page-title {
