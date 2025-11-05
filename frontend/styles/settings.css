@@ -5,12 +5,20 @@
 /* Container - Let sidebar handle margin-left */
 .settings-container {
   padding: 24px;
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
 /* Inner content - Centered with margin auto */
 #settingsPageContainer {
   max-width: 1000px;
   margin: 0 auto;
+  transition: transform 0.3s ease;
+}
+
+/* When sidebar expanded, shift content left to compensate for sidebar weight */
+body.sidebar-expanded #settingsPageContainer {
+  transform: translateX(-56px);
 }
 
 /* Header */
