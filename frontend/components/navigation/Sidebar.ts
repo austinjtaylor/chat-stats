@@ -54,7 +54,6 @@ export class Sidebar {
     sidebar.setAttribute('aria-label', 'Main navigation');
 
     const currentPath = window.location.pathname;
-    const isChat = currentPath === '/' || currentPath === '/index.html';
     const isStats = currentPath.includes('/stats/');
 
     sidebar.innerHTML = `
