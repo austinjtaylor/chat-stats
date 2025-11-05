@@ -23,6 +23,7 @@
 @import url('components/modal.css');
 @import url('components/header.css');
 @import url('components/messages.css');
+@import url('components/sidebar.css');
 
 /* Authentication Components */
 @import url('auth.css');
@@ -39,7 +40,7 @@
     min-height: 100vh;
 }
 
-/* Auth Button Styles */
+/* Auth Button Styles - Legacy (kept for backwards compatibility on other pages) */
 .auth-buttons-wrapper {
     position: fixed;
     top: 20px;
@@ -47,12 +48,9 @@
     z-index: 100;
 }
 
-/* User Menu Container (bottom left corner) */
+/* User Menu Container - No longer used on main chat page (integrated into sidebar) */
 #userMenuContainer {
-    position: fixed;
-    bottom: 1rem;
-    left: 1rem;
-    z-index: 1100;
+    display: none;
 }
 
 .auth-button {

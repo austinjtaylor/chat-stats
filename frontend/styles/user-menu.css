@@ -189,6 +189,33 @@
   color: var(--primary-color);
 }
 
+/* Settings link - Gold styling */
+.user-menu-item[href="/settings.html"] {
+  color: #DFC883 !important; /* Gold color */
+  text-decoration: none !important;
+}
+
+.user-menu-item[href="/settings.html"] svg {
+  color: #DFC883 !important; /* Gold color */
+}
+
+.user-menu-item[href="/settings.html"] span {
+  color: #DFC883 !important; /* Gold color */
+}
+
+.user-menu-item[href="/settings.html"]:hover {
+  color: white !important;
+  text-decoration: none !important;
+}
+
+.user-menu-item[href="/settings.html"]:hover svg {
+  color: white !important;
+}
+
+.user-menu-item[href="/settings.html"]:hover span {
+  color: white !important;
+}
+
 /* Logout button */
 .user-menu-logout {
   margin-top: 8px;

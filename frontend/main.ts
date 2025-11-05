@@ -18,11 +18,13 @@ import './script';  // Now TypeScript
 // Import navigation components
 import './src/components/nav';
 
+// Import sidebar component
+import { initSidebar, getSidebar } from './components/navigation/Sidebar';
+
 // Import authentication modules
 import { onAuthStateChange, getSession } from './lib/auth';
 import { showLoginModal } from './components/auth/LoginModal';
 import { showSignupModal } from './components/auth/SignupModal';
-import { initUserMenu, destroyUserMenu } from './components/auth/UserMenu';
 import type { Session } from '@supabase/supabase-js';
 
 /**
@@ -36,25 +38,8 @@ async function initAuth() {
   // Listen for auth state changes
   onAuthStateChange(async (session) => {
     await updateUIForAuthState(session);
-  });
-
-  // Set up event listeners for auth buttons
-  const loginButton = document.getElementById('loginButton');
-  loginButton?.addEventListener('click', () => {
-    showLoginModal(async () => {
-      // Refresh auth state after successful login
-      const session = await getSession();
-      await updateUIForAuthState(session.session);
-    });
-  });
-
-  const signupButton = document.getElementById('signupButton');
-  signupButton?.addEventListener('click', () => {
-    showSignupModal(async () => {
-      // Refresh auth state after successful signup
-      const session = await getSession();
-      await updateUIForAuthState(session.session);
-    });
+    // Dispatch custom event for sidebar to listen
+    window.dispatchEvent(new CustomEvent('auth-state-changed'));
   });
 
   // Set up event listeners for auth modals (from other components)
@@ -89,32 +74,37 @@ async function initAuth() {
  */
 async function updateUIForAuthState(session: Session | null) {
   const isAuthenticated = !!session;
-  const wasAuthenticated = !!document.querySelector('.user-menu'); // Check if user menu exists
 
-  // Show/hide auth buttons wrapper
-  const authWrapper = document.querySelector('.auth-buttons-wrapper') as HTMLElement;
-  if (authWrapper) {
-    authWrapper.style.display = isAuthenticated ? 'none' : 'flex';
+  // If user just logged in, start a new chat
+  if (isAuthenticated) {
+    const chatMessages = document.getElementById('chatMessages');
+    if (chatMessages && chatMessages.children.length === 0) {
+      document.body.classList.remove('chat-active');
+    }
   }
 
-  // Initialize or destroy user menu
+  // Update sidebar user plan if authenticated
   if (isAuthenticated) {
-    await initUserMenu('userMenuContainer', async () => {
-      // Callback after logout
-      await updateUIForAuthState(null);
-    });
+    // Fetch subscription status and update sidebar
+    const sidebar = getSidebar();
+    if (sidebar) {
+      try {
+        const token = session.access_token;
+        const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+        const response = await fetch(`${API_BASE_URL}/api/subscription/status`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
 
-    // If user just logged in (wasn't authenticated before), start a new chat
-    if (!wasAuthenticated) {
-      // Import startNewChat from script.ts
-      const chatMessages = document.getElementById('chatMessages');
-      if (chatMessages) {
-        chatMessages.innerHTML = '';
-        document.body.classList.remove('chat-active');
+        if (response.ok) {
+          const subscription = await response.json();
+          sidebar.updateUserPlan(subscription.tier);
+        }
+      } catch (error) {
+        console.error('Failed to fetch subscription:', error);
       }
     }
-  } else {
-    destroyUserMenu();
   }
 }
 
@@ -122,6 +112,8 @@ async function updateUIForAuthState(session: Session | null) {
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', async () => {
     console.log('Chat Stats application initialized');
+    // Initialize the sidebar
+    await initSidebar();
     // Initialize the dropdown functionality from dropdown.ts
     initDropdowns();
     // Initialize the interactive logo animation
@@ -130,11 +122,15 @@ if (document.readyState === 'loading') {
     await initAuth();
   });
 } else {
-  console.log('Chat Stats application initialized');
-  // Initialize the dropdown functionality from dropdown.ts
-  initDropdowns();
-  // Initialize the interactive logo animation
-  initLogoAnimation();
-  // Initialize authentication
-  initAuth();
+  (async () => {
+    console.log('Chat Stats application initialized');
+    // Initialize the sidebar
+    await initSidebar();
+    // Initialize the dropdown functionality from dropdown.ts
+    initDropdowns();
+    // Initialize the interactive logo animation
+    initLogoAnimation();
+    // Initialize authentication
+    await initAuth();
+  })();
 }

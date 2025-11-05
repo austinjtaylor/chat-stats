@@ -1,0 +1,661 @@
+/**
+ * Sidebar Component Styles
+ * Collapsible navigation sidebar similar to Claude.ai
+ */
+
+/* Sidebar Container */
+.app-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 60px;
+  background: var(--background);
+  border-right: 1px solid var(--border-color);
+  transition: width 0.3s ease, background 0.2s ease;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+}
+
+/* Collapsed sidebar background changes ONLY when hovering middle expander */
+.app-sidebar:not(.expanded):has(.sidebar-middle-expander:hover) {
+  background: var(--surface);
+}
+
+/* Expanded sidebar */
+.app-sidebar.expanded {
+  width: 220px;
+  background: var(--surface);
+}
+
+/* Sidebar Header (contains toggle button and title) */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+}
+
+/* Sidebar Toggle Button */
+.sidebar-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  position: relative;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.sidebar-toggle:hover {
+  background: var(--surface-hover);
+}
+
+/* Logo in toggle button */
+.sidebar-toggle-logo {
+  width: 36px;
+  height: 36px;
+  display: block;
+  transition: opacity 0.2s ease;
+}
+
+/* All toggle icons positioned absolutely */
+.sidebar-toggle-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, calc(-50% + 3px));
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.sidebar-toggle-icon svg {
+  width: 20px;
+  height: 20px;
+  color: var(--text-primary);
+}
+
+/* Hamburger as image */
+.sidebar-toggle-hamburger {
+  width: 36px;
+  height: 36px;
+  transform: translate(-50%, -50%);
+}
+
+/* Icon visibility logic */
+
+/* COLLAPSED STATE */
+/* Default: Show logo */
+.app-sidebar:not(.expanded) .sidebar-toggle-logo {
+  opacity: 1;
+}
+
+/* Hover middle expander: Hide logo, show arrow-right */
+.app-sidebar:not(.expanded):has(.sidebar-middle-expander:hover) .sidebar-toggle-logo {
+  opacity: 0;
+}
+
+.app-sidebar:not(.expanded):has(.sidebar-middle-expander:hover) .sidebar-toggle-arrow-right {
+  opacity: 1;
+}
+
+/* Hover toggle button itself: Hide logo, show arrow-right */
+.app-sidebar:not(.expanded) .sidebar-toggle:hover .sidebar-toggle-logo {
+  opacity: 0;
+}
+
+.app-sidebar:not(.expanded) .sidebar-toggle:hover .sidebar-toggle-arrow-right {
+  opacity: 1;
+}
+
+/* EXPANDED STATE */
+/* Default: Show hamburger */
+.app-sidebar.expanded .sidebar-toggle-logo {
+  opacity: 0;
+}
+
+.app-sidebar.expanded .sidebar-toggle-hamburger {
+  opacity: 1;
+}
+
+/* Hover toggle button: Hide hamburger, show arrow-left */
+.app-sidebar.expanded .sidebar-toggle:hover .sidebar-toggle-hamburger {
+  opacity: 0;
+}
+
+.app-sidebar.expanded .sidebar-toggle:hover .sidebar-toggle-arrow-left {
+  opacity: 1;
+}
+
+/* Hover middle expander: Hide hamburger, show arrow-left */
+.app-sidebar.expanded:has(.sidebar-middle-expander:hover) .sidebar-toggle-hamburger {
+  opacity: 0;
+}
+
+.app-sidebar.expanded:has(.sidebar-middle-expander:hover) .sidebar-toggle-arrow-left {
+  opacity: 1;
+}
+
+/* Logo visibility based on theme */
+/* Default: show light logo for dark theme (default theme) */
+.sidebar-toggle-logo.logo-light {
+  display: block !important;
+}
+
+.sidebar-toggle-logo.logo-dark {
+  display: none !important;
+}
+
+/* Light theme: show dark logo (dark logo on light background) */
+:root[data-theme="light"] .sidebar-toggle-logo.logo-dark {
+  display: block !important;
+}
+
+:root[data-theme="light"] .sidebar-toggle-logo.logo-light {
+  display: none !important;
+}
+
+/* Dark theme: show light logo (light logo on dark background) */
+:root[data-theme="dark"] .sidebar-toggle-logo.logo-light {
+  display: block !important;
+}
+
+:root[data-theme="dark"] .sidebar-toggle-logo.logo-dark {
+  display: none !important;
+}
+
+/* Sidebar Title */
+.sidebar-title {
+  display: none;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.app-sidebar.expanded .sidebar-title {
+  display: block;
+  animation: fadeIn 0.2s ease 0.1s forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.sidebar-title h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  opacity: 0;
+}
+
+.app-sidebar.expanded .sidebar-title h2 {
+  animation: fadeIn 0.2s ease 0.1s forwards;
+}
+
+/* Sidebar Navigation */
+.sidebar-nav {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  overflow: visible;
+}
+
+/* Sidebar Nav Item */
+.sidebar-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  width: 100%;
+  text-align: left;
+}
+
+.sidebar-nav-item:hover {
+  background: var(--surface-hover);
+  color: white;
+  text-decoration: none;
+}
+
+.sidebar-nav-item:hover span {
+  color: white !important;
+}
+
+/* Active state - teal color for both SVG and text */
+.sidebar-nav-item.active {
+  background: var(--surface-hover);
+}
+
+.sidebar-nav-item.active svg {
+  color: var(--primary-color);
+}
+
+.sidebar-nav-item.active span {
+  color: var(--primary-color) !important;
+}
+
+/* Active item hover - keep teal color */
+.sidebar-nav-item.active:hover {
+  background: var(--surface-hover);
+}
+
+.sidebar-nav-item.active:hover svg {
+  color: var(--primary-color);
+}
+
+.sidebar-nav-item.active:hover span {
+  color: var(--primary-color) !important;
+}
+
+.sidebar-nav-item svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  transition: color 0.2s ease;
+}
+
+.sidebar-nav-item:hover svg {
+  color: white;
+}
+
+/* Hide text when sidebar is collapsed */
+.app-sidebar:not(.expanded) .sidebar-nav-item span {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+.app-sidebar.expanded .sidebar-nav-item span {
+  opacity: 1;
+  width: auto;
+  color: var(--text-secondary); /* Gold color */
+  transition: opacity 0.2s ease 0.1s, color 0.2s ease;
+}
+
+/* Sidebar Divider */
+.sidebar-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 8px 12px;
+}
+
+/* Middle Expander Section */
+.sidebar-middle-expander {
+  flex: 1;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+/* When expanded, hovering middle expander changes entire sidebar background (opposite of collapsed) */
+.app-sidebar.expanded:has(.sidebar-middle-expander:hover) {
+  background: var(--background);
+}
+
+/* Tooltips for collapsed sidebar */
+.sidebar-nav-item::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--surface);
+  color: var(--text-primary);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 10001;
+  border: 1px solid var(--border-color);
+}
+
+/* Show tooltip on hover when collapsed */
+.app-sidebar:not(.expanded) .sidebar-nav-item:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Don't show tooltip after click until mouse leaves and re-enters */
+.app-sidebar:not(.expanded) .sidebar-nav-item.clicked::after {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* Hide tooltips when sidebar is expanded */
+.app-sidebar.expanded .sidebar-nav-item::after {
+  display: none;
+}
+
+/* Tooltip for toggle button */
+.sidebar-toggle {
+  position: relative;
+}
+
+.sidebar-toggle::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--surface);
+  color: var(--text-primary);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 10001;
+  border: 1px solid var(--border-color);
+}
+
+.app-sidebar:not(.expanded) .sidebar-toggle:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Don't show tooltip after click until mouse leaves and re-enters */
+.app-sidebar:not(.expanded) .sidebar-toggle.clicked::after {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+.app-sidebar.expanded .sidebar-toggle::after {
+  display: none;
+}
+
+/* Sidebar User Section */
+.sidebar-user-section {
+  padding: 8px;
+}
+
+.sidebar-user-button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 8px 8px 5.5px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease, width 0.3s ease;
+  width: 100%;
+  height: 48px;
+  text-align: left;
+  color: var(--text-primary);
+}
+
+.sidebar-user-button:hover {
+  background: var(--surface-hover);
+}
+
+/* User Avatar */
+.sidebar-user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* User Info */
+.sidebar-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+  flex: 1;
+}
+
+.sidebar-user-name {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-user-plan {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Hide user info when collapsed */
+.app-sidebar:not(.expanded) .sidebar-user-info {
+  opacity: 0;
+  width: 0;
+}
+
+.app-sidebar.expanded .sidebar-user-info {
+  opacity: 1;
+  width: auto;
+  transition: opacity 0.2s ease 0.1s;
+}
+
+/* Dropdown Arrow */
+.sidebar-user-dropdown-arrow {
+  width: 16px;
+  height: 16px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.2s ease 0.1s;
+}
+
+.app-sidebar.expanded .sidebar-user-dropdown-arrow {
+  opacity: 1;
+}
+
+/* User Dropdown Menu */
+.sidebar-user-dropdown {
+  position: absolute;
+  bottom: 60px;
+  left: 8px;
+  width: 204px;
+  background: var(--surface);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: all 0.2s ease;
+  z-index: 1200;
+  padding: 8px;
+}
+
+.sidebar-user-dropdown.active {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.sidebar-user-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 14px;
+  width: 100%;
+  text-align: left;
+}
+
+.sidebar-user-dropdown-item:hover {
+  background: var(--surface-hover);
+}
+
+.sidebar-user-dropdown-item svg {
+  width: 18px;
+  height: 18px;
+  color: var(--text-secondary);
+}
+
+/* Settings link - Gold styling */
+.sidebar-user-dropdown-item[href="/settings.html"] {
+  color: #DFC883 !important; /* Gold color */
+  text-decoration: none !important;
+}
+
+.sidebar-user-dropdown-item[href="/settings.html"] svg {
+  color: #DFC883 !important; /* Gold color */
+}
+
+.sidebar-user-dropdown-item[href="/settings.html"]:hover {
+  color: white !important;
+  text-decoration: none !important;
+}
+
+.sidebar-user-dropdown-item[href="/settings.html"]:hover svg {
+  color: white !important;
+}
+
+.sidebar-user-dropdown-item.logout {
+  color: rgb(239, 68, 68);
+}
+
+.sidebar-user-dropdown-item.logout svg {
+  color: rgb(239, 68, 68);
+}
+
+.sidebar-user-dropdown-item.logout:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Content shift when sidebar is expanded */
+body.sidebar-expanded .chat-page-container,
+body.sidebar-expanded .stats-container,
+body.sidebar-expanded .settings-container {
+  margin-left: 220px;
+}
+
+body:not(.sidebar-expanded) .chat-page-container,
+body:not(.sidebar-expanded) .stats-container,
+body:not(.sidebar-expanded) .settings-container {
+  margin-left: 60px;
+}
+
+/* Smooth transition for content shift */
+.chat-page-container,
+.stats-container,
+.settings-container {
+  transition: margin-left 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  /* Sidebar as overlay on mobile */
+  .app-sidebar {
+    width: 0;
+    border-right: none;
+  }
+
+  .app-sidebar.expanded {
+    width: 220px;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+  }
+
+  /* No content shift on mobile */
+  body.sidebar-expanded .chat-page-container,
+  body.sidebar-expanded .stats-container,
+  body.sidebar-expanded .settings-container,
+  body:not(.sidebar-expanded) .chat-page-container,
+  body:not(.sidebar-expanded) .stats-container,
+  body:not(.sidebar-expanded) .settings-container {
+    margin-left: 0;
+  }
+
+  /* Overlay backdrop */
+  .sidebar-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 9999;
+  }
+
+  .sidebar-backdrop.active {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+/* Accessibility */
+.sidebar-nav-item:focus,
+.sidebar-user-button:focus,
+.sidebar-toggle:focus {
+  outline: none;
+}
+
+/* Scrollbar styling for sidebar nav */
+.sidebar-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}

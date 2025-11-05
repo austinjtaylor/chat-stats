@@ -11,66 +11,10 @@
     <link rel="stylesheet" href="styles/main.css">
 </head>
 <body class="settings-page">
-    <!-- Menu Icon -->
-    <div class="menu-wrapper">
-        <button class="icon-button menu-icon" id="menuIcon" aria-label="Menu">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="3" y1="6" x2="21" y2="6"></line>
-                <line x1="3" y1="12" x2="21" y2="12"></line>
-                <line x1="3" y1="18" x2="21" y2="18"></line>
-            </svg>
-        </button>
-        <div class="dropdown menu-dropdown" id="menuDropdown">
-            <a href="/index.html" class="dropdown-item">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                </svg>
-                Chat
-            </a>
-            <div class="dropdown-divider"></div>
-            <a href="/stats/players.html" class="dropdown-item">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="8" r="3"></circle>
-                    <path d="M12 11c3.5 0 6.5 1.5 8 4-1.5 2.5-4.5 4-8 4s-6.5-1.5-8-4c1.5-2.5 4.5-4 8-4z"></path>
-                </svg>
-                Players
-            </a>
-            <a href="/stats/teams.html" class="dropdown-item">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                </svg>
-                Teams
-            </a>
-            <a href="/stats/game-detail.html" class="dropdown-item">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
-                Games
-            </a>
-        </div>
-    </div>
-
-    <!-- Auth Buttons (shown when not authenticated) -->
-    <div class="auth-buttons-wrapper" style="display: flex; gap: 8px; align-items: center;">
-        <button class="auth-button login-button" id="loginButton" aria-label="Log In">
-            Log In
-        </button>
-        <button class="auth-button signup-button" id="signupButton" aria-label="Sign Up">
-            Sign Up
-        </button>
-    </div>
-
-    <!-- User Menu (shown when authenticated) -->
-    <div id="userMenuContainer"></div>
+    <!-- Sidebar will be injected by Sidebar component -->
 
     <!-- Main Content -->
-    <div class="page-container">
+    <div class="page-container settings-container">
         <div id="settingsPageContainer"></div>
     </div>
 
@@ -78,13 +22,16 @@
     <script type="module">
         import { initDropdowns } from './src/components/dropdown.ts';
         import { initSettingsPage } from './components/settings/SettingsPage.ts';
+        import { initSidebar, getSidebar } from './components/navigation/Sidebar.ts';
         import { onAuthStateChange, getSession } from './lib/auth.ts';
         import { showLoginModal } from './components/auth/LoginModal.ts';
         import { showSignupModal } from './components/auth/SignupModal.ts';
-        import { initUserMenu, destroyUserMenu } from './components/auth/UserMenu.ts';
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', async () => {
+            // Initialize the sidebar
+            await initSidebar();
+
             // Initialize dropdowns
             initDropdowns();
 
@@ -106,27 +53,8 @@
             // Listen for auth state changes
             onAuthStateChange(async (session) => {
                 await updateUIForAuthState(session);
-            });
-
-            // Set up event listeners for auth buttons
-            const loginButton = document.getElementById('loginButton');
-            loginButton?.addEventListener('click', () => {
-                showLoginModal(async () => {
-                    const session = await getSession();
-                    await updateUIForAuthState(session.session);
-                    // Reload settings page to update data
-                    window.location.reload();
-                });
-            });
-
-            const signupButton = document.getElementById('signupButton');
-            signupButton?.addEventListener('click', () => {
-                showSignupModal(async () => {
-                    const session = await getSession();
-                    await updateUIForAuthState(session.session);
-                    // Reload settings page to update data
-                    window.location.reload();
-                });
+                // Dispatch custom event for sidebar to listen
+                window.dispatchEvent(new CustomEvent('auth-state-changed'));
             });
 
             // Set up event listeners for modal events
@@ -134,6 +62,8 @@
                 showLoginModal(async () => {
                     const session = await getSession();
                     await updateUIForAuthState(session.session);
+                    // Reload settings page to update data
+                    window.location.reload();
                 });
             });
 
@@ -141,6 +71,8 @@
                 showSignupModal(async () => {
                     const session = await getSession();
                     await updateUIForAuthState(session.session);
+                    // Reload settings page to update data
+                    window.location.reload();
                 });
             });
 
@@ -158,22 +90,27 @@
         async function updateUIForAuthState(session) {
             const isAuthenticated = !!session;
 
-            const loginButton = document.getElementById('loginButton');
-            if (loginButton) {
-                loginButton.style.display = isAuthenticated ? 'none' : 'flex';
-            }
-
-            const signupButton = document.getElementById('signupButton');
-            if (signupButton) {
-                signupButton.style.display = isAuthenticated ? 'none' : 'flex';
-            }
-
+            // Update sidebar user plan if authenticated
             if (isAuthenticated) {
-                await initUserMenu('userMenuContainer', async () => {
-                    await updateUIForAuthState(null);
-                });
-            } else {
-                destroyUserMenu();
+                const sidebar = getSidebar();
+                if (sidebar) {
+                    try {
+                        const token = session.access_token;
+                        const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+                        const response = await fetch(`${API_BASE_URL}/api/subscription/status`, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                            },
+                        });
+
+                        if (response.ok) {
+                            const subscription = await response.json();
+                            sidebar.updateUserPlan(subscription.tier);
+                        }
+                    } catch (error) {
+                        console.error('Failed to fetch subscription:', error);
+                    }
+                }
             }
         }
     </script>

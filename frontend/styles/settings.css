@@ -2,11 +2,15 @@
  * Settings Page Styles
  */
 
-/* Container */
+/* Container - Let sidebar handle margin-left */
 .settings-container {
-  max-width: 900px;
-  margin: 0 auto;
   padding: 24px;
+}
+
+/* Inner content - Centered with margin auto */
+#settingsPageContainer {
+  max-width: 1000px;
+  margin: 0 auto;
 }
 
 /* Header */

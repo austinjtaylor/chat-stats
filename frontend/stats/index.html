@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stats - UFA Statistics</title>
+    <!-- Main styles -->
+    <link rel="stylesheet" href="../styles/main.css">
+    <!-- Stats page specific styles -->
+    <link rel="stylesheet" href="index.css">
+</head>
+<body class="stats-page" data-page="stats">
+    <div class="stats-container">
+        <!-- Main Content -->
+        <main class="stats-main">
+            <!-- Page Header -->
+            <div class="stats-header">
+                <h1 class="stats-title">Statistics</h1>
+            </div>
+
+            <!-- Tab Navigation -->
+            <nav class="stats-tabs">
+                <div class="tabs-container">
+                    <button class="tab-button active" data-tab="players">Players</button>
+                    <button class="tab-button" data-tab="teams">Teams</button>
+                    <button class="tab-button" data-tab="games">Games</button>
+                </div>
+            </nav>
+
+            <!-- Tab Content -->
+            <div class="tab-content">
+                <!-- Players Tab -->
+                <div class="tab-pane active" id="players-tab">
+                    <iframe src="/stats/players.html" frameborder="0" class="stats-iframe"></iframe>
+                </div>
+
+                <!-- Teams Tab -->
+                <div class="tab-pane" id="teams-tab">
+                    <iframe src="/stats/teams.html" frameborder="0" class="stats-iframe"></iframe>
+                </div>
+
+                <!-- Games Tab -->
+                <div class="tab-pane" id="games-tab">
+                    <iframe src="/stats/game-detail.html" frameborder="0" class="stats-iframe"></iframe>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Vite entry point -->
+    <script type="module" src="/stats/index.entry.ts"></script>
+</body>
+</html>

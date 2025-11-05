@@ -1,0 +1,98 @@
+/**
+ * Unified Stats Page Styles
+ */
+
+/* Stats Header */
+.stats-header {
+  padding: 2rem 2rem 1rem;
+}
+
+.stats-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* Tab Navigation */
+.stats-tabs {
+  padding: 0 2rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tabs-container {
+  display: flex;
+  gap: 0;
+}
+
+.tab-button {
+  padding: 1rem 1.5rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.tab-button:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+}
+
+.tab-button.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+}
+
+/* Tab Content */
+.tab-content {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 180px);
+}
+
+.tab-pane {
+  display: none;
+  width: 100%;
+  height: 100%;
+}
+
+.tab-pane.active {
+  display: block;
+}
+
+/* Iframe Styles */
+.stats-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .stats-header {
+    padding: 1rem;
+  }
+
+  .stats-title {
+    font-size: 1.5rem;
+  }
+
+  .stats-tabs {
+    padding: 0 1rem;
+  }
+
+  .tab-button {
+    padding: 0.75rem 1rem;
+    font-size: 0.8125rem;
+  }
+
+  .tab-content {
+    height: calc(100vh - 150px);
+  }
+}
