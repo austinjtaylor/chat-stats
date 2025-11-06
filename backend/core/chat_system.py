@@ -94,25 +94,8 @@ class StatsChatSystem:
 
             # Post-process response if it's a game details query
             if should_format_response(query) and sources:
-                # Try to enhance the response with complete statistics
-                enhanced_response = format_game_details_response(response, sources)
-
-                # If enhancement didn't work and critical stats are still missing,
-                # make an additional tool call to format properly
-                if enhanced_response == response:
-                    # Check if we're missing critical stats
-                    critical_stats = [
-                        "O-Line Conversion",
-                        "D-Line Conversion",
-                        "Red Zone Conversion",
-                    ]
-                    if any(stat not in response for stat in critical_stats):
-                        # The data is available in sources, so format it properly
-                        enhanced_response = format_game_details_response(
-                            response, sources
-                        )
-
-                response = enhanced_response
+                # Enhance the response with complete statistics in table format
+                response = format_game_details_response(response, sources)
 
             # Update conversation history (always add to session, create default if needed)
             if session_id:

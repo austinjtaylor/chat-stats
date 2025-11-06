@@ -328,36 +328,57 @@ def format_game_details_response(answer: str, data: list[Any]) -> str:
 
         enhanced_stats.append("")
 
-    # Find where to insert the enhanced stats
-    # Replace everything from "Game Details:" to end of response (including any existing Individual Leaders)
-    # This ensures we replace Game Details, Team Statistics, and Individual Leaders sections with table versions
-    game_details_pattern = r"(Game Details:.*?)$"
-    match = re.search(game_details_pattern, answer, re.DOTALL | re.IGNORECASE)
+    # Find where to insert/replace the enhanced stats
+    # Strategy: Look for sections that contain game statistics and replace them entirely
+    # This prevents duplication by replacing any existing formatted content
+
+    enhanced_section = "\n".join(enhanced_stats)
+
+    # Try to find where game-related content starts
+    # Look for common patterns that indicate the start of game details/stats
+    patterns_to_find = [
+        r"(Game Information:)",  # Bullet-point style
+        r"(Game Details:)",      # Colon heading
+        r"(##?\s*Game Details)",  # Markdown heading
+        r"(\*\*Game Details\*\*)",  # Bold heading
+        r"(Team Statistics:.*?(?=\n\n|\Z))",  # Team stats section
+    ]
+
+    match = None
+    for pattern in patterns_to_find:
+        match = re.search(pattern, answer, re.IGNORECASE)
+        if match:
+            break
 
     if match:
-        # Replace existing game details, team stats, and individual leaders with table versions
-        enhanced_section = "\n".join(enhanced_stats)
-        # Keep the intro text before "Game Details:"
-        intro = answer[: match.start()]
-        # Replace everything from Game Details to end with our formatted tables
-        enhanced_answer = intro + enhanced_section
+        # Found existing game content - replace everything from this point onward
+        intro = answer[: match.start()].rstrip()
+        enhanced_answer = intro + "\n\n" + enhanced_section
     else:
-        # No existing Game Details section, insert before Individual Leaders or at end
-        if "Individual Leaders:" in answer or "Individual Leaders" in answer:
-            # Find the Individual Leaders section
-            leaders_match = re.search(r"Individual Leaders", answer, re.IGNORECASE)
-            if leaders_match:
-                enhanced_section = "\n".join(enhanced_stats) + "\n\n"
-                enhanced_answer = (
-                    answer[: leaders_match.start()]
-                    + enhanced_section
-                    + answer[leaders_match.start() :]
-                )
+        # No existing section found - check if stats are already present before appending
+        # Look for stat indicators (completion percentage, hold percentage, etc.)
+        stat_indicators = [
+            "Completion Percentage:",
+            "Completion %",
+            "Hold Percentage:",
+            "Hold %",
+            "O-Line Conversion",
+            "Break Percentage:",
+        ]
+
+        if any(indicator in answer for indicator in stat_indicators):
+            # Stats already present in some form - replace everything after intro
+            # Try to find where the detailed stats start
+            intro_match = re.search(r"^(.*?(?:game details?|game information).*?are:?)\s*", answer, re.DOTALL | re.IGNORECASE)
+            if intro_match:
+                intro = intro_match.group(1).rstrip()
+                enhanced_answer = intro + "\n\n" + enhanced_section
             else:
-                enhanced_answer = answer + "\n\n" + "\n".join(enhanced_stats)
+                # Can't find a good split point - just replace entire response
+                enhanced_answer = enhanced_section
         else:
-            # Append to the end
-            enhanced_answer = answer + "\n\n" + "\n".join(enhanced_stats)
+            # No stats found - safe to append
+            enhanced_answer = answer + "\n\n" + enhanced_section
 
     return enhanced_answer
 
