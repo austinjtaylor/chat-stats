@@ -201,7 +201,7 @@ export class UserMenu {
             <polyline points="16 17 21 12 16 7"></polyline>
             <line x1="21" y1="12" x2="9" y2="12"></line>
           </svg>
-          <span>Sign Out</span>
+          <span>Log out</span>
         </button>
       </div>
     `;

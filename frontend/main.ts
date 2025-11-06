@@ -25,6 +25,7 @@ import { initSidebar, getSidebar } from './components/navigation/Sidebar';
 import { onAuthStateChange, getSession } from './lib/auth';
 import { showLoginModal } from './components/auth/LoginModal';
 import { showSignupModal } from './components/auth/SignupModal';
+import { initUserMenu, destroyUserMenu } from './components/auth/UserMenu';
 import type { Session } from '@supabase/supabase-js';
 
 /**
@@ -67,6 +68,27 @@ async function initAuth() {
       await updateUIForAuthState(session.session);
     });
   });
+
+  // Set up event listeners for auth buttons
+  const loginButton = document.getElementById('loginButton');
+  loginButton?.addEventListener('click', () => {
+    showLoginModal(async () => {
+      const session = await getSession();
+      await updateUIForAuthState(session.session);
+      // Reload page to ensure full state refresh
+      window.location.reload();
+    });
+  });
+
+  const signupButton = document.getElementById('signupButton');
+  signupButton?.addEventListener('click', () => {
+    showSignupModal(async () => {
+      const session = await getSession();
+      await updateUIForAuthState(session.session);
+      // Reload page to ensure full state refresh
+      window.location.reload();
+    });
+  });
 }
 
 /**
@@ -74,6 +96,31 @@ async function initAuth() {
  */
 async function updateUIForAuthState(session: Session | null) {
   const isAuthenticated = !!session;
+
+  // Show/hide auth buttons based on auth state
+  const loginButton = document.getElementById('loginButton');
+  if (loginButton) {
+    loginButton.style.display = isAuthenticated ? 'none' : 'flex';
+  }
+
+  const signupButton = document.getElementById('signupButton');
+  if (signupButton) {
+    signupButton.style.display = isAuthenticated ? 'none' : 'flex';
+  }
+
+  const authButtonsWrapper = document.querySelector('.auth-buttons-wrapper') as HTMLElement;
+  if (authButtonsWrapper) {
+    authButtonsWrapper.style.display = isAuthenticated ? 'none' : 'flex';
+  }
+
+  // Manage user menu
+  if (isAuthenticated) {
+    // Initialize user menu if authenticated
+    await initUserMenu('userMenuContainer');
+  } else {
+    // Destroy user menu if not authenticated
+    destroyUserMenu();
+  }
 
   // If user just logged in, start a new chat
   if (isAuthenticated) {

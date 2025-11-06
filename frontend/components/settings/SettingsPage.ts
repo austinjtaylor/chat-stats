@@ -3,7 +3,7 @@
  * Displays user settings with tabbed interface: Profile, Billing, Usage
  */
 
-import { getSession, type SessionInfo } from '../../lib/auth';
+import { getSession, signOut, type SessionInfo } from '../../lib/auth';
 import { showPaymentMethodModal } from '../billing/PaymentMethodModal';
 import { showCancelSubscriptionModal } from './CancelSubscriptionModal';
 import {
@@ -63,7 +63,7 @@ interface Invoice {
   hosted_invoice_url: string;
 }
 
-type TabName = 'profile' | 'billing' | 'usage';
+type TabName = 'general' | 'billing' | 'usage' | 'account';
 
 export class SettingsPage {
   private container: HTMLElement | null = null;
@@ -72,8 +72,10 @@ export class SettingsPage {
   private profile: UserProfile | null = null;
   private paymentMethod: PaymentMethod | null = null;
   private invoices: Invoice[] = [];
-  private activeTab: TabName = 'profile';
+  private activeTab: TabName = 'general';
   private saveTimeout: number | null = null;
+  private originalFullName: string = '';
+  private hasUnsavedChanges: boolean = false;
 
   /**
    * Initialize and render the settings page
@@ -98,10 +100,14 @@ export class SettingsPage {
     this.paymentMethod = getCachedPaymentMethod();
     this.invoices = getCachedInvoices();
 
-    // Check URL hash for tab
-    const hash = window.location.hash.slice(1) as TabName;
-    if (hash && ['profile', 'billing', 'usage'].includes(hash)) {
-      this.activeTab = hash;
+    // Check URL hash for tab (support legacy 'profile' hash for backwards compatibility)
+    const hash = window.location.hash.slice(1);
+    if (hash === 'profile') {
+      // Redirect legacy 'profile' hash to 'general'
+      window.location.hash = 'general';
+      this.activeTab = 'general';
+    } else if (hash && ['general', 'billing', 'usage', 'account'].includes(hash)) {
+      this.activeTab = hash as TabName;
     }
 
     // Render immediately with cached data (instant display!)
@@ -266,9 +272,13 @@ export class SettingsPage {
    */
   private setupHashNavigation(): void {
     window.addEventListener('hashchange', () => {
-      const hash = window.location.hash.slice(1) as TabName;
-      if (hash && ['profile', 'billing', 'usage'].includes(hash)) {
-        this.switchTab(hash);
+      const hash = window.location.hash.slice(1);
+      if (hash === 'profile') {
+        // Redirect legacy 'profile' hash to 'general'
+        window.location.hash = 'general';
+        this.switchTab('general');
+      } else if (hash && ['general', 'billing', 'usage', 'account'].includes(hash)) {
+        this.switchTab(hash as TabName);
       }
     });
   }
@@ -344,8 +354,8 @@ export class SettingsPage {
 
         <!-- Tab Navigation -->
         <div class="settings-tabs">
-          <button class="settings-tab-button ${this.activeTab === 'profile' ? 'active' : ''}" data-tab="profile">
-            Profile
+          <button class="settings-tab-button ${this.activeTab === 'general' ? 'active' : ''}" data-tab="general">
+            General
           </button>
           <button class="settings-tab-button ${this.activeTab === 'billing' ? 'active' : ''}" data-tab="billing">
             Billing
@@ -353,11 +363,14 @@ export class SettingsPage {
           <button class="settings-tab-button ${this.activeTab === 'usage' ? 'active' : ''}" data-tab="usage">
             Usage
           </button>
+          <button class="settings-tab-button ${this.activeTab === 'account' ? 'active' : ''}" data-tab="account">
+            Account
+          </button>
         </div>
 
-        <!-- Profile Tab -->
-        <div class="settings-tab-content ${this.activeTab === 'profile' ? 'active' : ''}" data-tab="profile">
-          ${this.renderProfileTab(user)}
+        <!-- General Tab -->
+        <div class="settings-tab-content ${this.activeTab === 'general' ? 'active' : ''}" data-tab="general">
+          ${this.renderGeneralTab(user)}
         </div>
 
         <!-- Billing Tab -->
@@ -369,6 +382,11 @@ export class SettingsPage {
         <div class="settings-tab-content ${this.activeTab === 'usage' ? 'active' : ''}" data-tab="usage">
           ${this.renderUsageTab(sub)}
         </div>
+
+        <!-- Account Tab -->
+        <div class="settings-tab-content ${this.activeTab === 'account' ? 'active' : ''}" data-tab="account">
+          ${this.renderAccountTab()}
+        </div>
       </div>
     `;
 
@@ -377,38 +395,68 @@ export class SettingsPage {
   }
 
   /**
-   * Render Profile tab content
+   * Render General tab content
    */
-  private renderProfileTab(user: any): string {
+  private renderGeneralTab(user: any): string {
     const savedTheme = localStorage.getItem('theme') || 'dark';
+    const fullName = this.profile?.full_name || '';
+
+    // Store original full name for comparison
+    if (!this.originalFullName && fullName) {
+      this.originalFullName = fullName;
+    }
+
+    // Generate initials from full name
+    const getInitials = (name: string): string => {
+      if (!name || !name.trim()) return '';
+      const parts = name.trim().split(' ').filter(p => p);
+      if (parts.length === 0) return '';
+      if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+      return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+    };
+
+    const initials = getInitials(fullName);
 
     return `
-      <!-- Account Information -->
+      <!-- Account Information (no section title) -->
       <div class="settings-section">
-        <h2 class="settings-section-title">Account Information</h2>
-        <div class="settings-card">
+        <div class="settings-card settings-card-with-avatar">
           <div class="settings-field">
             <label>Name</label>
-            <input
-              type="text"
-              id="full-name-input"
-              class="settings-value settings-value-mono"
-              placeholder="Your name here"
-              value="${this.profile?.full_name || ''}"
-              autocomplete="off"
-            />
+            <div class="name-input-row">
+              <div class="avatar-box">
+                <div class="user-avatar-large" id="user-avatar-display">
+                  ${initials || 'U'}
+                </div>
+              </div>
+              <input
+                type="text"
+                id="full-name-input"
+                class="settings-input settings-input-with-avatar"
+                placeholder="Your name here"
+                value="${fullName}"
+                autocomplete="off"
+              />
+            </div>
           </div>
+
           <div class="settings-field">
             <label>Email</label>
             <div class="settings-value">${user?.email || 'N/A'}</div>
           </div>
+
+          <!-- Save/Cancel buttons (hidden by default) -->
+          <div class="settings-card-actions" id="name-change-actions" style="display: none;">
+            <button class="btn-secondary" id="cancel-name-btn">Cancel</button>
+            <button class="btn-primary" id="save-name-btn">Save changes</button>
+          </div>
         </div>
       </div>
 
-      <!-- Color Mode -->
+      <!-- Color Mode (title inside card) -->
       <div class="settings-section">
-        <h2 class="settings-section-title">Color mode</h2>
         <div class="settings-card">
+          <h3 class="settings-card-title">Color mode</h3>
           <div class="theme-options">
             <button class="theme-option ${savedTheme === 'light' ? 'active' : ''}" data-theme="light">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -608,6 +656,40 @@ export class SettingsPage {
   }
 
   /**
+   * Render Account tab content
+   */
+  private renderAccountTab(): string {
+    return `
+      <!-- Log Out Section -->
+      <div class="settings-section">
+        <div class="settings-card">
+          <div class="account-action-row">
+            <div class="account-action-info">
+              <h3 class="account-action-title">Log out of all devices</h3>
+            </div>
+            <button class="btn-secondary" id="logout-btn">Log out</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Delete Account Section -->
+      <div class="settings-section">
+        <div class="settings-card settings-card-danger">
+          <div class="account-action-row">
+            <div class="account-action-info">
+              <h3 class="account-action-title">Delete account</h3>
+              <p class="account-action-description">
+                Permanently delete your account and all associated data. This action cannot be undone.
+              </p>
+            </div>
+            <button class="btn-danger" id="delete-account-btn">Delete account</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
    * Attach event listeners
    */
   private attachEventListeners(): void {
@@ -634,12 +716,20 @@ export class SettingsPage {
       });
     });
 
-    // Full name input with auto-save
+    // Full name input with live avatar update and save/cancel buttons
     const fullNameInput = this.container?.querySelector('#full-name-input') as HTMLInputElement;
     fullNameInput?.addEventListener('input', (e) => {
       const target = e.target as HTMLInputElement;
-      this.handleFullNameInput(target.value);
+      this.handleFullNameChange(target.value);
     });
+
+    // Save name button
+    const saveNameBtn = this.container?.querySelector('#save-name-btn');
+    saveNameBtn?.addEventListener('click', () => this.handleSaveFullName());
+
+    // Cancel name button
+    const cancelNameBtn = this.container?.querySelector('#cancel-name-btn');
+    cancelNameBtn?.addEventListener('click', () => this.handleCancelNameChange());
 
     // Update payment button
     const updatePaymentBtn = this.container?.querySelector('#update-payment-btn');
@@ -658,6 +748,14 @@ export class SettingsPage {
     upgradeBtn?.addEventListener('click', () => {
       window.location.href = '/pricing';
     });
+
+    // Logout button
+    const logoutBtn = this.container?.querySelector('#logout-btn');
+    logoutBtn?.addEventListener('click', () => this.handleLogout());
+
+    // Delete account button
+    const deleteAccountBtn = this.container?.querySelector('#delete-account-btn');
+    deleteAccountBtn?.addEventListener('click', () => this.handleDeleteAccount());
   }
 
   /**
@@ -807,24 +905,42 @@ export class SettingsPage {
   }
 
   /**
-   * Handle full name input with debouncing
+   * Handle full name change - update avatar and show save/cancel buttons
    */
-  private handleFullNameInput(value: string): void {
-    // Clear existing timeout
-    if (this.saveTimeout !== null) {
-      window.clearTimeout(this.saveTimeout);
+  private handleFullNameChange(value: string): void {
+    // Update avatar initials in real-time
+    const getInitials = (name: string): string => {
+      if (!name || !name.trim()) return '';
+      const parts = name.trim().split(' ').filter(p => p);
+      if (parts.length === 0) return '';
+      if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+      return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+    };
+
+    const avatarDisplay = this.container?.querySelector('#user-avatar-display');
+    if (avatarDisplay) {
+      avatarDisplay.textContent = getInitials(value) || 'U';
     }
 
-    // Set new timeout to save after 500ms
-    this.saveTimeout = window.setTimeout(async () => {
-      await this.saveFullName(value);
-    }, 500);
+    // Show/hide save/cancel buttons based on whether value changed
+    const hasChanged = value.trim() !== (this.originalFullName || '');
+    const actionsDiv = this.container?.querySelector('#name-change-actions') as HTMLElement;
+    if (actionsDiv) {
+      actionsDiv.style.display = hasChanged ? 'flex' : 'none';
+    }
+
+    this.hasUnsavedChanges = hasChanged;
   }
 
   /**
-   * Save full name to API
+   * Handle save full name button click
    */
-  private async saveFullName(fullName: string): Promise<void> {
+  private async handleSaveFullName(): Promise<void> {
+    const fullNameInput = this.container?.querySelector('#full-name-input') as HTMLInputElement;
+    if (!fullNameInput) return;
+
+    const fullName = fullNameInput.value;
+
     try {
       const token = this.session?.session?.access_token;
       if (!token) return;
@@ -848,13 +964,322 @@ export class SettingsPage {
           updateCachedProfile(this.profile);
         }
 
+        // Update original name and hide buttons
+        this.originalFullName = fullName.trim();
+        this.hasUnsavedChanges = false;
+
+        const actionsDiv = this.container?.querySelector('#name-change-actions') as HTMLElement;
+        if (actionsDiv) {
+          actionsDiv.style.display = 'none';
+        }
+
         // Dispatch event to update user menu initials
-        window.dispatchEvent(new CustomEvent('profile-updated', {
+        const event = new CustomEvent('profile-updated', {
           detail: { full_name: fullName.trim() },
-        }));
+        });
+        window.dispatchEvent(event);
+
+        // Show success notification
+        this.showNotification('Account preferences updated');
+      } else {
+        alert('Failed to save name. Please try again.');
       }
     } catch (error) {
       console.error('Failed to save full name:', error);
+      alert('Failed to save name. Please try again.');
+    }
+  }
+
+  /**
+   * Show notification toast in top right corner
+   */
+  private showNotification(message: string): void {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = 'settings-notification';
+    notification.innerHTML = `
+      <svg class="notification-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <path d="M12 16v-4"></path>
+        <path d="M12 8h.01"></path>
+      </svg>
+      <span class="notification-message">${message}</span>
+      <button class="notification-close" aria-label="Close notification">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    `;
+
+    // Add to body
+    document.body.appendChild(notification);
+
+    // Trigger animation
+    setTimeout(() => {
+      notification.classList.add('show');
+    }, 10);
+
+    // Close handlers
+    const closeNotification = () => {
+      notification.classList.remove('show');
+      setTimeout(() => {
+        document.body.removeChild(notification);
+      }, 300);
+    };
+
+    // Close button
+    const closeBtn = notification.querySelector('.notification-close');
+    closeBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeNotification();
+    });
+
+    // Close on click anywhere on screen
+    const clickHandler = (e: MouseEvent) => {
+      if (!notification.contains(e.target as Node)) {
+        closeNotification();
+        document.removeEventListener('click', clickHandler);
+      }
+    };
+    // Add listener after a short delay to prevent immediate closing
+    setTimeout(() => {
+      document.addEventListener('click', clickHandler);
+    }, 100);
+
+    // Auto-close after 5 seconds
+    setTimeout(() => {
+      if (document.body.contains(notification)) {
+        closeNotification();
+        document.removeEventListener('click', clickHandler);
+      }
+    }, 5000);
+  }
+
+  /**
+   * Handle cancel name change button click
+   */
+  private handleCancelNameChange(): void {
+    // Restore original name
+    const fullNameInput = this.container?.querySelector('#full-name-input') as HTMLInputElement;
+    if (fullNameInput) {
+      fullNameInput.value = this.originalFullName || '';
+    }
+
+    // Update avatar back to original
+    const getInitials = (name: string): string => {
+      if (!name || !name.trim()) return '';
+      const parts = name.trim().split(' ').filter(p => p);
+      if (parts.length === 0) return '';
+      if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+      return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+    };
+
+    const avatarDisplay = this.container?.querySelector('#user-avatar-display');
+    if (avatarDisplay) {
+      avatarDisplay.textContent = getInitials(this.originalFullName) || 'U';
+    }
+
+    // Hide save/cancel buttons
+    const actionsDiv = this.container?.querySelector('#name-change-actions') as HTMLElement;
+    if (actionsDiv) {
+      actionsDiv.style.display = 'none';
+    }
+
+    this.hasUnsavedChanges = false;
+  }
+
+  /**
+   * Handle logout button click - show confirmation modal
+   */
+  private handleLogout(): void {
+    this.showLogoutConfirmationModal();
+  }
+
+  /**
+   * Show logout confirmation modal
+   */
+  private showLogoutConfirmationModal(): void {
+    // Create modal overlay
+    const modalOverlay = document.createElement('div');
+    modalOverlay.className = 'cancel-modal-overlay';
+    modalOverlay.innerHTML = `
+      <div class="cancel-modal">
+        <div class="cancel-modal-header">
+          <h2>Log out of all devices</h2>
+        </div>
+        <div class="cancel-modal-body">
+          <p class="cancel-modal-description">
+            Are you sure you want to log out of all devices?
+          </p>
+        </div>
+        <div class="cancel-modal-footer">
+          <button class="btn-secondary" id="logout-modal-cancel-btn">Cancel</button>
+          <button class="btn-primary" id="logout-modal-confirm-btn">Log out of all devices</button>
+        </div>
+      </div>
+    `;
+
+    // Add to body
+    document.body.appendChild(modalOverlay);
+
+    // Get elements
+    const confirmBtn = modalOverlay.querySelector('#logout-modal-confirm-btn');
+    const cancelBtn = modalOverlay.querySelector('#logout-modal-cancel-btn');
+
+    // Handle cancel
+    const closeModal = () => {
+      document.body.removeChild(modalOverlay);
+    };
+
+    cancelBtn?.addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) closeModal();
+    });
+
+    // Handle confirm
+    confirmBtn?.addEventListener('click', async () => {
+      await this.processLogout();
+      closeModal();
+    });
+  }
+
+  /**
+   * Process logout
+   */
+  private async processLogout(): Promise<void> {
+    const result = await signOut();
+
+    if (result.success) {
+      // Redirect to home page
+      window.location.href = '/';
+    } else {
+      console.error('Failed to log out:', result.error);
+      alert(`Failed to log out: ${result.error || 'Please try again.'}`);
+    }
+  }
+
+  /**
+   * Handle delete account button click - show confirmation modal
+   */
+  private handleDeleteAccount(): void {
+    // Show delete account confirmation modal
+    this.showDeleteAccountModal();
+  }
+
+  /**
+   * Show delete account confirmation modal
+   */
+  private showDeleteAccountModal(): void {
+    // Create modal overlay
+    const modalOverlay = document.createElement('div');
+    modalOverlay.className = 'cancel-modal-overlay';
+    modalOverlay.innerHTML = `
+      <div class="cancel-modal">
+        <div class="cancel-modal-header">
+          <h2>Delete Account</h2>
+        </div>
+        <div class="cancel-modal-body">
+          <p class="cancel-modal-description">
+            This action will permanently delete your account and all associated data, including:
+          </p>
+          <ul style="margin: 16px 0; padding-left: 20px; color: var(--text-secondary); font-size: 14px; line-height: 1.6;">
+            <li>Saved queries and favorites</li>
+            <li>User preferences and settings</li>
+            <li>Subscription and billing history</li>
+          </ul>
+          <p class="cancel-modal-description" style="margin-bottom: 16px;">
+            <strong>Your active subscription will be automatically canceled.</strong>
+          </p>
+          <p class="cancel-modal-description" style="margin-bottom: 16px;">
+            This action cannot be undone. To confirm, please type <strong>DELETE</strong> below:
+          </p>
+          <div class="cancel-form-field">
+            <input
+              type="text"
+              id="delete-confirm-input"
+              class="cancel-form-select"
+              placeholder="Type DELETE to confirm"
+              autocomplete="off"
+              style="text-transform: uppercase;"
+            />
+          </div>
+        </div>
+        <div class="cancel-modal-footer">
+          <button class="btn-secondary" id="delete-modal-cancel-btn">Cancel</button>
+          <button class="btn-danger" id="delete-modal-confirm-btn" disabled>Delete Account</button>
+        </div>
+      </div>
+    `;
+
+    // Add to body
+    document.body.appendChild(modalOverlay);
+
+    // Get elements
+    const confirmInput = modalOverlay.querySelector('#delete-confirm-input') as HTMLInputElement;
+    const confirmBtn = modalOverlay.querySelector('#delete-modal-confirm-btn') as HTMLButtonElement;
+    const cancelBtn = modalOverlay.querySelector('#delete-modal-cancel-btn');
+
+    // Enable/disable confirm button based on input
+    confirmInput?.addEventListener('input', () => {
+      const isValid = confirmInput.value.toUpperCase() === 'DELETE';
+      confirmBtn.disabled = !isValid;
+      confirmBtn.style.opacity = isValid ? '1' : '0.5';
+    });
+
+    // Handle cancel
+    const closeModal = () => {
+      document.body.removeChild(modalOverlay);
+    };
+
+    cancelBtn?.addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) closeModal();
+    });
+
+    // Handle confirm
+    confirmBtn?.addEventListener('click', async () => {
+      if (confirmInput.value.toUpperCase() === 'DELETE') {
+        await this.processAccountDeletion();
+        closeModal();
+      }
+    });
+  }
+
+  /**
+   * Process account deletion
+   */
+  private async processAccountDeletion(): Promise<void> {
+    try {
+      const token = this.session?.session?.access_token;
+      if (!token) return;
+
+      const response = await fetch(`${API_BASE_URL}/api/user/account`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        // Import supabase client dynamically
+        const { supabase } = await import('../../lib/auth');
+
+        // Sign out
+        await supabase.auth.signOut();
+
+        // Show success message
+        alert('Your account has been successfully deleted.');
+
+        // Redirect to home page
+        window.location.href = '/';
+      } else {
+        const error = await response.json();
+        alert(`Failed to delete account: ${error.detail || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Failed to delete account:', error);
+      alert('Failed to delete account. Please try again.');
     }
   }
 

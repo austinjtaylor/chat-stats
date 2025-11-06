@@ -100,3 +100,15 @@ except ValueError as e:
     print(
         "   Set SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_KEY, JWT_SECRET, and DATABASE_URL in .env"
     )
+
+
+# Initialize Supabase admin client (for server-side operations like deleting users)
+supabase_admin = None
+try:
+    from supabase import create_client
+    if SUPABASE_URL and SUPABASE_SERVICE_KEY:
+        supabase_admin = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+        print("✅ Supabase admin client initialized")
+except Exception as e:
+    print(f"⚠️  Failed to initialize Supabase admin client: {e}")
+    print("   User account deletion will not be available")

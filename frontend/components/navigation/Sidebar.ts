@@ -120,6 +120,22 @@ export class Sidebar {
 
       await this.updateUserSection();
     });
+
+    // Listen for profile updates (e.g., when user changes their name in settings)
+    window.addEventListener('profile-updated', (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const newFullName = customEvent.detail.full_name;
+
+      // Update profile data
+      if (this.profile) {
+        this.profile.full_name = newFullName;
+        // Update cache
+        updateCachedProfile(this.profile);
+      }
+
+      // Re-render user section with new initials
+      this.renderUserSection(true);
+    });
   }
 
   /**
@@ -268,7 +284,7 @@ export class Sidebar {
             <polyline points="16 17 21 12 16 7"></polyline>
             <line x1="21" y1="12" x2="9" y2="12"></line>
           </svg>
-          <span>Sign Out</span>
+          <span>Log out</span>
         </button>
       </div>
     `;

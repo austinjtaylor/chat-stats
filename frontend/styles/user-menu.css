@@ -219,15 +219,15 @@
 /* Logout button */
 .user-menu-logout {
   margin-top: 8px;
-  color: rgb(239, 68, 68);
+  color: rgb(251, 191, 36);
 }
 
 .user-menu-logout:hover {
-  background: rgba(239, 68, 68, 0.1);
+  background: rgba(251, 191, 36, 0.1);
 }
 
 .user-menu-logout svg {
-  color: rgb(239, 68, 68);
+  color: rgb(251, 191, 36);
 }
 
 /* Dark mode adjustments */

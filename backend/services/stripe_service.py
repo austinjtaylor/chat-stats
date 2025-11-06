@@ -176,6 +176,36 @@ class StripeService:
                 status_code=400, detail=f"Failed to cancel subscription: {str(e)}"
             )
 
+    def cancel_subscription_immediately(self, stripe_customer_id: str) -> Any:
+        """
+        Cancel all subscriptions for a customer immediately (for account deletion).
+
+        Args:
+            stripe_customer_id: Stripe Customer ID
+
+        Returns:
+            List of canceled subscription objects
+        """
+        try:
+            # Get all active subscriptions for the customer
+            subscriptions = stripe.Subscription.list(
+                customer=stripe_customer_id,
+                status='active'
+            )
+
+            canceled_subs = []
+            for sub in subscriptions.data:
+                # Cancel immediately (not at period end)
+                canceled_sub = stripe.Subscription.cancel(sub.id)
+                canceled_subs.append(canceled_sub)
+
+            return canceled_subs
+        except Exception as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Failed to cancel subscriptions immediately: {str(e)}"
+            )
+
     def reactivate_subscription(self, subscription_id: str) -> Any:
         """
         Reactivate a subscription that was set to cancel.

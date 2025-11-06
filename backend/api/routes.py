@@ -152,6 +152,58 @@ def create_basic_routes(stats_system):
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e)) from e
 
+    @router.delete("/api/user/account")
+    async def delete_user_account(user: dict = Depends(get_current_user)):
+        """
+        Delete current user's account permanently.
+
+        This will:
+        1. Cancel any active Stripe subscription
+        2. Delete user from Supabase Auth
+        3. Cascade delete all user data (subscriptions, queries, favorites, preferences)
+
+        Requires authentication.
+        """
+        try:
+            from supabase_client import supabase_admin
+            from services.stripe_service import get_stripe_service
+            import logging
+
+            logger = logging.getLogger(__name__)
+            user_id = user["user_id"]
+
+            # Get user's subscription to check for Stripe customer
+            subscription_service = get_subscription_service(stats_system.db)
+            subscription = subscription_service.get_user_subscription(user_id)
+
+            # Cancel Stripe subscription if exists
+            if subscription and subscription.stripe_customer_id:
+                try:
+                    stripe_service = get_stripe_service(stats_system.db)
+                    # Cancel subscription immediately (not at period end)
+                    stripe_service.cancel_subscription_immediately(subscription.stripe_customer_id)
+                    logger.info(f"Canceled Stripe subscription for user {user_id}")
+                except Exception as e:
+                    logger.error(f"Failed to cancel Stripe subscription: {e}")
+                    # Continue with account deletion even if Stripe cancellation fails
+
+            # Delete user from Supabase Auth (this will cascade delete all user data via database triggers)
+            try:
+                response = supabase_admin.auth.admin.delete_user(user_id)
+                logger.info(f"Deleted user {user_id} from Supabase Auth")
+            except Exception as e:
+                logger.error(f"Failed to delete user from Supabase: {e}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to delete user account: {str(e)}"
+                )
+
+            return {"message": "Account successfully deleted"}
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e)) from e
+
     @router.get("/api/stats", response_model=StatsResponse)
     async def get_stats_summary():
         """Get sports statistics summary"""

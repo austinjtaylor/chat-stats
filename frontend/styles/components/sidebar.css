@@ -559,15 +559,20 @@
 }
 
 .sidebar-user-dropdown-item.logout {
-  color: rgb(239, 68, 68);
+  color: #DFC883;
 }
 
 .sidebar-user-dropdown-item.logout svg {
-  color: rgb(239, 68, 68);
+  color: #DFC883;
 }
 
 .sidebar-user-dropdown-item.logout:hover {
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--surface-hover);
+  color: white !important;
+}
+
+.sidebar-user-dropdown-item.logout:hover svg {
+  color: white !important;
 }
 
 /* Content shift when sidebar is expanded */

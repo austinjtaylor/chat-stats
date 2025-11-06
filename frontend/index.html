@@ -82,6 +82,19 @@
 
     <div class="sidebar-backdrop"></div>
 
+    <!-- Auth Buttons (shown when not authenticated) -->
+    <div class="auth-buttons-wrapper" style="display: flex; gap: 8px; align-items: center;">
+        <button class="auth-button login-button" id="loginButton" aria-label="Log In">
+            Log In
+        </button>
+        <button class="auth-button signup-button" id="signupButton" aria-label="Sign Up">
+            Sign Up
+        </button>
+    </div>
+
+    <!-- User Menu (shown when authenticated) -->
+    <div id="userMenuContainer"></div>
+
     <div class="chat-page-container">
         <!-- Main Chat Area -->
         <main class="chat-main-full">
