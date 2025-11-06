@@ -160,10 +160,14 @@ class StatsChatSystem:
             "team_standings": [],
         }
 
-        # Get available seasons/years (UFA schema)
+        # Get available seasons/years (UFA schema, excluding All Star games)
         seasons_query = """
         SELECT DISTINCT year
         FROM games
+        WHERE game_type != 'allstar'
+          AND LOWER(game_id) NOT LIKE '%allstar%'
+          AND LOWER(home_team_id) NOT LIKE '%allstar%'
+          AND LOWER(away_team_id) NOT LIKE '%allstar%'
         ORDER BY year DESC
         """
         try:
@@ -181,13 +185,15 @@ class StatsChatSystem:
             # Get all teams with their standings from all years - simplified approach
             all_teams_query = """
             WITH team_years AS (
-                -- Get each team's most recent year
+                -- Get each team's most recent year (excluding All Stars)
                 SELECT
                     team_id,
                     name,
                     MAX(full_name) as full_name,
                     MAX(year) as last_year
                 FROM teams
+                WHERE LOWER(team_id) NOT LIKE '%allstar%'
+                  AND LOWER(name) NOT LIKE '%all%star%'
                 GROUP BY team_id, name
             ),
             team_list AS (

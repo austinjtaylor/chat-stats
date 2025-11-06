@@ -271,7 +271,12 @@ def create_box_score_routes(stats_system):
             FROM games g
             LEFT JOIN teams ht ON g.home_team_id = ht.team_id AND g.year = ht.year
             LEFT JOIN teams at ON g.away_team_id = at.team_id AND g.year = at.year
-            WHERE g.status = 'Final' {year_filter} {team_filter}
+            WHERE g.status = 'Final'
+              AND g.game_type != 'allstar'
+              AND LOWER(g.game_id) NOT LIKE '%allstar%'
+              AND LOWER(g.home_team_id) NOT LIKE '%allstar%'
+              AND LOWER(g.away_team_id) NOT LIKE '%allstar%'
+              {year_filter} {team_filter}
             ORDER BY g.start_timestamp DESC
             LIMIT :limit
             """

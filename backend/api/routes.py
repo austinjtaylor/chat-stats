@@ -191,6 +191,8 @@ def create_basic_routes(stats_system):
                     t.year
                 FROM teams t
                 WHERE t.year = :year
+                  AND LOWER(t.team_id) NOT LIKE '%allstar%'
+                  AND LOWER(t.name) NOT LIKE '%all%star%'
                 ORDER BY t.full_name
                 """
                 teams = stats_system.db.execute_query(query, {"year": year})
@@ -205,6 +207,8 @@ def create_basic_routes(stats_system):
                     t.year
                 FROM teams t
                 WHERE t.year = (SELECT MAX(year) FROM teams)
+                  AND LOWER(t.team_id) NOT LIKE '%allstar%'
+                  AND LOWER(t.name) NOT LIKE '%all%star%'
                 ORDER BY t.full_name
                 """
                 teams = stats_system.db.execute_query(query)
