@@ -103,6 +103,7 @@
     content: "▶ ";
     display: inline-block;
     transition: transform 0.2s;
+    will-change: transform;
 }
 
 .message.assistant details[open] .sources-header::before {

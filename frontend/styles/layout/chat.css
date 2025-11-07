@@ -51,6 +51,12 @@ body.chat-page {
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 2;
+    transition: left 0.3s ease;
+}
+
+/* Shift content right when sidebar is expanded - Initial state */
+body.sidebar-expanded .chat-main-full {
+    left: calc(50% + 80px);
 }
 
 .chat-container-full {
@@ -75,6 +81,7 @@ body.chat-page {
     background: var(--background);
     min-height: 0;
     max-height: 50vh;
+    transition: padding 0.3s ease;
 }
 
 /* Chat Input Area */
@@ -206,6 +213,16 @@ body.chat-page {
     padding: 0;
 }
 
+/* Override sidebar positioning in active state - prevent shift */
+body.sidebar-expanded.chat-active .chat-main-full {
+    left: 0 !important;
+}
+
+/* Remove container margin in active state - viewport positioning handles layout */
+body.chat-active .chat-page-container {
+    margin-left: 0 !important;
+}
+
 .chat-active .chat-container-full {
     height: 100vh;
     display: flex;
@@ -225,6 +242,12 @@ body.chat-page {
     position: relative;
     width: 100vw; /* Full viewport width for scrollbar positioning */
     margin-left: calc(50% - 50vw); /* Offset to extend to edges */
+    transition: transform 0.3s ease;
+}
+
+/* Shift entire messages container right when sidebar expands */
+body.sidebar-expanded.chat-active .chat-messages {
+    transform: translateX(40px);
 }
 
 /* Gradient overlay at the bottom of chat messages */
@@ -243,6 +266,12 @@ body.chat-page {
     );
     pointer-events: none; /* Allow clicking through the gradient */
     z-index: 10;
+    transition: transform 0.3s ease;
+}
+
+/* Shift gradient overlay when sidebar is expanded */
+body.sidebar-expanded.chat-active .chat-messages::after {
+    transform: translateX(-50%) translateX(40px);
 }
 
 
@@ -258,6 +287,12 @@ body.chat-page {
     justify-content: center;
     align-items: center;
     --chat-input-height: 74px; /* Default height, updated dynamically by JS */
+    transition: transform 0.3s ease;
+}
+
+/* Shift input area right when sidebar expands in active chat */
+body.sidebar-expanded.chat-active .chat-input-area {
+    transform: translateX(40px);
 }
 
 /* When chat is active, hide centered and show inline */
