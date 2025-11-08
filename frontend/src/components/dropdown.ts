@@ -29,15 +29,6 @@ function setupMenuDropdown(): void {
         menuDropdown.addEventListener('click', (e) => {
             e.stopPropagation();
         });
-
-        // Handle new chat menu item click
-        const newChatMenuItem = document.getElementById('newChatMenuItem');
-        if (newChatMenuItem) {
-            newChatMenuItem.addEventListener('click', () => {
-                startNewChat();
-                closeDropdown('menuDropdown');
-            });
-        }
     }
 }
 

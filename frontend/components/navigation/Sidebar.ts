@@ -467,12 +467,29 @@ export class Sidebar {
     if (window.location.pathname !== '/index.html' && window.location.pathname !== '/') {
       window.location.href = '/index.html';
     } else {
+      // Get the chat-main-full element and directly disable its transition
+      const chatMainFull = document.querySelector('.chat-main-full') as HTMLElement;
+      const originalTransition = chatMainFull ? chatMainFull.style.transition : '';
+
+      if (chatMainFull) {
+        chatMainFull.style.transition = 'none';
+        void chatMainFull.offsetHeight; // Force reflow
+      }
+
       // Clear chat
       const chatMessages = document.getElementById('chatMessages');
       if (chatMessages) {
         chatMessages.innerHTML = '';
         document.body.classList.remove('chat-active');
       }
+
+      // Restore transition after layout change
+      setTimeout(() => {
+        if (chatMainFull) {
+          chatMainFull.style.transition = originalTransition;
+        }
+      }, 50);
+
       // Dispatch event for script.ts to handle
       window.dispatchEvent(new Event('new-chat'));
     }

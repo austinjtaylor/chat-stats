@@ -8,7 +8,6 @@
     display: flex;
     width: 100%;
     margin-bottom: 1rem;
-    animation: messageSlideIn 0.3s ease;
 }
 
 /* User Message (Right-aligned) */
@@ -100,8 +99,14 @@
 }
 
 .message.assistant .sources-header::before {
-    content: "▶ ";
+    content: "";
     display: inline-block;
+    width: 0;
+    height: 0;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    border-left: 6px solid currentColor;
+    margin-right: 8px;
     transition: transform 0.2s;
     will-change: transform;
 }

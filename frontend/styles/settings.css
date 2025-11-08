@@ -4,21 +4,26 @@
 
 /* Container - Let sidebar handle margin-left */
 .settings-container {
-  padding: 24px;
+  padding: 0;
   min-height: 100vh;
   box-sizing: border-box;
 }
 
+/* Override sidebar margin when expanded to prevent width reduction */
+body.sidebar-expanded .settings-container {
+  margin-left: 60px !important;
+}
+
 /* Inner content - Centered with margin auto */
 #settingsPageContainer {
-  max-width: 1000px;
+  max-width: 768px;
   margin: 0 auto;
   transition: transform 0.3s ease;
 }
 
-/* When sidebar expanded, shift content left to compensate for sidebar weight */
+/* Shift content right when sidebar expands - match chat page behavior */
 body.sidebar-expanded #settingsPageContainer {
-  transform: translateX(-56px);
+  transform: translateX(80px);
 }
 
 /* Header */

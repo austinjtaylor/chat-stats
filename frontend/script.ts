@@ -33,7 +33,6 @@ let sendButton: HTMLButtonElement | null;
 let totalPlayers: HTMLElement | null;
 let totalTeams: HTMLElement | null;
 let totalGames: HTMLElement | null;
-let newChatButton: HTMLElement | null;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -44,7 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
     totalPlayers = DOM.$('#totalPlayers') as HTMLElement | null;
     totalTeams = DOM.$('#totalTeams') as HTMLElement | null;
     totalGames = DOM.$('#totalGames') as HTMLElement | null;
-    newChatButton = DOM.$('#newChatButton') as HTMLElement | null;
 
     setupEventListeners();
     setupDropdowns();
@@ -123,17 +121,6 @@ function setupEventListeners(): void {
         }
     });
 
-    // New chat button
-    if (newChatButton) {
-        newChatButton.addEventListener('click', startNewChat);
-    }
-
-    // New chat from menu
-    const newChatMenuItem = document.getElementById('newChatMenuItem');
-    if (newChatMenuItem) {
-        newChatMenuItem.addEventListener('click', startNewChat);
-    }
-
     // Theme toggle handled by nav.js
 
     // Note: Suggested item clicks are now handled in dropdown.ts to avoid duplicate event listeners
@@ -169,8 +156,20 @@ async function sendMessage(): Promise<void> {
     queryHistory.push(query);
     historyIndex = -1; // Reset history navigation
 
+    // Disable transitions to prevent sliding animation
+    document.body.classList.add('no-transitions');
+    // Force reflow to ensure no-transitions class is applied before chat-active
+    void document.body.offsetHeight;
+
     // Add chat-active class to transform the layout
     document.body.classList.add('chat-active');
+
+    // Re-enable transitions after DOM updates
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            document.body.classList.remove('no-transitions');
+        });
+    });
 
     // Disable input and reset height
     chatInput.value = '';
@@ -367,6 +366,19 @@ async function createNewSession(): Promise<void> {
 }
 
 function startNewChat(): void {
+    // Get the chat-main-full element and directly disable its transition
+    const chatMainFull = document.querySelector('.chat-main-full') as HTMLElement;
+    const originalTransition = chatMainFull ? chatMainFull.style.transition : '';
+
+    if (chatMainFull) {
+        chatMainFull.style.transition = 'none';
+    }
+
+    // Force reflow to ensure transition: none is applied
+    if (chatMainFull) {
+        void chatMainFull.offsetHeight;
+    }
+
     // Reset session and clear chat
     currentSessionId = null;
     if (chatMessages) {
@@ -375,6 +387,13 @@ function startNewChat(): void {
 
     // Remove chat-active class to restore centered layout
     document.body.classList.remove('chat-active');
+
+    // Restore transition after layout change
+    setTimeout(() => {
+        if (chatMainFull) {
+            chatMainFull.style.transition = originalTransition;
+        }
+    }, 50);
 
     // Try Asking container now always visible in the input area
 

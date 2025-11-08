@@ -312,14 +312,17 @@ body.sidebar-expanded.chat-active .chat-input-area {
     flex-shrink: 0;
 }
 
-/* Hide new chat button in input area (it's in the menu) */
-.chat-input-area .new-chat-button {
-    display: none;
-}
-
 /* Remove old suggestions panel */
 .suggestions-panel {
     display: none !important;
+}
+
+/* Disable all transitions when resetting chat */
+.no-transitions *,
+.no-transitions *::before,
+.no-transitions *::after {
+    transition: none !important;
+    animation: none !important;
 }
 
 /* Responsive Design */
