@@ -28,6 +28,9 @@ import { showSignupModal } from './components/auth/SignupModal';
 import { initUserMenu, destroyUserMenu } from './components/auth/UserMenu';
 import type { Session } from '@supabase/supabase-js';
 
+// Track previous auth state to prevent redundant UI updates
+let previousAuthState: boolean | null = null;
+
 /**
  * Initialize authentication state management
  */
@@ -97,20 +100,42 @@ async function initAuth() {
 async function updateUIForAuthState(session: Session | null) {
   const isAuthenticated = !!session;
 
-  // Show/hide auth buttons based on auth state
+  // Guard: only update UI if auth state actually changed
+  if (previousAuthState === isAuthenticated) {
+    return;
+  }
+  previousAuthState = isAuthenticated;
+
+  // Show/hide auth buttons based on auth state using CSS classes
+  // Only modify DOM if the class needs to change to avoid unnecessary reflows
   const loginButton = document.getElementById('loginButton');
   if (loginButton) {
-    loginButton.style.display = isAuthenticated ? 'none' : 'flex';
+    const hasHidden = loginButton.classList.contains('hidden');
+    if (isAuthenticated && !hasHidden) {
+      loginButton.classList.add('hidden');
+    } else if (!isAuthenticated && hasHidden) {
+      loginButton.classList.remove('hidden');
+    }
   }
 
   const signupButton = document.getElementById('signupButton');
   if (signupButton) {
-    signupButton.style.display = isAuthenticated ? 'none' : 'flex';
+    const hasHidden = signupButton.classList.contains('hidden');
+    if (isAuthenticated && !hasHidden) {
+      signupButton.classList.add('hidden');
+    } else if (!isAuthenticated && hasHidden) {
+      signupButton.classList.remove('hidden');
+    }
   }
 
   const authButtonsWrapper = document.querySelector('.auth-buttons-wrapper') as HTMLElement;
   if (authButtonsWrapper) {
-    authButtonsWrapper.style.display = isAuthenticated ? 'none' : 'flex';
+    const hasHidden = authButtonsWrapper.classList.contains('hidden');
+    if (isAuthenticated && !hasHidden) {
+      authButtonsWrapper.classList.add('hidden');
+    } else if (!isAuthenticated && hasHidden) {
+      authButtonsWrapper.classList.remove('hidden');
+    }
   }
 
   // Manage user menu

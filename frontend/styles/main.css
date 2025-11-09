@@ -46,6 +46,9 @@
     top: 20px;
     right: 80px;
     z-index: 100;
+    display: flex;
+    gap: 8px;
+    align-items: center;
 }
 
 /* User Menu Container - No longer used on main chat page (integrated into sidebar) */
@@ -256,7 +259,7 @@
 .flex { display: flex; }
 .inline-flex { display: inline-flex; }
 .grid { display: grid; }
-.hidden { display: none; }
+.hidden { display: none !important; }
 
 /* Flexbox Utilities */
 .flex-row { flex-direction: row; }
