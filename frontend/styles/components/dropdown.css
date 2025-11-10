@@ -242,6 +242,14 @@
     border-bottom: 4px solid #2c2c2c;
 }
 
+/* Tooltip arrow pointing down (tooltip appears above element) */
+.tooltip.tooltip-above::before {
+    bottom: auto;
+    top: 100%;
+    border-bottom: none;
+    border-top: 4px solid #2c2c2c;
+}
+
 /* Dark theme tooltip adjustments */
 [data-theme="dark"] .tooltip {
     background: #3c3c3c;
@@ -253,6 +261,10 @@
     border-bottom-color: #3c3c3c;
 }
 
+[data-theme="dark"] .tooltip.tooltip-above::before {
+    border-top-color: #3c3c3c;
+}
+
 /* Light theme tooltip adjustments */
 [data-theme="light"] .tooltip {
     background: #424242;
@@ -262,6 +274,10 @@
 
 [data-theme="light"] .tooltip::before {
     border-bottom-color: #424242;
+}
+
+[data-theme="light"] .tooltip.tooltip-above::before {
+    border-top-color: #424242;
 }
 
 /* Table header tooltips - longer max width for descriptions */

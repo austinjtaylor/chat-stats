@@ -278,15 +278,29 @@ function setupTooltips(): void {
                 const rect = element.getBoundingClientRect();
                 tooltip.textContent = text;
 
-                // Position tooltip below the element
-                const tooltipTop = rect.bottom + 8;
-                let tooltipLeft = rect.left + rect.width / 2;
-
-                // Temporarily show tooltip to measure width
+                // Temporarily show tooltip to measure dimensions
                 tooltip.style.visibility = 'hidden';
                 tooltip.style.display = 'block';
                 const tooltipWidth = tooltip.offsetWidth;
-                tooltip.style.display = '';
+                const tooltipHeight = tooltip.offsetHeight;
+
+                // Calculate vertical position - prefer below, but show above if not enough space
+                const spaceBelow = window.innerHeight - rect.bottom;
+                const spaceAbove = rect.top;
+                const tooltipMargin = 8;
+                const showAbove = spaceBelow < tooltipHeight + tooltipMargin + 20 && spaceAbove > tooltipHeight + tooltipMargin;
+
+                let tooltipTop: number;
+                if (showAbove) {
+                    tooltipTop = rect.top - tooltipHeight - tooltipMargin;
+                    tooltip.classList.add('tooltip-above');
+                } else {
+                    tooltipTop = rect.bottom + tooltipMargin;
+                    tooltip.classList.remove('tooltip-above');
+                }
+
+                // Calculate horizontal position
+                let tooltipLeft = rect.left + rect.width / 2;
 
                 // Check if tooltip would extend beyond left edge
                 const halfWidth = tooltipWidth / 2;
@@ -301,6 +315,7 @@ function setupTooltips(): void {
                     tooltipLeft = viewportWidth - halfWidth - 10;
                 }
 
+                tooltip.style.display = '';
                 tooltip.style.top = `${tooltipTop}px`;
                 tooltip.style.left = `${tooltipLeft}px`;
                 tooltip.style.transform = 'translateX(-50%)';
