@@ -316,22 +316,3 @@ function setupTooltips(): void {
         });
     });
 }
-
-function startNewChat(): void {
-    // Clear chat messages
-    const chatMessages = document.getElementById('chatMessages');
-    if (chatMessages) {
-        chatMessages.innerHTML = '';
-    }
-
-    // Generate new session ID if needed
-    if ((window as any).createNewSession && typeof (window as any).createNewSession === 'function') {
-        (window as any).createNewSession();
-    }
-
-    // Focus on input
-    const chatInput = document.getElementById('chatInput') as HTMLInputElement | null;
-    if (chatInput) {
-        chatInput.focus();
-    }
-}

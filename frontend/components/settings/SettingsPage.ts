@@ -73,9 +73,7 @@ export class SettingsPage {
   private paymentMethod: PaymentMethod | null = null;
   private invoices: Invoice[] = [];
   private activeTab: TabName = 'general';
-  private saveTimeout: number | null = null;
   private originalFullName: string = '';
-  private hasUnsavedChanges: boolean = false;
 
   /**
    * Initialize and render the settings page
@@ -928,8 +926,6 @@ export class SettingsPage {
     if (actionsDiv) {
       actionsDiv.style.display = hasChanged ? 'flex' : 'none';
     }
-
-    this.hasUnsavedChanges = hasChanged;
   }
 
   /**
@@ -966,7 +962,6 @@ export class SettingsPage {
 
         // Update original name and hide buttons
         this.originalFullName = fullName.trim();
-        this.hasUnsavedChanges = false;
 
         const actionsDiv = this.container?.querySelector('#name-change-actions') as HTMLElement;
         if (actionsDiv) {
@@ -1085,8 +1080,6 @@ export class SettingsPage {
     if (actionsDiv) {
       actionsDiv.style.display = 'none';
     }
-
-    this.hasUnsavedChanges = false;
   }
 
   /**
@@ -1263,7 +1256,7 @@ export class SettingsPage {
 
       if (response.ok) {
         // Import supabase client dynamically
-        const { supabase } = await import('../../lib/auth');
+        const { supabase } = await import('../../lib/supabase');
 
         // Sign out
         await supabase.auth.signOut();

@@ -365,39 +365,6 @@ async function createNewSession(): Promise<void> {
     // Try Asking container now always visible in the input area
 }
 
-function startNewChat(): void {
-    // Add no-transitions class to prevent animations
-    document.body.classList.add('no-transitions');
-
-    // Force reflow
-    void document.body.offsetHeight;
-
-    // Reset session and clear chat
-    currentSessionId = null;
-    if (chatMessages) {
-        chatMessages.innerHTML = '';
-    }
-
-    // Remove chat-active class to restore centered layout
-    document.body.classList.remove('chat-active');
-
-    // Remove no-transitions class after layout change
-    setTimeout(() => {
-        document.body.classList.remove('no-transitions');
-    }, 50);
-
-    // Re-enable input, reset height, and focus
-    if (chatInput) {
-        chatInput.disabled = false;
-        chatInput.style.height = 'auto';
-        chatInput.focus();
-        updateChatInputHeight();
-    }
-    if (sendButton) {
-        sendButton.disabled = false;
-    }
-}
-
 // Load sports statistics
 async function loadSportsStats(): Promise<void> {
     try {
