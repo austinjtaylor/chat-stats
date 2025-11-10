@@ -13,6 +13,20 @@
             }
         })();
     </script>
+    <!-- Hide auth buttons immediately if user is authenticated to prevent flash -->
+    <script>
+        (function() {
+            // Check if Supabase session exists in localStorage
+            const keys = Object.keys(localStorage);
+            const hasSession = keys.some(key => key.includes('sb-') && key.includes('-auth-token'));
+            if (hasSession) {
+                // Add styles to hide auth buttons before page renders
+                const style = document.createElement('style');
+                style.textContent = '.auth-buttons-wrapper { display: none !important; }';
+                document.head.appendChild(style);
+            }
+        })();
+    </script>
     <!-- Main styles -->
     <link rel="stylesheet" href="../styles/main.css">
     <!-- Stats page specific styles -->
@@ -80,6 +94,19 @@
     </aside>
 
     <div class="sidebar-backdrop"></div>
+
+    <!-- Auth Buttons (shown when not authenticated) -->
+    <div class="auth-buttons-wrapper">
+        <button class="auth-button login-button" id="loginButton" aria-label="Log In">
+            Log In
+        </button>
+        <button class="auth-button signup-button" id="signupButton" aria-label="Sign Up">
+            Sign Up
+        </button>
+    </div>
+
+    <!-- User Menu (shown when authenticated) -->
+    <div id="userMenuContainer"></div>
 
     <div class="stats-container">
         <!-- Main Content -->

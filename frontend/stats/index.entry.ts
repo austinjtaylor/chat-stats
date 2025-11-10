@@ -4,6 +4,11 @@
  */
 
 import { initSidebar } from '../components/navigation/Sidebar';
+import { onAuthStateChange, getSession } from '../lib/auth';
+import { showLoginModal } from '../components/auth/LoginModal';
+import { showSignupModal } from '../components/auth/SignupModal';
+import { initUserMenu, destroyUserMenu } from '../components/auth/UserMenu';
+import type { Session } from '@supabase/supabase-js';
 
 /**
  * Initialize tab navigation
@@ -30,6 +35,69 @@ function initTabs(): void {
 }
 
 /**
+ * Initialize authentication state management
+ */
+async function initAuth() {
+  // Check current auth state
+  const session = await getSession();
+  await updateUIForAuthState(session.session);
+
+  // Listen for auth state changes
+  onAuthStateChange(async (session) => {
+    await updateUIForAuthState(session);
+    // Dispatch custom event for sidebar to listen
+    window.dispatchEvent(new CustomEvent('auth-state-changed'));
+  });
+
+  // Set up event listeners for auth buttons
+  const loginButton = document.getElementById('loginButton');
+  loginButton?.addEventListener('click', () => {
+    showLoginModal(async () => {
+      const session = await getSession();
+      await updateUIForAuthState(session.session);
+      // Reload page to ensure full state refresh
+      window.location.reload();
+    });
+  });
+
+  const signupButton = document.getElementById('signupButton');
+  signupButton?.addEventListener('click', () => {
+    showSignupModal(async () => {
+      const session = await getSession();
+      await updateUIForAuthState(session.session);
+      // Reload page to ensure full state refresh
+      window.location.reload();
+    });
+  });
+}
+
+/**
+ * Update UI based on authentication state
+ */
+async function updateUIForAuthState(session: Session | null) {
+  const isAuthenticated = !!session;
+
+  // Show/hide auth buttons wrapper based on auth state
+  const authButtonsWrapper = document.querySelector('.auth-buttons-wrapper') as HTMLElement;
+  if (authButtonsWrapper) {
+    if (isAuthenticated) {
+      authButtonsWrapper.classList.add('hidden');
+    } else {
+      authButtonsWrapper.classList.remove('hidden');
+    }
+  }
+
+  // Manage user menu
+  if (isAuthenticated) {
+    // Initialize user menu if authenticated
+    await initUserMenu('userMenuContainer');
+  } else {
+    // Destroy user menu if not authenticated
+    destroyUserMenu();
+  }
+}
+
+/**
  * Initialize the page
  */
 async function init() {
@@ -38,6 +106,9 @@ async function init() {
 
   // Initialize tabs
   initTabs();
+
+  // Initialize authentication
+  await initAuth();
 
   console.log('Unified Stats page initialized');
 }
