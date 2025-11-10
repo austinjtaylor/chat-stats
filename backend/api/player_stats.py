@@ -122,6 +122,8 @@ def create_player_stats_route(stats_system):
                         CASE
                             WHEN (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops)) > 0
                             THEN ROUND((SUM(pss.total_yards_thrown) + SUM(pss.total_yards_received)) * 1.0 / (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops)), 1)
+                            WHEN (SUM(pss.total_yards_thrown) + SUM(pss.total_yards_received)) > 0
+                            THEN (SUM(pss.total_yards_thrown) + SUM(pss.total_yards_received)) * 1.0
                             ELSE NULL
                         END as yards_per_turn
                     FROM player_season_stats pss
@@ -201,7 +203,7 @@ def create_player_stats_route(stats_system):
                 JOIN player_info pi ON tcs.player_id = pi.player_id
                 LEFT JOIN games_count gc ON tcs.player_id = gc.player_id
                 CROSS JOIN team_info ti
-                ORDER BY {get_team_career_sort_column(sort, per_game=(per == "game"))} {order.upper()}
+                ORDER BY {get_team_career_sort_column(sort, per_game=(per == "game"))} {order.upper()} NULLS LAST
                 LIMIT {per_page} OFFSET {(page-1) * per_page}
                 """
             elif season == "career":
@@ -249,7 +251,7 @@ def create_player_stats_route(stats_system):
                     yards_per_turn
                 FROM player_career_stats
                 WHERE 1=1
-                ORDER BY {get_sort_column(sort, is_career=True, per_game=(per == "game"), team=team)} {order.upper()}
+                ORDER BY {get_sort_column(sort, is_career=True, per_game=(per == "game"), team=team)} {order.upper()} NULLS LAST
                 LIMIT {per_page} OFFSET {(page-1) * per_page}
                 """
             else:
@@ -305,6 +307,8 @@ def create_player_stats_route(stats_system):
                     CASE
                         WHEN (pss.total_throwaways + pss.total_stalls + pss.total_drops) > 0
                         THEN ROUND((pss.total_yards_thrown + pss.total_yards_received) * 1.0 / (pss.total_throwaways + pss.total_stalls + pss.total_drops), 1)
+                        WHEN (pss.total_yards_thrown + pss.total_yards_received) > 0
+                        THEN (pss.total_yards_thrown + pss.total_yards_received) * 1.0
                         ELSE NULL
                     END as yards_per_turn
                 FROM player_season_stats pss
@@ -321,7 +325,7 @@ def create_player_stats_route(stats_system):
                          pss.total_o_points_played, pss.total_d_points_played, pss.total_seconds_played,
                          pss.total_o_opportunities, pss.total_d_opportunities, pss.total_o_opportunity_scores,
                          t.name, t.full_name
-                ORDER BY {get_sort_column(sort, per_game=(per == "game"))} {order.upper()}
+                ORDER BY {get_sort_column(sort, per_game=(per == "game"))} {order.upper()} NULLS LAST
                 LIMIT {per_page} OFFSET {(page-1) * per_page}
                 """
 
