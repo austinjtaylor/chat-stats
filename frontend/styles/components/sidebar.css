@@ -628,6 +628,10 @@ body:not(.sidebar-expanded) .settings-container {
   opacity: 1;
 }
 
+:root.sidebar-expanded-loading .chat-main-full {
+  left: calc(50% + 80px);
+}
+
 /* Mobile Responsive */
 @media (max-width: 768px) {
   /* Sidebar as overlay on mobile */

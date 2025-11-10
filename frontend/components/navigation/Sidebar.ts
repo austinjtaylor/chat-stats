@@ -467,14 +467,11 @@ export class Sidebar {
     if (window.location.pathname !== '/index.html' && window.location.pathname !== '/') {
       window.location.href = '/index.html';
     } else {
-      // Get the chat-main-full element and directly disable its transition
-      const chatMainFull = document.querySelector('.chat-main-full') as HTMLElement;
-      const originalTransition = chatMainFull ? chatMainFull.style.transition : '';
+      // Add no-transitions class to prevent animations
+      document.body.classList.add('no-transitions');
 
-      if (chatMainFull) {
-        chatMainFull.style.transition = 'none';
-        void chatMainFull.offsetHeight; // Force reflow
-      }
+      // Force reflow
+      void document.body.offsetHeight;
 
       // Clear chat
       const chatMessages = document.getElementById('chatMessages');
@@ -483,11 +480,9 @@ export class Sidebar {
         document.body.classList.remove('chat-active');
       }
 
-      // Restore transition after layout change
+      // Remove no-transitions class after layout change
       setTimeout(() => {
-        if (chatMainFull) {
-          chatMainFull.style.transition = originalTransition;
-        }
+        document.body.classList.remove('no-transitions');
       }, 50);
 
       // Dispatch event for script.ts to handle

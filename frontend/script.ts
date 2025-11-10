@@ -366,18 +366,11 @@ async function createNewSession(): Promise<void> {
 }
 
 function startNewChat(): void {
-    // Get the chat-main-full element and directly disable its transition
-    const chatMainFull = document.querySelector('.chat-main-full') as HTMLElement;
-    const originalTransition = chatMainFull ? chatMainFull.style.transition : '';
+    // Add no-transitions class to prevent animations
+    document.body.classList.add('no-transitions');
 
-    if (chatMainFull) {
-        chatMainFull.style.transition = 'none';
-    }
-
-    // Force reflow to ensure transition: none is applied
-    if (chatMainFull) {
-        void chatMainFull.offsetHeight;
-    }
+    // Force reflow
+    void document.body.offsetHeight;
 
     // Reset session and clear chat
     currentSessionId = null;
@@ -388,14 +381,10 @@ function startNewChat(): void {
     // Remove chat-active class to restore centered layout
     document.body.classList.remove('chat-active');
 
-    // Restore transition after layout change
+    // Remove no-transitions class after layout change
     setTimeout(() => {
-        if (chatMainFull) {
-            chatMainFull.style.transition = originalTransition;
-        }
+        document.body.classList.remove('no-transitions');
     }, 50);
-
-    // Try Asking container now always visible in the input area
 
     // Re-enable input, reset height, and focus
     if (chatInput) {
