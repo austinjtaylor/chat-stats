@@ -10,6 +10,11 @@
     margin-bottom: 1rem;
 }
 
+/* Remove margin from last message to eliminate gap at bottom */
+.chat-active .chat-messages .message:last-child {
+    margin-bottom: 0;
+}
+
 /* User Message (Right-aligned) */
 .message.user {
     justify-content: flex-end;

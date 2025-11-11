@@ -107,8 +107,8 @@ body.sidebar-expanded .chat-main-full {
     border-radius: 24px;
     padding: 0.5rem 0.75rem 0.5rem 1rem;
     transition: border-color 0.2s ease;
-    width: 725px;
-    max-width: 725px;
+    width: 785px;
+    max-width: 785px;
     flex-shrink: 0; /* Prevent shrinking */
 }
 
@@ -185,7 +185,7 @@ body.sidebar-expanded .chat-main-full {
 .try-asking-container.try-asking-inline {
     display: none; /* Hidden by default */
     position: absolute;
-    right: calc(50% - 494px); /* Position to the right of the 725px chat bar */
+    right: calc(50% - 525px); /* Position to the right of the 785px chat bar */
     top: 50%;
     transform: translateY(-50%);
     z-index: 100;
@@ -194,6 +194,10 @@ body.sidebar-expanded .chat-main-full {
 
 /* Chat Active State - Transform layout when conversation starts */
 .chat-active .chat-title {
+    display: none;
+}
+
+.chat-active .chat-title-wrapper {
     display: none;
 }
 
@@ -232,13 +236,35 @@ body.chat-active .chat-page-container {
     max-width: 100%; /* Override the max-width constraint */
 }
 
+/* Gradient overlay at the top - positioned relative to viewport */
+.chat-active .chat-container-full::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100vw; /* Full viewport width to cover all content */
+    height: 40px; /* Height of gradient fade */
+    background: linear-gradient(
+        to bottom,
+        var(--background) 0%,
+        transparent 100%
+    );
+    pointer-events: none; /* Allow clicking through the gradient */
+    z-index: 1;
+}
+
+/* Shift gradient when sidebar expands */
+body.sidebar-expanded.chat-active .chat-container-full::before {
+    left: calc(50% + 40px);
+}
+
 .chat-active .chat-messages {
     flex: 1;
-    max-height: calc(100vh - var(--chat-input-height, 74px)); /* Subtract space for input area */
-    height: calc(100vh - var(--chat-input-height, 74px));
+    max-height: 100vh; /* Extend to full viewport height */
+    height: 100vh;
     overflow-y: auto;
-    padding: 2rem calc(50vw - 384px); /* Center content with dynamic padding */
-    padding-bottom: 100px; /* Reasonable padding for scroll buffer */
+    padding: 60px calc(50vw - 384px) var(--chat-input-height, 74px) calc(50vw - 384px); /* Bottom padding matches input height for perfect alignment */
     position: relative;
     width: 100vw; /* Full viewport width for scrollbar positioning */
     margin-left: calc(50% - 50vw); /* Offset to extend to edges */
@@ -250,30 +276,6 @@ body.sidebar-expanded.chat-active .chat-messages {
     transform: translateX(40px);
 }
 
-/* Gradient overlay at the bottom of chat messages */
-.chat-active .chat-messages::after {
-    content: '';
-    position: fixed;
-    bottom: var(--chat-input-height, 74px); /* Position above the chat input area */
-    left: 50%;
-    transform: translateX(-50%);
-    width: 755px; /* Match chat bar width */
-    height: 120px; /* Height of gradient fade */
-    background: linear-gradient(
-        to bottom,
-        transparent 0%,
-        var(--background) 100%
-    );
-    pointer-events: none; /* Allow clicking through the gradient */
-    z-index: 10;
-    transition: transform 0.3s ease;
-}
-
-/* Shift gradient overlay when sidebar is expanded */
-body.sidebar-expanded.chat-active .chat-messages::after {
-    transform: translateX(-50%) translateX(40px);
-}
-
 
 .chat-active .chat-input-area {
     position: fixed;
@@ -281,13 +283,14 @@ body.sidebar-expanded.chat-active .chat-messages::after {
     left: 0;
     right: 0;
     width: 100%;
-    padding: 1rem;
+    padding: 0 1rem 1rem 1rem; /* Remove top padding so messages scroll to input container */
     background: var(--background);
     display: flex;
     justify-content: center;
     align-items: center;
     --chat-input-height: 74px; /* Default height, updated dynamically by JS */
     transition: transform 0.3s ease;
+    z-index: 10;
 }
 
 /* Shift input area right when sidebar expands in active chat */
@@ -307,8 +310,8 @@ body.sidebar-expanded.chat-active .chat-input-area {
 
 /* Ensure chat input container stays consistent in chat-active state */
 .chat-active .chat-input-container {
-    width: 725px;
-    max-width: 725px;
+    width: 785px;
+    max-width: 785px;
     flex-shrink: 0;
 }
 
