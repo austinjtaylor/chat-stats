@@ -102,6 +102,8 @@ SELECT
     CASE
         WHEN (pa.total_throwaways + pa.total_stalls + pa.total_drops) > 0
         THEN ROUND((pa.total_yards_thrown + pa.total_yards_received) * 1.0 / (pa.total_throwaways + pa.total_stalls + pa.total_drops), 1)
+        WHEN (pa.total_yards_thrown + pa.total_yards_received) > 0
+        THEN (pa.total_yards_thrown + pa.total_yards_received) * 1.0
         ELSE NULL
     END as yards_per_turn,
     CASE
