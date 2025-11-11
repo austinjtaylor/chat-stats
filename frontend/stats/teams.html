@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Team Stats - UFA Statistics</title>
+    <!-- Apply theme immediately to prevent flash of wrong theme -->
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
     <!-- New modular CSS structure -->
     <link rel="stylesheet" href="../styles/main.css">
     <!-- Teams page specific styles -->

@@ -7,6 +7,13 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Pricing - UFA Statistics</title>
+    <!-- Apply theme immediately to prevent flash of wrong theme -->
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
     <!-- New modular CSS structure -->
     <link rel="stylesheet" href="styles/main.css">
 </head>
