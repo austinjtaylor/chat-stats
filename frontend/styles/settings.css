@@ -508,11 +508,7 @@ html[data-theme="light"] .theme-option-title {
 .usage-number {
   font-size: 36px;
   font-weight: 700;
-  color: var(--text-primary);
-}
-
-.usage-number.usage-warning {
-  color: rgb(251, 191, 36);
+  color: var(--text-secondary);
 }
 
 .usage-label {
@@ -538,13 +534,9 @@ html[data-theme="light"] .theme-option-title {
 
 .usage-bar-fill {
   height: 100%;
-  background: var(--accent-color);
+  background: var(--text-secondary);
   border-radius: 4px;
   transition: width 0.3s;
-}
-
-.usage-bar-fill.usage-warning {
-  background: rgb(251, 191, 36);
 }
 
 .usage-percentage {

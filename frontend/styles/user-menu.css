@@ -124,11 +124,6 @@
   margin-bottom: 6px;
 }
 
-.usage-text.usage-warning {
-  color: rgb(251, 191, 36);
-  font-weight: 500;
-}
-
 .usage-bar {
   height: 4px;
   background: var(--bg-secondary);
@@ -138,13 +133,9 @@
 
 .usage-bar-fill {
   height: 100%;
-  background: var(--primary-color);
+  background: var(--text-secondary);
   border-radius: 2px;
   transition: width 0.3s;
-}
-
-.usage-bar-fill.usage-warning {
-  background: rgb(251, 191, 36);
 }
 
 /* Divider */
