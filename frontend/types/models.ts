@@ -166,6 +166,12 @@ export interface PlayerGameStats {
   calculated_plus_minus?: number;
   /** Yards per turn ((yards_thrown + yards_received) / (throwaways + stalls + drops)) - Available from 2021 onwards */
   yards_per_turn?: number | null;
+  /** Yards per completion (total_yards / completions) - Available from 2021 onwards */
+  yards_per_completion?: number | null;
+  /** Yards per reception (yards_received / catches) - Available from 2021 onwards */
+  yards_per_reception?: number | null;
+  /** Assists per turnover (assists / (throwaways + stalls + drops)) */
+  assists_per_turnover?: number | null;
 }
 
 /**
@@ -254,6 +260,12 @@ export interface PlayerSeasonStats {
   calculated_plus_minus?: number;
   /** Yards per turn ((total_yards_thrown + total_yards_received) / (total_throwaways + total_stalls + total_drops)) - Available from 2021 onwards */
   yards_per_turn?: number | null;
+  /** Yards per completion (total_yards / completions) - Available from 2021 onwards */
+  yards_per_completion?: number | null;
+  /** Yards per reception (yards_received / catches) - Available from 2021 onwards */
+  yards_per_reception?: number | null;
+  /** Assists per turnover (assists / (throwaways + stalls + drops)) */
+  assists_per_turnover?: number | null;
   /** Total points played (offensive + defensive) - calculated field */
   total_points_played?: number;
   /** Score total (goals + assists) - calculated field */

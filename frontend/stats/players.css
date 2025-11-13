@@ -105,22 +105,22 @@
 /* Very narrow columns - 2 digit stats */
 .stats-page[data-page="players"] .stats-table th:nth-child(2), /* GP */
 .stats-page[data-page="players"] .stats-table th:nth-child(3), /* PP */
-.stats-page[data-page="players"] .stats-table th:nth-child(15), /* HA */
-.stats-page[data-page="players"] .stats-table th:nth-child(16), /* T */
-.stats-page[data-page="players"] .stats-table th:nth-child(18), /* S */
-.stats-page[data-page="players"] .stats-table th:nth-child(19), /* D */
-.stats-page[data-page="players"] .stats-table th:nth-child(21), /* H */
-.stats-page[data-page="players"] .stats-table th:nth-child(22), /* HR */
-.stats-page[data-page="players"] .stats-table th:nth-child(24), /* P */
+.stats-page[data-page="players"] .stats-table th:nth-child(16), /* HA */
+.stats-page[data-page="players"] .stats-table th:nth-child(17), /* T */
+.stats-page[data-page="players"] .stats-table th:nth-child(22), /* S (Stalls) */
+.stats-page[data-page="players"] .stats-table th:nth-child(23), /* D */
+.stats-page[data-page="players"] .stats-table th:nth-child(25), /* H */
+.stats-page[data-page="players"] .stats-table th:nth-child(26), /* HR */
+.stats-page[data-page="players"] .stats-table th:nth-child(28), /* P */
 .stats-page[data-page="players"] .stats-table td:nth-child(2),
 .stats-page[data-page="players"] .stats-table td:nth-child(3),
-.stats-page[data-page="players"] .stats-table td:nth-child(15),
 .stats-page[data-page="players"] .stats-table td:nth-child(16),
-.stats-page[data-page="players"] .stats-table td:nth-child(18),
-.stats-page[data-page="players"] .stats-table td:nth-child(19),
-.stats-page[data-page="players"] .stats-table td:nth-child(21),
+.stats-page[data-page="players"] .stats-table td:nth-child(17),
 .stats-page[data-page="players"] .stats-table td:nth-child(22),
-.stats-page[data-page="players"] .stats-table td:nth-child(24) {
+.stats-page[data-page="players"] .stats-table td:nth-child(23),
+.stats-page[data-page="players"] .stats-table td:nth-child(25),
+.stats-page[data-page="players"] .stats-table td:nth-child(26),
+.stats-page[data-page="players"] .stats-table td:nth-child(28) {
     width: 35px;
     max-width: 40px;
 }
@@ -132,44 +132,50 @@
 .stats-page[data-page="players"] .stats-table th:nth-child(7), /* G */
 .stats-page[data-page="players"] .stats-table th:nth-child(8), /* B */
 .stats-page[data-page="players"] .stats-table th:nth-child(10), /* C */
-.stats-page[data-page="players"] .stats-table th:nth-child(20), /* CAL */
-.stats-page[data-page="players"] .stats-table th:nth-child(25), /* OPP */
-.stats-page[data-page="players"] .stats-table th:nth-child(26), /* DPP */
-.stats-page[data-page="players"] .stats-table th:nth-child(27), /* MPP */
+.stats-page[data-page="players"] .stats-table th:nth-child(24), /* CAL */
+.stats-page[data-page="players"] .stats-table th:nth-child(29), /* OPP */
+.stats-page[data-page="players"] .stats-table th:nth-child(30), /* DPP */
+.stats-page[data-page="players"] .stats-table th:nth-child(31), /* MP */
 .stats-page[data-page="players"] .stats-table td:nth-child(4),
 .stats-page[data-page="players"] .stats-table td:nth-child(5),
 .stats-page[data-page="players"] .stats-table td:nth-child(6),
 .stats-page[data-page="players"] .stats-table td:nth-child(7),
 .stats-page[data-page="players"] .stats-table td:nth-child(8),
 .stats-page[data-page="players"] .stats-table td:nth-child(10),
-.stats-page[data-page="players"] .stats-table td:nth-child(20),
-.stats-page[data-page="players"] .stats-table td:nth-child(25),
-.stats-page[data-page="players"] .stats-table td:nth-child(26),
-.stats-page[data-page="players"] .stats-table td:nth-child(27) {
+.stats-page[data-page="players"] .stats-table td:nth-child(24),
+.stats-page[data-page="players"] .stats-table td:nth-child(29),
+.stats-page[data-page="players"] .stats-table td:nth-child(30),
+.stats-page[data-page="players"] .stats-table td:nth-child(31) {
     width: 45px;
     max-width: 50px;
 }
 
 /* Medium columns - larger numbers */
 .stats-page[data-page="players"] .stats-table th:nth-child(9), /* +/- */
-.stats-page[data-page="players"] .stats-table th:nth-child(12), /* TOT Y */
+.stats-page[data-page="players"] .stats-table th:nth-child(12), /* Y */
 .stats-page[data-page="players"] .stats-table th:nth-child(13), /* TY */
 .stats-page[data-page="players"] .stats-table th:nth-child(14), /* RY */
-.stats-page[data-page="players"] .stats-table th:nth-child(17), /* Y/T */
+.stats-page[data-page="players"] .stats-table th:nth-child(18), /* AST/T */
+.stats-page[data-page="players"] .stats-table th:nth-child(19), /* Y/T */
+.stats-page[data-page="players"] .stats-table th:nth-child(20), /* TY/C */
+.stats-page[data-page="players"] .stats-table th:nth-child(21), /* RY/R */
 .stats-page[data-page="players"] .stats-table td:nth-child(9),
 .stats-page[data-page="players"] .stats-table td:nth-child(12),
 .stats-page[data-page="players"] .stats-table td:nth-child(13),
 .stats-page[data-page="players"] .stats-table td:nth-child(14),
-.stats-page[data-page="players"] .stats-table td:nth-child(17) {
+.stats-page[data-page="players"] .stats-table td:nth-child(18),
+.stats-page[data-page="players"] .stats-table td:nth-child(19),
+.stats-page[data-page="players"] .stats-table td:nth-child(20),
+.stats-page[data-page="players"] .stats-table td:nth-child(21) {
     width: 55px;
     max-width: 60px;
 }
 
 /* Percentage columns */
 .stats-page[data-page="players"] .stats-table th:nth-child(11), /* C% */
-.stats-page[data-page="players"] .stats-table th:nth-child(23), /* H% */
+.stats-page[data-page="players"] .stats-table th:nth-child(27), /* H% */
 .stats-page[data-page="players"] .stats-table td:nth-child(11),
-.stats-page[data-page="players"] .stats-table td:nth-child(23) {
+.stats-page[data-page="players"] .stats-table td:nth-child(27) {
     width: 55px;
     max-width: 60px;
 }

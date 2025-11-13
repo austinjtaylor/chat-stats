@@ -21,6 +21,7 @@ WITH player_aggregates AS (
         SUM(pss.total_hucks_completed) as total_hucks_completed,
         SUM(pss.total_hucks_attempted) as total_hucks_attempted,
         SUM(pss.total_hucks_received) as total_hucks_received,
+        SUM(pss.total_catches) as total_catches,
         SUM(pss.total_pulls) as total_pulls,
         SUM(pss.total_o_points_played) as total_o_points_played,
         SUM(pss.total_d_points_played) as total_d_points_played,
@@ -76,6 +77,7 @@ SELECT
     pa.total_hucks_completed,
     pa.total_hucks_attempted,
     pa.total_hucks_received,
+    pa.total_catches,
     pa.total_pulls,
     pa.total_o_points_played,
     pa.total_d_points_played,
@@ -106,6 +108,21 @@ SELECT
         THEN (pa.total_yards_thrown + pa.total_yards_received) * 1.0
         ELSE NULL
     END as yards_per_turn,
+    CASE
+        WHEN pa.total_completions > 0
+        THEN ROUND(pa.total_yards_thrown * 1.0 / pa.total_completions, 1)
+        ELSE NULL
+    END as yards_per_completion,
+    CASE
+        WHEN pa.total_catches > 0
+        THEN ROUND(pa.total_yards_received * 1.0 / pa.total_catches, 1)
+        ELSE NULL
+    END as yards_per_reception,
+    CASE
+        WHEN (pa.total_throwaways + pa.total_stalls + pa.total_drops) > 0
+        THEN ROUND(pa.total_assists * 1.0 / (pa.total_throwaways + pa.total_stalls + pa.total_drops), 2)
+        ELSE NULL
+    END as assists_per_turnover,
     CASE
         WHEN (pa.total_completions + pa.total_throwaways + pa.total_drops) > 0
         THEN ROUND((CAST(pa.total_completions AS NUMERIC) / (pa.total_completions + pa.total_throwaways + pa.total_drops)) * 100, 2)
