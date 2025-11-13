@@ -546,14 +546,14 @@
   color: var(--text-secondary);
 }
 
-/* Settings link - Gold styling */
+/* Settings link - Gold in dark mode, teal in light mode */
 .sidebar-user-dropdown-item[href="/settings.html"] {
-  color: #DFC883 !important; /* Gold color */
+  color: var(--text-secondary) !important; /* Gold (dark) / Teal (light) */
   text-decoration: none !important;
 }
 
 .sidebar-user-dropdown-item[href="/settings.html"] svg {
-  color: #DFC883 !important; /* Gold color */
+  color: var(--text-secondary) !important; /* Gold (dark) / Teal (light) */
 }
 
 .sidebar-user-dropdown-item[href="/settings.html"]:hover {
@@ -566,11 +566,11 @@
 }
 
 .sidebar-user-dropdown-item.logout {
-  color: #DFC883;
+  color: var(--text-secondary); /* Gold (dark) / Teal (light) */
 }
 
 .sidebar-user-dropdown-item.logout svg {
-  color: #DFC883;
+  color: var(--text-secondary); /* Gold (dark) / Teal (light) */
 }
 
 .sidebar-user-dropdown-item.logout:hover {

@@ -189,29 +189,35 @@
   color: var(--primary-color);
 }
 
-/* Settings link - Gold styling */
+/* Settings link - Teal styling */
+.user-menu-item[href="/settings"],
 .user-menu-item[href="/settings.html"] {
-  color: #DFC883 !important; /* Gold color */
+  color: var(--primary-color) !important; /* Teal color */
   text-decoration: none !important;
 }
 
+.user-menu-item[href="/settings"] svg,
 .user-menu-item[href="/settings.html"] svg {
-  color: #DFC883 !important; /* Gold color */
+  color: var(--primary-color) !important; /* Teal color */
 }
 
+.user-menu-item[href="/settings"] span,
 .user-menu-item[href="/settings.html"] span {
-  color: #DFC883 !important; /* Gold color */
+  color: var(--primary-color) !important; /* Teal color */
 }
 
+.user-menu-item[href="/settings"]:hover,
 .user-menu-item[href="/settings.html"]:hover {
   color: white !important;
   text-decoration: none !important;
 }
 
+.user-menu-item[href="/settings"]:hover svg,
 .user-menu-item[href="/settings.html"]:hover svg {
   color: white !important;
 }
 
+.user-menu-item[href="/settings"]:hover span,
 .user-menu-item[href="/settings.html"]:hover span {
   color: white !important;
 }
