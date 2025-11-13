@@ -173,7 +173,8 @@ export class Sidebar {
         <button class="sidebar-toggle" aria-label="Toggle sidebar" aria-expanded="${this.isExpanded}" data-tooltip="Expand sidebar">
           <img src="/images/logo/chat-stats-logo-light.svg" alt="Chat Stats" class="sidebar-toggle-logo logo-light">
           <img src="/images/logo/chat-stats-logo-dark.svg" alt="Chat Stats" class="sidebar-toggle-logo logo-dark">
-          <img src="/images/logo/chat-stats-logo-light2.svg" alt="Chat Stats" class="sidebar-toggle-icon sidebar-toggle-hamburger">
+          <img src="/images/logo/chat-stats-logo-light2.svg" alt="Chat Stats" class="sidebar-toggle-icon sidebar-toggle-hamburger logo-light">
+          <img src="/images/logo/chat-stats-logo-dark2.svg" alt="Chat Stats" class="sidebar-toggle-icon sidebar-toggle-hamburger logo-dark">
           <span class="sidebar-toggle-icon sidebar-toggle-arrow-right">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="4" x2="18" y2="20"></line>

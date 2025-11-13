@@ -118,8 +118,8 @@
 }
 
 /* EXPANDED STATE */
-/* Default: Show hamburger */
-.app-sidebar.expanded .sidebar-toggle-logo {
+/* Default: Show hamburger (hide logos) */
+.app-sidebar.expanded .sidebar-toggle-logo:not(.sidebar-toggle-hamburger) {
   opacity: 0;
 }
 
@@ -147,29 +147,36 @@
 
 /* Logo visibility based on theme */
 /* Default: show light logo for dark theme (default theme) */
-.sidebar-toggle-logo.logo-light {
+/* This applies to both collapsed logos and expanded hamburger icons */
+.sidebar-toggle-logo.logo-light,
+.sidebar-toggle-hamburger.logo-light {
   display: block !important;
 }
 
-.sidebar-toggle-logo.logo-dark {
+.sidebar-toggle-logo.logo-dark,
+.sidebar-toggle-hamburger.logo-dark {
   display: none !important;
 }
 
 /* Light theme: show dark logo (dark logo on light background) */
-:root[data-theme="light"] .sidebar-toggle-logo.logo-dark {
+:root[data-theme="light"] .sidebar-toggle-logo.logo-dark,
+:root[data-theme="light"] .sidebar-toggle-hamburger.logo-dark {
   display: block !important;
 }
 
-:root[data-theme="light"] .sidebar-toggle-logo.logo-light {
+:root[data-theme="light"] .sidebar-toggle-logo.logo-light,
+:root[data-theme="light"] .sidebar-toggle-hamburger.logo-light {
   display: none !important;
 }
 
 /* Dark theme: show light logo (light logo on dark background) */
-:root[data-theme="dark"] .sidebar-toggle-logo.logo-light {
+:root[data-theme="dark"] .sidebar-toggle-logo.logo-light,
+:root[data-theme="dark"] .sidebar-toggle-hamburger.logo-light {
   display: block !important;
 }
 
-:root[data-theme="dark"] .sidebar-toggle-logo.logo-dark {
+:root[data-theme="dark"] .sidebar-toggle-logo.logo-dark,
+:root[data-theme="dark"] .sidebar-toggle-hamburger.logo-dark {
   display: none !important;
 }
 
