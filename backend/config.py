@@ -15,7 +15,7 @@ class Config:
 
     # Anthropic API settings
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
-    ANTHROPIC_MODEL: str = "claude-3-haiku-20240307"
+    ANTHROPIC_MODEL: str = "claude-sonnet-4-5-20250929"
 
     # Database settings (PostgreSQL via Supabase - REQUIRED)
     DATABASE_URL: str = os.getenv("DATABASE_URL", "")
