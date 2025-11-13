@@ -256,7 +256,7 @@ body.chat-active .chat-page-container {
 
 /* Shift gradient when sidebar expands */
 body.sidebar-expanded.chat-active .chat-container-full::before {
-    left: calc(50% + 40px);
+    left: calc(50% + 80px);
 }
 
 .chat-active .chat-messages {
@@ -273,7 +273,7 @@ body.sidebar-expanded.chat-active .chat-container-full::before {
 
 /* Shift entire messages container right when sidebar expands */
 body.sidebar-expanded.chat-active .chat-messages {
-    transform: translateX(40px);
+    transform: translateX(80px);
 }
 
 
@@ -295,7 +295,7 @@ body.sidebar-expanded.chat-active .chat-messages {
 
 /* Shift input area right when sidebar expands in active chat */
 body.sidebar-expanded.chat-active .chat-input-area {
-    transform: translateX(40px);
+    transform: translateX(80px);
 }
 
 /* When chat is active, hide centered and show inline */

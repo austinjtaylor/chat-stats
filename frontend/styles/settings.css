@@ -2,28 +2,28 @@
  * Settings Page Styles
  */
 
-/* Container - Let sidebar handle margin-left */
+/* Container - Override sidebar margin to use full viewport */
 .settings-container {
   padding: 0;
   min-height: 100vh;
   box-sizing: border-box;
+  margin-left: 0 !important;
 }
 
-/* Override sidebar margin when expanded to prevent width reduction */
-body.sidebar-expanded .settings-container {
-  margin-left: 60px !important;
-}
-
-/* Inner content - Centered with margin auto */
+/* Inner content - 768px wide, centered using fixed positioning like idle chat */
 #settingsPageContainer {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
   max-width: 768px;
-  margin: 0 auto;
-  transition: transform 0.3s ease;
+  padding: 0;
+  transition: left 0.3s ease;
 }
 
-/* Shift content right when sidebar expands - match chat page behavior */
+/* Shift right when sidebar expands - matches idle chat behavior */
 body.sidebar-expanded #settingsPageContainer {
-  transform: translateX(80px);
+  left: calc(50% + 80px);
 }
 
 /* Header */
