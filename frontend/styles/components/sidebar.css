@@ -93,6 +93,30 @@
 
 /* Icon visibility logic */
 
+/* NEW CHAT STATE (before first message is sent) */
+/* Show arrow icons instead of logo/hamburger - ONLY on chat page */
+
+/* Collapsed state on new chat: Hide logo, show arrow-right */
+body.chat-page:not(.chat-active) .app-sidebar:not(.expanded) .sidebar-toggle-logo {
+  opacity: 0;
+}
+
+body.chat-page:not(.chat-active) .app-sidebar:not(.expanded) .sidebar-toggle-arrow-right {
+  opacity: 1;
+}
+
+/* Expanded state on new chat: Hide hamburger, show arrow-left */
+body.chat-page:not(.chat-active) .app-sidebar.expanded .sidebar-toggle-hamburger {
+  opacity: 0;
+}
+
+body.chat-page:not(.chat-active) .app-sidebar.expanded .sidebar-toggle-arrow-left {
+  opacity: 1;
+}
+
+/* ACTIVE CHAT STATE (after first message) */
+/* Return to normal hover-based behavior */
+
 /* COLLAPSED STATE */
 /* Default: Show logo */
 .app-sidebar:not(.expanded) .sidebar-toggle-logo {
