@@ -186,7 +186,7 @@ class PlayerStats {
 
         // Advanced stats added in 2021
         const advancedStats2021: PlayerColumn[] = [
-            { key: 'total_yards', label: 'TOT Y', sortable: true },
+            { key: 'total_yards', label: 'Y', sortable: true },
             { key: 'total_yards_thrown', label: 'TY', sortable: true },
             { key: 'total_yards_received', label: 'RY', sortable: true }
         ];
@@ -205,6 +205,17 @@ class PlayerStats {
         // Y/T available from 2021 (when yards data exists)
         const yardsPerTurnColumn: PlayerColumn[] = [
             { key: 'yards_per_turn', label: 'Y/T', sortable: true }
+        ];
+
+        // TY/C and RY/R available from 2021 (when yards data exists)
+        const yardsRatiosColumns: PlayerColumn[] = [
+            { key: 'yards_per_completion', label: 'TY/C', sortable: true },
+            { key: 'yards_per_reception', label: 'RY/R', sortable: true }
+        ];
+
+        // AST/T available for all years
+        const assistTurnoverRatioColumn: PlayerColumn[] = [
+            { key: 'assists_per_turnover', label: 'AST/T', sortable: true }
         ];
 
         // Rest of base columns
@@ -246,9 +257,13 @@ class PlayerStats {
 
         columns.push(...otherBaseColumns);
 
+        // AST/T available for all years - right after T (turnovers)
+        columns.push(...assistTurnoverRatioColumn);
+
         // Y/T from 2021 (when yards data is available)
         if (season === 'career' || (season && parseInt(String(season)) >= 2021)) {
             columns.push(...yardsPerTurnColumn);
+            columns.push(...yardsRatiosColumns);
         }
 
         columns.push(...restBaseColumns);
@@ -422,6 +437,15 @@ class PlayerStats {
                     case 'yards_per_turn':
                         const yPerTurn = player.yards_per_turn;
                         return `<td class="numeric">${yPerTurn !== null && yPerTurn !== undefined ? yPerTurn.toFixed(1) : '-'}</td>`;
+                    case 'yards_per_completion':
+                        const yPerComp = player.yards_per_completion;
+                        return `<td class="numeric">${yPerComp !== null && yPerComp !== undefined ? yPerComp.toFixed(1) : '-'}</td>`;
+                    case 'yards_per_reception':
+                        const yPerRecep = player.yards_per_reception;
+                        return `<td class="numeric">${yPerRecep !== null && yPerRecep !== undefined ? yPerRecep.toFixed(1) : '-'}</td>`;
+                    case 'assists_per_turnover':
+                        const astPerTO = player.assists_per_turnover;
+                        return `<td class="numeric">${astPerTO !== null && astPerTO !== undefined ? astPerTO.toFixed(2) : '-'}</td>`;
                     default:
                         const fieldValue = player[col.key as keyof PlayerSeasonStats];
                         return `<td class="numeric">${this.formatValue(fieldValue || 0)}</td>`;

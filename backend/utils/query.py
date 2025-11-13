@@ -46,6 +46,9 @@ def get_sort_column(
             "huck_percentage": "huck_percentage",
             "offensive_efficiency": "offensive_efficiency",
             "yards_per_turn": "yards_per_turn",
+            "yards_per_completion": "yards_per_completion",
+            "yards_per_reception": "yards_per_reception",
+            "assists_per_turnover": "assists_per_turnover",
         }
         base_column = career_columns.get(sort_key, sort_key)
 
@@ -56,6 +59,9 @@ def get_sort_column(
             "huck_percentage",
             "offensive_efficiency",
             "yards_per_turn",
+            "yards_per_completion",
+            "yards_per_reception",
+            "assists_per_turnover",
             "games_played",
         ]:
             # For pre-computed career stats, just use games_played column
@@ -95,6 +101,9 @@ def get_sort_column(
         "huck_percentage": "CASE WHEN pss.total_hucks_attempted > 0 THEN ROUND(pss.total_hucks_completed * 100.0 / pss.total_hucks_attempted, 1) ELSE 0 END",
         "offensive_efficiency": "CASE WHEN pss.total_o_opportunities >= 20 THEN ROUND(pss.total_o_opportunity_scores * 100.0 / pss.total_o_opportunities, 1) ELSE NULL END",
         "yards_per_turn": "CASE WHEN (pss.total_throwaways + pss.total_stalls + pss.total_drops) > 0 THEN ROUND((pss.total_yards_thrown + pss.total_yards_received) * 1.0 / (pss.total_throwaways + pss.total_stalls + pss.total_drops), 1) WHEN (pss.total_yards_thrown + pss.total_yards_received) > 0 THEN (pss.total_yards_thrown + pss.total_yards_received) * 1.0 ELSE NULL END",
+        "yards_per_completion": "CASE WHEN pss.total_completions > 0 THEN ROUND(pss.total_yards_thrown * 1.0 / pss.total_completions, 1) ELSE NULL END",
+        "yards_per_reception": "CASE WHEN pss.total_catches > 0 THEN ROUND(pss.total_yards_received * 1.0 / pss.total_catches, 1) ELSE NULL END",
+        "assists_per_turnover": "CASE WHEN (pss.total_throwaways + pss.total_stalls + pss.total_drops) > 0 THEN ROUND(pss.total_assists * 1.0 / (pss.total_throwaways + pss.total_stalls + pss.total_drops), 2) ELSE NULL END",
     }
 
     # Get the base column
@@ -107,6 +116,9 @@ def get_sort_column(
         "huck_percentage",
         "offensive_efficiency",
         "yards_per_turn",
+        "yards_per_completion",
+        "yards_per_reception",
+        "assists_per_turnover",
         "games_played",
     ]:
         games_played_col = column_mapping["games_played"]

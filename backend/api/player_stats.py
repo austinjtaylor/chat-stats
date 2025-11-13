@@ -20,6 +20,9 @@ def get_team_career_sort_column(sort_key: str, per_game: bool = False) -> str:
         "huck_percentage",
         "offensive_efficiency",
         "yards_per_turn",
+        "yards_per_completion",
+        "yards_per_reception",
+        "assists_per_turnover",
         "games_played",
     ]
 
@@ -125,7 +128,22 @@ def create_player_stats_route(stats_system):
                             WHEN (SUM(pss.total_yards_thrown) + SUM(pss.total_yards_received)) > 0
                             THEN (SUM(pss.total_yards_thrown) + SUM(pss.total_yards_received)) * 1.0
                             ELSE NULL
-                        END as yards_per_turn
+                        END as yards_per_turn,
+                        CASE
+                            WHEN SUM(pss.total_completions) > 0
+                            THEN ROUND(SUM(pss.total_yards_thrown) * 1.0 / SUM(pss.total_completions), 1)
+                            ELSE NULL
+                        END as yards_per_completion,
+                        CASE
+                            WHEN SUM(pss.total_catches) > 0
+                            THEN ROUND(SUM(pss.total_yards_received) * 1.0 / SUM(pss.total_catches), 1)
+                            ELSE NULL
+                        END as yards_per_reception,
+                        CASE
+                            WHEN (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops)) > 0
+                            THEN ROUND(SUM(pss.total_assists) * 1.0 / (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops)), 2)
+                            ELSE NULL
+                        END as assists_per_turnover
                     FROM player_season_stats pss
                     WHERE pss.team_id = '{team}'
                     GROUP BY pss.player_id, pss.team_id
@@ -198,7 +216,10 @@ def create_player_stats_route(stats_system):
                     tcs.minutes_played,
                     tcs.huck_percentage,
                     tcs.offensive_efficiency,
-                    tcs.yards_per_turn
+                    tcs.yards_per_turn,
+                    tcs.yards_per_completion,
+                    tcs.yards_per_reception,
+                    tcs.assists_per_turnover
                 FROM team_career_stats tcs
                 JOIN player_info pi ON tcs.player_id = pi.player_id
                 LEFT JOIN games_count gc ON tcs.player_id = gc.player_id
@@ -248,7 +269,10 @@ def create_player_stats_route(stats_system):
                     minutes_played,
                     huck_percentage,
                     offensive_efficiency,
-                    yards_per_turn
+                    yards_per_turn,
+                    yards_per_completion,
+                    yards_per_reception,
+                    assists_per_turnover
                 FROM player_career_stats
                 WHERE 1=1
                 ORDER BY {get_sort_column(sort, is_career=True, per_game=(per == "game"), team=team)} {order.upper()} NULLS LAST
@@ -310,7 +334,22 @@ def create_player_stats_route(stats_system):
                         WHEN (pss.total_yards_thrown + pss.total_yards_received) > 0
                         THEN (pss.total_yards_thrown + pss.total_yards_received) * 1.0
                         ELSE NULL
-                    END as yards_per_turn
+                    END as yards_per_turn,
+                    CASE
+                        WHEN pss.total_completions > 0
+                        THEN ROUND(pss.total_yards_thrown * 1.0 / pss.total_completions, 1)
+                        ELSE NULL
+                    END as yards_per_completion,
+                    CASE
+                        WHEN pss.total_catches > 0
+                        THEN ROUND(pss.total_yards_received * 1.0 / pss.total_catches, 1)
+                        ELSE NULL
+                    END as yards_per_reception,
+                    CASE
+                        WHEN (pss.total_throwaways + pss.total_stalls + pss.total_drops) > 0
+                        THEN ROUND(pss.total_assists * 1.0 / (pss.total_throwaways + pss.total_stalls + pss.total_drops), 2)
+                        ELSE NULL
+                    END as assists_per_turnover
                 FROM player_season_stats pss
                 JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
                 LEFT JOIN teams t ON pss.team_id = t.team_id AND pss.year = t.year
@@ -405,6 +444,9 @@ def create_player_stats_route(stats_system):
                             row[37] if row[37] is not None else None
                         ),
                         "yards_per_turn": row[38] if row[38] is not None else None,
+                        "yards_per_completion": row[39] if row[39] is not None else None,
+                        "yards_per_reception": row[40] if row[40] is not None else None,
+                        "assists_per_turnover": row[41] if row[41] is not None else None,
                     }
                     players.append(player)
 
