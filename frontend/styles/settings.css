@@ -246,53 +246,74 @@ body.sidebar-expanded #settingsPageContainer {
 /* Theme Options */
 .theme-options {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex-direction: row;
+  gap: 20px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding-bottom: 16px;
+  overflow: visible;
 }
 
 .theme-option {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
-  background: var(--bg-primary);
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
+  gap: 12px;
+  padding: 0;
+  background: transparent;
+  border: none;
   cursor: pointer;
   transition: all 0.2s;
-  width: 100%;
-  text-align: left;
+  width: auto;
+  max-width: 450px;
 }
 
-.theme-option:hover {
-  background: var(--bg-hover);
+.theme-option:not(.active):hover .theme-option-preview {
+  filter: brightness(0.85);
+}
+
+.theme-option.active .theme-option-preview {
   border-color: var(--accent-color);
-}
-
-.theme-option.active {
-  border-color: var(--accent-color);
-  background: var(--bg-hover);
-}
-
-.theme-option svg {
-  color: var(--text-secondary);
-  flex-shrink: 0;
-}
-
-.theme-option.active svg {
-  color: var(--accent-color);
+  box-shadow: 0 0 0 1px var(--accent-color);
 }
 
 .theme-option-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #DFC883; /* Gold for dark mode (default) */
+  text-align: center;
+  margin-top: 8px;
+}
+
+html[data-theme="light"] .theme-option-title {
+  color: #5e8d90; /* Teal for light mode */
 }
 
 .theme-option-description {
   font-size: 13px;
   color: var(--text-secondary);
+}
+
+.theme-option-preview {
+  max-width: 450px;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  object-fit: cover;
+  transition: all 0.2s;
+}
+
+@media (max-width: 768px) {
+  .theme-options {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .theme-option-preview {
+    max-width: 100%;
+  }
 }
 
 /* Subscription */
