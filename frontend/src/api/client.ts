@@ -24,6 +24,7 @@ import type {
 
 interface RequestOptions extends RequestInit {
     headers?: HeadersInit;
+    signal?: AbortSignal;
 }
 
 
@@ -155,6 +156,10 @@ class APIClient {
             if (error instanceof APIError) {
                 throw error;
             }
+            // Don't wrap AbortError - let it pass through for proper handling
+            if (error instanceof Error && error.name === 'AbortError') {
+                throw error;
+            }
             throw new APIError(`Network error: ${(error as Error).message}`, 0, error);
         }
     }
@@ -171,10 +176,11 @@ class APIClient {
     /**
      * POST request
      */
-    async post<T = any>(endpoint: string, data: any = {}): Promise<T> {
+    async post<T = any>(endpoint: string, data: any = {}, signal?: AbortSignal): Promise<T> {
         return this.request<T>(endpoint, {
             method: 'POST',
-            body: JSON.stringify(data)
+            body: JSON.stringify(data),
+            signal
         }) as Promise<T>;
     }
 
@@ -203,12 +209,12 @@ class StatsAPI extends APIClient {
     /**
      * Query the chat endpoint
      */
-    async query(message: string, sessionId?: string | null): Promise<QueryResponse> {
+    async query(message: string, sessionId?: string | null, signal?: AbortSignal): Promise<QueryResponse> {
         const payload: QueryRequest = { query: message };
         if (sessionId) {
             payload.session_id = sessionId;
         }
-        return this.post<QueryResponse>('/query', payload);
+        return this.post<QueryResponse>('/query', payload, signal);
     }
 
     /**

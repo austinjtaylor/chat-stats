@@ -25,11 +25,13 @@ interface MessageSource {
 let currentSessionId: string | null = null;
 let queryHistory: string[] = [];
 let historyIndex: number = -1;
+let currentAbortController: AbortController | null = null;
 
 // DOM elements
 let chatMessages: HTMLElement | null;
 let chatInput: HTMLTextAreaElement | null;
 let sendButton: HTMLButtonElement | null;
+let cancelButton: HTMLButtonElement | null;
 let totalPlayers: HTMLElement | null;
 let totalTeams: HTMLElement | null;
 let totalGames: HTMLElement | null;
@@ -40,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     chatMessages = DOM.$('#chatMessages') as HTMLElement | null;
     chatInput = DOM.$('#chatInput') as HTMLTextAreaElement | null;
     sendButton = DOM.$('#sendButton') as HTMLButtonElement | null;
+    cancelButton = DOM.$('#cancelButton') as HTMLButtonElement | null;
     totalPlayers = DOM.$('#totalPlayers') as HTMLElement | null;
     totalTeams = DOM.$('#totalTeams') as HTMLElement | null;
     totalGames = DOM.$('#totalGames') as HTMLElement | null;
@@ -75,6 +78,13 @@ function updateChatInputHeight(): void {
 function setupEventListeners(): void {
     // Chat functionality
     sendButton?.addEventListener('click', sendMessage);
+
+    // Cancel button functionality
+    cancelButton?.addEventListener('click', () => {
+        if (currentAbortController) {
+            currentAbortController.abort();
+        }
+    });
 
     // Auto-resize textarea on input
     chatInput?.addEventListener('input', () => {
@@ -124,6 +134,11 @@ function setupEventListeners(): void {
     // Theme toggle handled by nav.js
 
     // Note: Suggested item clicks are now handled in dropdown.ts to avoid duplicate event listeners
+
+    // Listen for new chat event from sidebar
+    window.addEventListener('new-chat', () => {
+        createNewSession();
+    });
 }
 
 // Setup dropdown functionality
@@ -177,6 +192,12 @@ async function sendMessage(): Promise<void> {
     chatInput.disabled = true;
     sendButton.disabled = true;
 
+    // Show cancel button, hide send button
+    if (cancelButton && sendButton) {
+        sendButton.style.display = 'none';
+        cancelButton.style.display = 'flex';
+    }
+
     // Update chat input height after resetting textarea
     updateChatInputHeight();
 
@@ -206,9 +227,20 @@ async function sendMessage(): Promise<void> {
         chatMessages.scrollTop = targetScroll;
     }
 
+    // Create AbortController for this request
+    currentAbortController = new AbortController();
+    const requestSessionId = currentSessionId; // Capture session ID at request time
+
     try {
-        // Use the centralized API client
-        const data = await statsAPI.query(query, currentSessionId);
+        // Use the centralized API client with abort signal
+        const data = await statsAPI.query(query, currentSessionId, currentAbortController.signal);
+
+        // Validate response belongs to current session (discard if session changed)
+        if (requestSessionId !== currentSessionId) {
+            console.log('Discarding response from previous session');
+            loadingMessage.remove();
+            return;
+        }
 
         // Update session ID if new
         if (!currentSessionId) {
@@ -243,6 +275,13 @@ async function sendMessage(): Promise<void> {
         }
 
     } catch (error) {
+        // Check if request was aborted (user cancelled or navigated away)
+        if (error instanceof Error && error.name === 'AbortError') {
+            console.log('Request was cancelled');
+            loadingMessage.remove();
+            return;
+        }
+
         // Replace loading message with error
         loadingMessage.remove();
         // Better error message handling with APIError
@@ -270,9 +309,17 @@ async function sendMessage(): Promise<void> {
         }
         addMessage(errorMessage, 'assistant');
     } finally {
+        // Clean up abort controller
+        currentAbortController = null;
         chatInput.disabled = false;
         sendButton.disabled = false;
         chatInput.focus();
+
+        // Hide cancel button, show send button
+        if (cancelButton && sendButton) {
+            cancelButton.style.display = 'none';
+            sendButton.style.display = 'flex';
+        }
     }
 }
 
@@ -357,6 +404,12 @@ function escapeHtml(text: string): string {
 // Removed removeMessage function - no longer needed since we handle loading differently
 
 async function createNewSession(): Promise<void> {
+    // Cancel any pending request before creating new session
+    if (currentAbortController) {
+        currentAbortController.abort();
+        currentAbortController = null;
+    }
+
     currentSessionId = null;
     if (chatMessages) {
         chatMessages.innerHTML = '';
