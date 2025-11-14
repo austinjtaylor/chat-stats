@@ -540,6 +540,23 @@ body[data-page="games"] .menu-dropdown .dropdown-item[href*="games"] {
 @media (max-width: 768px) {
     .stats-main {
         padding: 1rem;
+        padding-top: 0.5rem;
+    }
+
+    /* Position stats title to the right of hamburger button - CORRECT CLASS */
+    .stats-title {
+        text-align: left;
+        margin-left: 90px; /* Space for hamburger button (12px + 44px + gap) */
+        margin-top: 8px;
+    }
+
+    /* Legacy class - kept for compatibility */
+    .stats-page-title {
+        text-align: left;
+        font-size: 2rem;
+        margin-left: 90px;
+        margin-top: 8px;
+        margin-bottom: 1.5rem;
     }
 
     .filters-row {

@@ -669,11 +669,26 @@ body:not(.sidebar-expanded) .settings-container {
   .app-sidebar {
     width: 0;
     border-right: none;
+    overflow: hidden;
   }
 
   .app-sidebar.expanded {
     width: 220px;
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Hide internal sidebar toggle button on mobile */
+  .sidebar-toggle {
+    display: none;
+  }
+
+  /* Hide all sidebar content when collapsed to prevent overlay */
+  .app-sidebar:not(.expanded) .sidebar-nav,
+  .app-sidebar:not(.expanded) .sidebar-header,
+  .app-sidebar:not(.expanded) .sidebar-user-section,
+  .app-sidebar:not(.expanded) .sidebar-middle-expander {
+    opacity: 0;
+    pointer-events: none;
   }
 
   /* No content shift on mobile */
@@ -729,4 +744,81 @@ body:not(.sidebar-expanded) .settings-container {
 
 .sidebar-nav::-webkit-scrollbar-thumb:hover {
   background: var(--text-secondary);
+}
+
+/* Mobile Hamburger Menu Button */
+.mobile-menu-button {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  width: 44px;
+  height: 44px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  z-index: 9999;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.mobile-menu-button:hover {
+  background: var(--surface-hover);
+}
+
+.mobile-menu-button svg {
+  pointer-events: none;
+}
+
+/* Mobile Close Button (when sidebar is expanded) */
+.mobile-close-button {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  width: 44px;
+  height: 44px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  z-index: 10001;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.mobile-close-button:hover {
+  background: var(--surface-hover);
+}
+
+.mobile-close-button svg {
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  /* Show hamburger button on mobile only */
+  .mobile-menu-button {
+    display: flex;
+  }
+
+  /* Hide hamburger when sidebar is open */
+  .app-sidebar.expanded ~ .mobile-menu-button {
+    display: none;
+  }
+
+  /* Show close button when sidebar is expanded */
+  .mobile-close-button {
+    display: none;
+  }
+
+  .app-sidebar.expanded ~ .mobile-close-button {
+    display: flex;
+  }
 }

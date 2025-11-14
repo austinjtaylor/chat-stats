@@ -331,12 +331,65 @@ body.sidebar-expanded.chat-active .chat-input-area {
 /* Responsive Design */
 @media (max-width: 768px) {
     .chat-title {
-        font-size: 2rem;
-        margin-bottom: 1.5rem;
+        font-size: 1.75rem;
+        margin-bottom: 1rem;
     }
 
     .chat-container-full {
-        height: 80vh;
-        padding: 0 0.5rem;
+        max-width: 100%;
+        padding: 0 1rem;
+    }
+
+    /* Make chat input responsive on mobile */
+    .chat-input-container {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    /* Override active chat input width for mobile - higher specificity */
+    .chat-active .chat-input-container {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    /* Hide inline suggestions on mobile, keep centered version */
+    .try-asking-container.try-asking-inline {
+        display: none !important;
+    }
+
+    /* Adjust chat messages padding for mobile */
+    .chat-active .chat-messages {
+        padding: 60px 1rem var(--chat-input-height, 74px) 1rem;
+        width: 100%;
+        margin-left: 0;
+    }
+
+    /* Adjust input area padding for mobile */
+    .chat-active .chat-input-area {
+        padding: 0 0.75rem 0.75rem 0.75rem;
+    }
+
+    /* No sidebar shift on mobile */
+    body.sidebar-expanded.chat-active .chat-messages,
+    body.sidebar-expanded.chat-active .chat-input-area {
+        transform: none;
+    }
+
+    /* Increase button sizes for better touch targets */
+    #sendButton,
+    #cancelButton {
+        min-width: 44px;
+        height: 44px;
+        padding: 0.75rem;
+    }
+
+    /* Improve textarea sizing on mobile */
+    #chatInput {
+        font-size: 1rem;
+        padding: 0.75rem 0.5rem;
+    }
+
+    .chat-input-container {
+        padding: 0.625rem 0.875rem 0.625rem 1.125rem;
     }
 }

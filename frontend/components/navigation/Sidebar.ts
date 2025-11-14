@@ -136,6 +136,9 @@ export class Sidebar {
       // Re-render user section with new initials
       this.renderUserSection(true);
     });
+
+    // Create mobile hamburger menu button
+    this.createMobileMenuButton();
   }
 
   /**
@@ -239,6 +242,45 @@ export class Sidebar {
     backdrop.className = 'sidebar-backdrop';
     backdrop.addEventListener('click', () => this.collapse());
     return backdrop;
+  }
+
+  /**
+   * Create mobile hamburger menu button
+   */
+  private createMobileMenuButton(): void {
+    // Create hamburger button (shows when sidebar is closed)
+    const mobileButton = document.createElement('button');
+    mobileButton.className = 'mobile-menu-button';
+    mobileButton.setAttribute('aria-label', 'Open menu');
+    mobileButton.innerHTML = `
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="3" y1="7" x2="21" y2="7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <line x1="3" y1="17" x2="18" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    `;
+
+    // Add click handler to open sidebar
+    mobileButton.addEventListener('click', () => this.toggle());
+
+    // Append to body (outside sidebar so it's always visible)
+    document.body.appendChild(mobileButton);
+
+    // Create close button (shows when sidebar is open)
+    const closeButton = document.createElement('button');
+    closeButton.className = 'mobile-close-button';
+    closeButton.setAttribute('aria-label', 'Close menu');
+    closeButton.innerHTML = `
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    `;
+
+    // Add click handler to close sidebar
+    closeButton.addEventListener('click', () => this.collapse());
+
+    // Append to body
+    document.body.appendChild(closeButton);
   }
 
   /**
