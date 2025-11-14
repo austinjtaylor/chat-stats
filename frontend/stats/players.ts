@@ -17,11 +17,71 @@ interface PlayerColumn {
     sortable: boolean;
 }
 
+interface CustomFilter {
+    field: string;
+    operator: '>' | '<' | '>=' | '<=' | '=';
+    value: number;
+}
+
 interface PlayerFilters extends StatsFilter {
     season: string | number;
     per: 'total' | 'per-game';
     team: string;
+    customFilters: CustomFilter[];
 }
+
+interface FilterableField {
+    key: string;
+    label: string;
+    dataType: 'number' | 'percentage' | 'ratio';
+    minYear?: number; // If undefined, available for all years
+    description?: string;
+}
+
+// Filterable fields configuration
+const FILTERABLE_FIELDS: FilterableField[] = [
+    // Core stats
+    { key: 'games_played', label: 'Games Played', dataType: 'number', description: 'GP' },
+    { key: 'total_points_played', label: 'Points Played', dataType: 'number', description: 'PP' },
+    { key: 'possessions', label: 'Possessions', dataType: 'number', description: 'POS' },
+    { key: 'total_o_points_played', label: 'O-Points Played', dataType: 'number', description: 'OPP' },
+    { key: 'total_d_points_played', label: 'D-Points Played', dataType: 'number', description: 'DPP' },
+    { key: 'minutes_played', label: 'Minutes Played', dataType: 'number', description: 'MP' },
+
+    // Scoring stats
+    { key: 'score_total', label: 'Score Total', dataType: 'number', description: 'S (Goals + Assists)' },
+    { key: 'total_goals', label: 'Goals', dataType: 'number', description: 'G' },
+    { key: 'total_assists', label: 'Assists', dataType: 'number', description: 'A' },
+    { key: 'total_hockey_assists', label: 'Hockey Assists', dataType: 'number', description: 'HA', minYear: 2014 },
+    { key: 'total_blocks', label: 'Blocks', dataType: 'number', description: 'B' },
+    { key: 'total_callahans', label: 'Callahans', dataType: 'number', description: 'CAL' },
+    { key: 'calculated_plus_minus', label: 'Plus/Minus', dataType: 'number', description: '+/-' },
+
+    // Throwing stats
+    { key: 'total_completions', label: 'Completions', dataType: 'number', description: 'C' },
+    { key: 'total_throw_attempts', label: 'Throw Attempts', dataType: 'number', description: 'Attempts' },
+    { key: 'completion_percentage', label: 'Completion %', dataType: 'percentage', description: 'C%' },
+    { key: 'total_throwaways', label: 'Throwaways', dataType: 'number', description: 'T' },
+    { key: 'total_stalls', label: 'Stalls', dataType: 'number', description: 'S' },
+    { key: 'total_drops', label: 'Drops', dataType: 'number', description: 'D' },
+    { key: 'total_pulls', label: 'Pulls', dataType: 'number', description: 'P' },
+
+    // Advanced stats (2021+)
+    { key: 'total_yards', label: 'Total Yards', dataType: 'number', description: 'Y', minYear: 2021 },
+    { key: 'total_yards_thrown', label: 'Throwing Yards', dataType: 'number', description: 'TY', minYear: 2021 },
+    { key: 'total_yards_received', label: 'Receiving Yards', dataType: 'number', description: 'RY', minYear: 2021 },
+    { key: 'total_hucks_completed', label: 'Hucks Completed', dataType: 'number', description: 'H', minYear: 2021 },
+    { key: 'total_hucks_attempted', label: 'Hucks Attempted', dataType: 'number', description: 'HA', minYear: 2021 },
+    { key: 'total_hucks_received', label: 'Hucks Received', dataType: 'number', description: 'HR', minYear: 2021 },
+    { key: 'huck_percentage', label: 'Huck %', dataType: 'percentage', description: 'H%', minYear: 2021 },
+
+    // Ratio stats
+    { key: 'offensive_efficiency', label: 'Offensive Efficiency', dataType: 'percentage', description: 'OEFF' },
+    { key: 'assists_per_turnover', label: 'Assists per Turnover', dataType: 'ratio', description: 'AST/T' },
+    { key: 'yards_per_turn', label: 'Yards per Turnover', dataType: 'ratio', description: 'Y/T', minYear: 2021 },
+    { key: 'yards_per_completion', label: 'Yards per Completion', dataType: 'ratio', description: 'TY/C', minYear: 2021 },
+    { key: 'yards_per_reception', label: 'Yards per Reception', dataType: 'ratio', description: 'RY/R', minYear: 2021 }
+];
 
 class PlayerStats {
     currentPage: number;
@@ -29,6 +89,7 @@ class PlayerStats {
     currentSort: SortConfig;
     filters: PlayerFilters;
     players: PlayerSeasonStats[];
+    percentiles: Record<string, Record<string, number>>;
     totalPages: number;
     totalPlayers: number;
     teams: TeamInfo[];
@@ -41,9 +102,11 @@ class PlayerStats {
         this.filters = {
             season: 'career',
             per: 'total',
-            team: 'all'
+            team: 'all',
+            customFilters: []
         };
         this.players = [];
+        this.percentiles = {};
         this.totalPages = 0;
         this.totalPlayers = 0;
         this.teams = [];
@@ -55,6 +118,7 @@ class PlayerStats {
     async init(): Promise<void> {
         await this.loadTeams();
         this.setupEventListeners();
+        this.setupModalEventListeners();
         this.renderTableHeaders();
         await this.loadPlayerStats();
     }
@@ -165,6 +229,217 @@ class PlayerStats {
                     this.loadPlayerStats();
                 }
             });
+        }
+    }
+
+    setupModalEventListeners(): void {
+        const advancedFiltersBtn = document.getElementById('advancedFiltersBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const cancelFiltersBtn = document.getElementById('cancelFiltersBtn');
+        const applyFiltersBtn = document.getElementById('applyFiltersBtn');
+        const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+        const addFilterBtn = document.getElementById('addFilterBtn');
+        const modal = document.getElementById('advancedFiltersModal');
+
+        if (advancedFiltersBtn) {
+            advancedFiltersBtn.addEventListener('click', () => this.openModal());
+        }
+
+        if (closeModalBtn) {
+            closeModalBtn.addEventListener('click', () => this.closeModal());
+        }
+
+        if (cancelFiltersBtn) {
+            cancelFiltersBtn.addEventListener('click', () => this.closeModal());
+        }
+
+        if (applyFiltersBtn) {
+            applyFiltersBtn.addEventListener('click', () => this.applyFilters());
+        }
+
+        if (clearFiltersBtn) {
+            clearFiltersBtn.addEventListener('click', () => this.clearAllFilters());
+        }
+
+        if (addFilterBtn) {
+            addFilterBtn.addEventListener('click', () => this.addFilterRow());
+        }
+
+        // Close modal when clicking on the modal background (not the content)
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    this.closeModal();
+                }
+            });
+        }
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('advancedFiltersModal');
+                if (modal && !modal.classList.contains('hidden')) {
+                    this.closeModal();
+                }
+            }
+        });
+    }
+
+    openModal(): void {
+        const modal = document.getElementById('advancedFiltersModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            this.renderFilterRows();
+        }
+    }
+
+    closeModal(): void {
+        const modal = document.getElementById('advancedFiltersModal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+    }
+
+    getAvailableFields(): FilterableField[] {
+        const season = this.filters.season;
+
+        // Filter fields based on season availability
+        return FILTERABLE_FIELDS.filter(field => {
+            if (!field.minYear) return true; // Available for all years
+            if (season === 'career') return true; // Career shows all fields
+
+            const seasonYear = parseInt(String(season));
+            return seasonYear >= field.minYear;
+        });
+    }
+
+    renderFilterRows(): void {
+        const filtersList = document.getElementById('filtersList');
+        if (!filtersList) return;
+
+        const availableFields = this.getAvailableFields();
+
+        if (this.filters.customFilters.length === 0) {
+            filtersList.innerHTML = '<div class="no-filters">No filters added yet. Click "Add Filter" to create one.</div>';
+            return;
+        }
+
+        filtersList.innerHTML = this.filters.customFilters.map((filter, index) => {
+            const fieldOptions = availableFields.map(field =>
+                `<option value="${field.key}" ${filter.field === field.key ? 'selected' : ''}>${field.label}</option>`
+            ).join('');
+
+            return `
+                <div class="filter-row" data-index="${index}">
+                    <select class="field-select" data-index="${index}">
+                        ${fieldOptions}
+                    </select>
+                    <select class="operator-select" data-index="${index}">
+                        <option value=">" ${filter.operator === '>' ? 'selected' : ''}>&gt;</option>
+                        <option value="<" ${filter.operator === '<' ? 'selected' : ''}>&lt;</option>
+                        <option value=">=" ${filter.operator === '>=' ? 'selected' : ''}>&gt;=</option>
+                        <option value="<=" ${filter.operator === '<=' ? 'selected' : ''}>&lt;=</option>
+                        <option value="=" ${filter.operator === '=' ? 'selected' : ''}>=</option>
+                    </select>
+                    <input type="number" class="value-input" data-index="${index}" value="${filter.value}" step="any" />
+                    <button class="remove-filter-btn" data-index="${index}" aria-label="Remove filter">
+                        <span>&times;</span>
+                    </button>
+                </div>
+            `;
+        }).join('');
+
+        // Add event listeners for filter row controls
+        this.attachFilterRowListeners();
+    }
+
+    attachFilterRowListeners(): void {
+        const filtersList = document.getElementById('filtersList');
+        if (!filtersList) return;
+
+        // Field select listeners
+        filtersList.querySelectorAll('.field-select').forEach(select => {
+            select.addEventListener('change', (e) => {
+                const index = parseInt((e.target as HTMLSelectElement).getAttribute('data-index')!);
+                const value = (e.target as HTMLSelectElement).value;
+                this.filters.customFilters[index].field = value;
+            });
+        });
+
+        // Operator select listeners
+        filtersList.querySelectorAll('.operator-select').forEach(select => {
+            select.addEventListener('change', (e) => {
+                const index = parseInt((e.target as HTMLSelectElement).getAttribute('data-index')!);
+                const value = (e.target as HTMLSelectElement).value as '>' | '<' | '>=' | '<=' | '=';
+                this.filters.customFilters[index].operator = value;
+            });
+        });
+
+        // Value input listeners
+        filtersList.querySelectorAll('.value-input').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const index = parseInt((e.target as HTMLInputElement).getAttribute('data-index')!);
+                const value = parseFloat((e.target as HTMLInputElement).value);
+                this.filters.customFilters[index].value = value;
+            });
+        });
+
+        // Remove button listeners
+        filtersList.querySelectorAll('.remove-filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt((e.target as HTMLElement).closest('button')!.getAttribute('data-index')!);
+                this.removeFilterRow(index);
+            });
+        });
+    }
+
+    addFilterRow(): void {
+        const availableFields = this.getAvailableFields();
+        if (availableFields.length === 0) {
+            alert('No fields available for filtering in the selected season.');
+            return;
+        }
+
+        // Add a new filter with default values
+        this.filters.customFilters.push({
+            field: availableFields[0].key,
+            operator: '>=',
+            value: 0
+        });
+
+        this.renderFilterRows();
+    }
+
+    removeFilterRow(index: number): void {
+        this.filters.customFilters.splice(index, 1);
+        this.renderFilterRows();
+        this.updateFilterBadge();
+    }
+
+    applyFilters(): void {
+        this.closeModal();
+        this.updateFilterBadge();
+        this.currentPage = 1; // Reset to first page
+        this.loadPlayerStats();
+    }
+
+    clearAllFilters(): void {
+        this.filters.customFilters = [];
+        this.renderFilterRows();
+        this.updateFilterBadge();
+    }
+
+    updateFilterBadge(): void {
+        const badge = document.getElementById('filterCount');
+        if (badge) {
+            const count = this.filters.customFilters.length;
+            badge.textContent = String(count);
+
+            if (count > 0) {
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
         }
     }
 
@@ -317,6 +592,7 @@ class PlayerStats {
                 season: this.filters.season,
                 team: this.filters.team,
                 per: this.filters.per,
+                customFilters: this.filters.customFilters,
                 page: this.currentPage,
                 per_page: this.pageSize,
                 sort: this.currentSort.key,
@@ -327,6 +603,7 @@ class PlayerStats {
             const cached = this.cache.get(cacheKey);
             if (cached && Date.now() - cached.timestamp < 5 * 60 * 1000) {
                 this.players = cached.data.players || [];
+                this.percentiles = cached.data.percentiles || {};
                 this.totalPlayers = cached.data.total || 0;
                 this.totalPages = cached.data.total_pages || cached.data.pages || 0;
 
@@ -341,8 +618,8 @@ class PlayerStats {
 
             window.ufaStats.showLoading('#playersTableBody', 'Loading player statistics...');
 
-            // Use the new dedicated API endpoint
-            const response = await window.ufaStats.fetchData<PlayerStatsResponse>('/players/stats', {
+            // Prepare query params
+            const queryParams: any = {
                 season: this.filters.season,
                 team: this.filters.team,
                 per: this.filters.per,
@@ -350,10 +627,19 @@ class PlayerStats {
                 per_page: this.pageSize,
                 sort: this.currentSort.key,
                 order: this.currentSort.direction
-            });
+            };
+
+            // Add custom filters if present
+            if (this.filters.customFilters.length > 0) {
+                queryParams.custom_filters = JSON.stringify(this.filters.customFilters);
+            }
+
+            // Use the new dedicated API endpoint
+            const response = await window.ufaStats.fetchData<PlayerStatsResponse>('/players/stats', queryParams);
 
             if (response) {
                 this.players = response.players || [];
+                this.percentiles = response.percentiles || {};
                 this.totalPlayers = response.total || 0;
                 // Fix: API returns 'total_pages' not 'pages'
                 this.totalPages = response.total_pages || 0;
@@ -398,6 +684,21 @@ class PlayerStats {
         }
     }
 
+    getPercentile(playerName: string, statKey: string): number | null {
+        if (!this.percentiles || !this.percentiles[playerName]) {
+            return null;
+        }
+        return this.percentiles[playerName][statKey] ?? null;
+    }
+
+    formatCellWithPercentile(value: string, playerName: string, statKey: string): string {
+        const percentile = this.getPercentile(playerName, statKey);
+        if (percentile !== null && percentile !== undefined) {
+            return `<div class="stat-cell"><div class="stat-value">${value}</div><div class="stat-percentile">${percentile}%</div></div>`;
+        }
+        return value;
+    }
+
     renderPlayersTable(): void {
         const tbody = document.getElementById('playersTableBody');
         if (!tbody) return;
@@ -411,44 +712,56 @@ class PlayerStats {
         const columns = this.getColumnsForSeason(this.filters.season);
 
         tbody.innerHTML = this.players.map(player => {
+            const playerName = player.player_name || `${player.first_name || ''} ${player.last_name || ''}`.trim();
+
             const cells = columns.map(col => {
                 let value: number | string;
+                let displayValue: string;
 
                 switch (col.key) {
                     case 'full_name':
-                        const name = player.player_name || `${player.first_name || ''} ${player.last_name || ''}`.trim();
-                        return `<td class="player-name">${name}</td>`;
+                        return `<td class="player-name">${playerName}</td>`;
                     case 'total_points_played':
                         value = player.total_points_played || 0;
-                        return `<td class="numeric">${this.formatValue(value)}</td>`;
+                        displayValue = this.formatValue(value);
+                        return `<td class="numeric">${this.formatCellWithPercentile(displayValue, playerName, col.key)}</td>`;
                     case 'score_total':
                         value = player.score_total || 0;
-                        return `<td class="numeric">${this.formatValue(value)}</td>`;
+                        displayValue = this.formatValue(value);
+                        return `<td class="numeric">${this.formatCellWithPercentile(displayValue, playerName, col.key)}</td>`;
                     case 'calculated_plus_minus':
-                        return `<td class="numeric">${this.formatValue(player[col.key as keyof PlayerSeasonStats] || 0, false)}</td>`;
+                        displayValue = this.formatValue(player[col.key as keyof PlayerSeasonStats] || 0, false);
+                        return `<td class="numeric">${this.formatCellWithPercentile(displayValue, playerName, col.key)}</td>`;
                     case 'completion_percentage':
                         // Backend already returns this as a percentage value (e.g., 95.79)
                         const compPct = player[col.key as keyof PlayerSeasonStats] as number;
-                        return `<td class="numeric">${compPct ? compPct.toFixed(1) : '-'}</td>`;
+                        displayValue = compPct ? compPct.toFixed(1) : '-';
+                        return `<td class="numeric">${this.formatCellWithPercentile(displayValue, playerName, col.key)}</td>`;
                     case 'huck_percentage':
                         // Backend calculates this, but we may need to calculate for older data
                         const huckPct = player.huck_percentage || this.calculateHuckPercentage(player);
-                        return `<td class="numeric">${huckPct ? huckPct.toFixed(1) : '-'}</td>`;
+                        displayValue = huckPct ? huckPct.toFixed(1) : '-';
+                        return `<td class="numeric">${this.formatCellWithPercentile(displayValue, playerName, col.key)}</td>`;
                     case 'yards_per_turn':
                         const yPerTurn = player.yards_per_turn;
-                        return `<td class="numeric">${yPerTurn !== null && yPerTurn !== undefined ? yPerTurn.toFixed(1) : '-'}</td>`;
+                        displayValue = yPerTurn !== null && yPerTurn !== undefined ? yPerTurn.toFixed(1) : '-';
+                        return `<td class="numeric">${this.formatCellWithPercentile(displayValue, playerName, col.key)}</td>`;
                     case 'yards_per_completion':
                         const yPerComp = player.yards_per_completion;
-                        return `<td class="numeric">${yPerComp !== null && yPerComp !== undefined ? yPerComp.toFixed(1) : '-'}</td>`;
+                        displayValue = yPerComp !== null && yPerComp !== undefined ? yPerComp.toFixed(1) : '-';
+                        return `<td class="numeric">${this.formatCellWithPercentile(displayValue, playerName, col.key)}</td>`;
                     case 'yards_per_reception':
                         const yPerRecep = player.yards_per_reception;
-                        return `<td class="numeric">${yPerRecep !== null && yPerRecep !== undefined ? yPerRecep.toFixed(1) : '-'}</td>`;
+                        displayValue = yPerRecep !== null && yPerRecep !== undefined ? yPerRecep.toFixed(1) : '-';
+                        return `<td class="numeric">${this.formatCellWithPercentile(displayValue, playerName, col.key)}</td>`;
                     case 'assists_per_turnover':
                         const astPerTO = player.assists_per_turnover;
-                        return `<td class="numeric">${astPerTO !== null && astPerTO !== undefined ? astPerTO.toFixed(2) : '-'}</td>`;
+                        displayValue = astPerTO !== null && astPerTO !== undefined ? astPerTO.toFixed(2) : '-';
+                        return `<td class="numeric">${this.formatCellWithPercentile(displayValue, playerName, col.key)}</td>`;
                     default:
                         const fieldValue = player[col.key as keyof PlayerSeasonStats];
-                        return `<td class="numeric">${this.formatValue(fieldValue || 0)}</td>`;
+                        displayValue = this.formatValue(fieldValue || 0);
+                        return `<td class="numeric">${this.formatCellWithPercentile(displayValue, playerName, col.key)}</td>`;
                 }
             });
 
@@ -540,6 +853,7 @@ class PlayerStats {
                 season: this.filters.season,
                 team: this.filters.team,
                 per: this.filters.per,
+                customFilters: this.filters.customFilters,
                 page: page,
                 per_page: this.pageSize,
                 sort: this.currentSort.key,
@@ -551,8 +865,8 @@ class PlayerStats {
                 continue;
             }
 
-            // Fetch in background without awaiting
-            window.ufaStats.fetchData<PlayerStatsResponse>('/players/stats', {
+            // Prepare query params
+            const queryParams: any = {
                 season: this.filters.season,
                 team: this.filters.team,
                 per: this.filters.per,
@@ -560,7 +874,15 @@ class PlayerStats {
                 per_page: this.pageSize,
                 sort: this.currentSort.key,
                 order: this.currentSort.direction
-            }).then(response => {
+            };
+
+            // Add custom filters if present
+            if (this.filters.customFilters.length > 0) {
+                queryParams.custom_filters = JSON.stringify(this.filters.customFilters);
+            }
+
+            // Fetch in background without awaiting
+            window.ufaStats.fetchData<PlayerStatsResponse>('/players/stats', queryParams).then(response => {
                 if (response) {
                     this.cache.set(cacheKey, {
                         data: response,
