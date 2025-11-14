@@ -214,3 +214,34 @@
     width: 1.5rem;
     height: 1.5rem;
 }
+
+/* Mobile-specific improvements for better touch targets */
+@media (max-width: 768px) {
+    /* Ensure minimum 44px touch target for icon buttons */
+    .btn-icon {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    /* Increase button padding for better touch targets */
+    .btn {
+        padding: 0.75rem 1.375rem;
+        min-height: 44px;
+    }
+
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        min-height: 40px;
+    }
+
+    .btn-lg {
+        padding: 0.875rem 1.625rem;
+        min-height: 48px;
+    }
+
+    /* Larger tap area for filter reset button */
+    .filter-reset-btn {
+        padding: 0.5rem 1rem;
+        min-height: 40px;
+    }
+}
