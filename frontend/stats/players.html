@@ -29,22 +29,13 @@
                     <div class="table-filters">
                         <div class="filter-group compact">
                             <label for="seasonFilter">Season</label>
-                            <select id="seasonFilter" class="filter-select compact">
-                                <option value="career" selected>Career</option>
-                                <option value="2025">2025</option>
-                                <option value="2024">2024</option>
-                                <option value="2023">2023</option>
-                                <option value="2022">2022</option>
-                                <option value="2021">2021</option>
-                                <option value="2019">2019</option>
-                                <option value="2018">2018</option>
-                                <option value="2017">2017</option>
-                                <option value="2016">2016</option>
-                                <option value="2015">2015</option>
-                                <option value="2014">2014</option>
-                                <option value="2013">2013</option>
-                                <option value="2012">2012</option>
-                            </select>
+                            <div id="seasonFilter"></div>
+                        </div>
+                        <div class="filter-group compact">
+                            <label>
+                                <input type="checkbox" id="careerModeCheckbox" checked>
+                                Career Mode
+                            </label>
                         </div>
                         <div class="filter-group compact">
                             <label for="perFilter">Per</label>
@@ -55,9 +46,7 @@
                         </div>
                         <div class="filter-group compact">
                             <label for="teamFilter">Team</label>
-                            <select id="teamFilter" class="filter-select compact">
-                                <option value="all" selected>All</option>
-                            </select>
+                            <div id="teamFilter"></div>
                         </div>
                         <div class="filter-group compact">
                             <button id="advancedFiltersBtn" class="filter-button">

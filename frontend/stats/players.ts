@@ -24,10 +24,11 @@ interface CustomFilter {
 }
 
 interface PlayerFilters extends StatsFilter {
-    season: string | number;
+    season: (string | number)[]; // Changed to array for multi-select
     per: 'total' | 'per-game';
-    team: string;
+    team: string[]; // Changed to array for multi-select
     customFilters: CustomFilter[];
+    careerMode: boolean; // Track if career mode is active
 }
 
 interface FilterableField {
@@ -83,6 +84,313 @@ const FILTERABLE_FIELDS: FilterableField[] = [
     { key: 'yards_per_reception', label: 'Yards per Reception', dataType: 'ratio', description: 'RY/R', minYear: 2021 }
 ];
 
+/**
+ * MultiSelect Component - Reusable dropdown with checkboxes
+ */
+interface MultiSelectOption {
+    value: string | number;
+    label: string;
+    group?: string; // For grouping (e.g., "Current Teams" vs "Historical Teams")
+}
+
+interface MultiSelectConfig {
+    containerId: string;
+    options: MultiSelectOption[];
+    selectedValues: (string | number)[];
+    placeholder?: string;
+    onChange: (selected: (string | number)[]) => void;
+    allowSelectAll?: boolean;
+    searchable?: boolean;
+    exclusiveMode?: boolean; // If true, selecting one value clears others (used for Career mode)
+}
+
+class MultiSelect {
+    private config: MultiSelectConfig;
+    private container: HTMLElement | null;
+    private dropdown: HTMLElement | null;
+    private isOpen: boolean = false;
+    private searchInput: HTMLInputElement | null = null;
+
+    constructor(config: MultiSelectConfig) {
+        this.config = config;
+        this.container = document.getElementById(config.containerId);
+        this.dropdown = null;
+        this.init();
+    }
+
+    private init(): void {
+        if (!this.container) {
+            console.error(`MultiSelect: Container ${this.config.containerId} not found`);
+            return;
+        }
+
+        this.render();
+        this.setupClickOutsideListener();
+    }
+
+    private render(): void {
+        if (!this.container) return;
+
+        this.container.innerHTML = '';
+        this.container.className = 'multi-select-container';
+
+        // Create toggle button
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'multi-select-toggle';
+        toggleBtn.type = 'button';
+        toggleBtn.innerHTML = this.getToggleButtonText();
+        toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleDropdown();
+        });
+
+        // Create dropdown
+        const dropdown = document.createElement('div');
+        dropdown.className = 'multi-select-dropdown' + (this.isOpen ? '' : ' hidden');
+        this.dropdown = dropdown;
+
+        // Add search if enabled
+        if (this.config.searchable) {
+            const searchContainer = document.createElement('div');
+            searchContainer.className = 'multi-select-search';
+            this.searchInput = document.createElement('input');
+            this.searchInput.type = 'text';
+            this.searchInput.placeholder = 'Search...';
+            this.searchInput.className = 'multi-select-search-input';
+            this.searchInput.addEventListener('input', () => this.filterOptions());
+            searchContainer.appendChild(this.searchInput);
+            dropdown.appendChild(searchContainer);
+        }
+
+        // Add select all/clear all buttons
+        if (this.config.allowSelectAll && !this.config.exclusiveMode) {
+            const actionsRow = document.createElement('div');
+            actionsRow.className = 'multi-select-actions';
+
+            const selectAllBtn = document.createElement('button');
+            selectAllBtn.textContent = 'Select All';
+            selectAllBtn.className = 'multi-select-action-btn';
+            selectAllBtn.type = 'button';
+            selectAllBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.selectAll();
+            });
+
+            const clearAllBtn = document.createElement('button');
+            clearAllBtn.textContent = 'Clear All';
+            clearAllBtn.className = 'multi-select-action-btn';
+            clearAllBtn.type = 'button';
+            clearAllBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.clearAll();
+            });
+
+            actionsRow.appendChild(selectAllBtn);
+            actionsRow.appendChild(clearAllBtn);
+            dropdown.appendChild(actionsRow);
+        }
+
+        // Add options list
+        const optionsList = document.createElement('div');
+        optionsList.className = 'multi-select-options';
+        this.renderOptions(optionsList);
+        dropdown.appendChild(optionsList);
+
+        this.container.appendChild(toggleBtn);
+        this.container.appendChild(dropdown);
+    }
+
+    private renderOptions(container: HTMLElement): void {
+        container.innerHTML = '';
+
+        const filteredOptions = this.getFilteredOptions();
+        let currentGroup = '';
+
+        filteredOptions.forEach(option => {
+            // Add group header if needed
+            if (option.group && option.group !== currentGroup) {
+                const groupHeader = document.createElement('div');
+                groupHeader.className = 'multi-select-group-header';
+                groupHeader.textContent = option.group;
+                container.appendChild(groupHeader);
+                currentGroup = option.group;
+            }
+
+            const optionDiv = document.createElement('div');
+            optionDiv.className = 'multi-select-option';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `${this.config.containerId}-${option.value}`;
+            checkbox.value = String(option.value);
+            checkbox.checked = this.config.selectedValues.includes(option.value);
+            checkbox.addEventListener('change', () => this.handleOptionChange(option.value));
+
+            const label = document.createElement('label');
+            label.htmlFor = checkbox.id;
+            label.textContent = option.label;
+
+            optionDiv.appendChild(checkbox);
+            optionDiv.appendChild(label);
+            container.appendChild(optionDiv);
+        });
+
+        if (filteredOptions.length === 0) {
+            const noResults = document.createElement('div');
+            noResults.className = 'multi-select-no-results';
+            noResults.textContent = 'No results found';
+            container.appendChild(noResults);
+        }
+    }
+
+    private getFilteredOptions(): MultiSelectOption[] {
+        if (!this.searchInput || !this.searchInput.value.trim()) {
+            return this.config.options;
+        }
+
+        const searchTerm = this.searchInput.value.toLowerCase();
+        return this.config.options.filter(option =>
+            option.label.toLowerCase().includes(searchTerm)
+        );
+    }
+
+    private filterOptions(): void {
+        const optionsList = this.dropdown?.querySelector('.multi-select-options');
+        if (optionsList) {
+            this.renderOptions(optionsList as HTMLElement);
+        }
+    }
+
+    private getToggleButtonText(): string {
+        const count = this.config.selectedValues.length;
+
+        if (count === 0) {
+            return this.config.placeholder || 'Select...';
+        }
+
+        if (count === 1) {
+            const selected = this.config.options.find(opt => opt.value === this.config.selectedValues[0]);
+            return selected ? selected.label : `${count} selected`;
+        }
+
+        if (count === this.config.options.length) {
+            return 'All';
+        }
+
+        return `${count} selected`;
+    }
+
+    private handleOptionChange(value: string | number): void {
+        let newSelected: (string | number)[];
+
+        if (this.config.exclusiveMode) {
+            // In exclusive mode, selecting one clears all others
+            newSelected = [value];
+        } else {
+            if (this.config.selectedValues.includes(value)) {
+                newSelected = this.config.selectedValues.filter(v => v !== value);
+            } else {
+                newSelected = [...this.config.selectedValues, value];
+            }
+        }
+
+        this.updateSelected(newSelected);
+    }
+
+    private selectAll(): void {
+        const allValues = this.getFilteredOptions().map(opt => opt.value);
+        this.updateSelected(allValues);
+    }
+
+    private clearAll(): void {
+        this.updateSelected([]);
+    }
+
+    private updateSelected(newSelected: (string | number)[]): void {
+        this.config.selectedValues = newSelected;
+        this.config.onChange(newSelected);
+
+        // Update UI
+        const toggleBtn = this.container?.querySelector('.multi-select-toggle');
+        if (toggleBtn) {
+            toggleBtn.innerHTML = this.getToggleButtonText();
+        }
+
+        // Update checkboxes
+        const checkboxes = this.dropdown?.querySelectorAll('input[type="checkbox"]');
+        checkboxes?.forEach((checkbox: Element) => {
+            const cb = checkbox as HTMLInputElement;
+            cb.checked = this.config.selectedValues.includes(cb.value) || this.config.selectedValues.includes(Number(cb.value));
+        });
+    }
+
+    private toggleDropdown(): void {
+        this.isOpen = !this.isOpen;
+
+        if (this.dropdown) {
+            if (this.isOpen) {
+                this.dropdown.classList.remove('hidden');
+                if (this.searchInput) {
+                    this.searchInput.focus();
+                }
+            } else {
+                this.dropdown.classList.add('hidden');
+                if (this.searchInput) {
+                    this.searchInput.value = '';
+                    this.filterOptions();
+                }
+            }
+        }
+    }
+
+    private setupClickOutsideListener(): void {
+        document.addEventListener('click', (e) => {
+            if (this.isOpen && this.container && !this.container.contains(e.target as Node)) {
+                this.closeDropdown();
+            }
+        });
+
+        // Handle ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.isOpen) {
+                this.closeDropdown();
+            }
+        });
+    }
+
+    private closeDropdown(): void {
+        this.isOpen = false;
+        if (this.dropdown) {
+            this.dropdown.classList.add('hidden');
+        }
+        if (this.searchInput) {
+            this.searchInput.value = '';
+            this.filterOptions();
+        }
+    }
+
+    // Public methods
+    public updateOptions(options: MultiSelectOption[]): void {
+        this.config.options = options;
+        this.render();
+    }
+
+    public getSelected(): (string | number)[] {
+        return this.config.selectedValues;
+    }
+
+    public setSelected(values: (string | number)[]): void {
+        this.config.selectedValues = values;
+        this.render();
+    }
+
+    public destroy(): void {
+        if (this.container) {
+            this.container.innerHTML = '';
+        }
+    }
+}
+
 class PlayerStats {
     currentPage: number;
     pageSize: number;
@@ -94,16 +402,19 @@ class PlayerStats {
     totalPlayers: number;
     teams: TeamInfo[];
     cache: Map<string, { data: any; timestamp: number }>;
+    seasonMultiSelect: MultiSelect | null = null;
+    teamMultiSelect: MultiSelect | null = null;
 
     constructor() {
         this.currentPage = 1;
         this.pageSize = 20;
         this.currentSort = { key: 'calculated_plus_minus', direction: 'desc' };
         this.filters = {
-            season: 'career',
+            season: ['career'],
             per: 'total',
-            team: 'all',
-            customFilters: []
+            team: ['all'],
+            customFilters: [],
+            careerMode: true
         };
         this.players = [];
         this.percentiles = {};
@@ -116,11 +427,126 @@ class PlayerStats {
     }
 
     async init(): Promise<void> {
+        this.initializeSeasonMultiSelect();
         await this.loadTeams();
         this.setupEventListeners();
         this.setupModalEventListeners();
         this.renderTableHeaders();
         await this.loadPlayerStats();
+    }
+
+    private initializeSeasonMultiSelect(): void {
+        const seasonOptions: MultiSelectOption[] = [
+            { value: 2025, label: '2025' },
+            { value: 2024, label: '2024' },
+            { value: 2023, label: '2023' },
+            { value: 2022, label: '2022' },
+            { value: 2021, label: '2021' },
+            { value: 2019, label: '2019' },
+            { value: 2018, label: '2018' },
+            { value: 2017, label: '2017' },
+            { value: 2016, label: '2016' },
+            { value: 2015, label: '2015' },
+            { value: 2014, label: '2014' },
+            { value: 2013, label: '2013' },
+            { value: 2012, label: '2012' }
+        ];
+
+        this.seasonMultiSelect = new MultiSelect({
+            containerId: 'seasonFilter',
+            options: seasonOptions,
+            selectedValues: [],
+            placeholder: 'Select seasons...',
+            allowSelectAll: true,
+            searchable: false,
+            onChange: (selected) => this.handleSeasonChange(selected)
+        });
+
+        // Disable initially since career mode is active
+        this.updateSeasonMultiSelectState();
+    }
+
+    private initializeTeamMultiSelect(): void {
+        const teamOptions: MultiSelectOption[] = [
+            { value: 'all', label: 'All Teams' }
+        ];
+
+        // Add current teams
+        const currentTeams = this.teams.filter(t => t.is_current);
+        if (currentTeams.length > 0) {
+            currentTeams.forEach(team => {
+                teamOptions.push({
+                    value: team.id,
+                    label: team.name,
+                    group: 'Current Teams'
+                });
+            });
+        }
+
+        // Add historical teams
+        const historicalTeams = this.teams.filter(t => !t.is_current);
+        if (historicalTeams.length > 0) {
+            historicalTeams.forEach(team => {
+                teamOptions.push({
+                    value: team.id,
+                    label: team.name,
+                    group: 'Historical Teams'
+                });
+            });
+        }
+
+        this.teamMultiSelect = new MultiSelect({
+            containerId: 'teamFilter',
+            options: teamOptions,
+            selectedValues: ['all'],
+            placeholder: 'Select teams...',
+            allowSelectAll: true,
+            searchable: true,
+            onChange: (selected) => this.handleTeamChange(selected)
+        });
+    }
+
+    private updateSeasonMultiSelectState(): void {
+        // Enable/disable season multi-select based on career mode
+        const container = document.getElementById('seasonFilter');
+        if (container) {
+            if (this.filters.careerMode) {
+                container.style.opacity = '0.5';
+                container.style.pointerEvents = 'none';
+            } else {
+                container.style.opacity = '1';
+                container.style.pointerEvents = 'auto';
+            }
+        }
+    }
+
+    private handleSeasonChange(selected: (string | number)[]): void {
+        if (this.filters.careerMode) return; // Ignore changes in career mode
+
+        this.filters.season = selected;
+        this.currentPage = 1;
+        this.clearCache();
+        this.renderTableHeaders();
+        this.loadPlayerStats();
+    }
+
+    private handleTeamChange(selected: (string | number)[]): void {
+        // Handle "all" selection logic
+        if (selected.includes('all') && selected.length > 1) {
+            // If "all" is selected with others, keep only "all"
+            this.filters.team = ['all'];
+            this.teamMultiSelect?.setSelected(['all']);
+        } else if (selected.length === 0) {
+            // If nothing selected, default to "all"
+            this.filters.team = ['all'];
+            this.teamMultiSelect?.setSelected(['all']);
+        } else {
+            this.filters.team = selected.filter(v => v !== 'all') as string[];
+        }
+
+        this.currentPage = 1;
+        this.clearCache();
+        this.loadPlayerStats();
     }
 
     async loadTeams(): Promise<void> {
@@ -133,85 +559,59 @@ class PlayerStats {
                     is_current: team.is_current,
                     last_year: team.last_year
                 }));
-                this.populateTeamFilter();
+                this.initializeTeamMultiSelect();
             }
         } catch (error) {
             console.error('Failed to load teams:', error);
         }
     }
 
-    populateTeamFilter(): void {
-        const teamFilter = document.getElementById('teamFilter') as HTMLSelectElement;
-        if (!teamFilter) return;
+    // Removed old populateTeamFilter method - replaced by initializeTeamMultiSelect
 
-        const currentValue = teamFilter.value;
-
-        // Clear existing options except "All"
-        teamFilter.innerHTML = '<option value="all">All</option>';
-
-        // Separate teams into current and historical
-        const currentTeams = this.teams.filter(team => team.is_current !== false);
-        const historicalTeams = this.teams.filter(team => team.is_current === false);
-
-        // Add current teams
-        currentTeams.forEach(team => {
-            const option = document.createElement('option');
-            option.value = String(team.id);
-            option.textContent = team.name;
-            teamFilter.appendChild(option);
-        });
-
-        // Add separator if there are historical teams
-        if (historicalTeams.length > 0 && currentTeams.length > 0) {
-            const separator = document.createElement('option');
-            separator.disabled = true;
-            separator.textContent = '── Historical Teams ──';
-            teamFilter.appendChild(separator);
-        }
-
-        // Add historical teams
-        historicalTeams.forEach(team => {
-            const option = document.createElement('option');
-            option.value = String(team.id);
-            option.textContent = `${team.name} (${team.last_year || 'historical'})`;
-            teamFilter.appendChild(option);
-        });
-
-        // Restore previous selection if it exists
-        if (currentValue && [...teamFilter.options].find(opt => opt.value === currentValue)) {
-            teamFilter.value = currentValue;
-        }
+    private clearCache(): void {
+        this.cache.clear();
     }
 
     setupEventListeners(): void {
-        // Filter change handlers
-        const seasonFilter = document.getElementById('seasonFilter') as HTMLSelectElement;
-        if (seasonFilter) {
-            seasonFilter.addEventListener('change', (e) => {
-                this.filters.season = (e.target as HTMLSelectElement).value;
+        // Career mode checkbox
+        const careerCheckbox = document.getElementById('careerModeCheckbox') as HTMLInputElement;
+        if (careerCheckbox) {
+            careerCheckbox.addEventListener('change', () => {
+                this.filters.careerMode = careerCheckbox.checked;
+
+                if (this.filters.careerMode) {
+                    // Switch to career mode
+                    this.filters.season = ['career'];
+                    this.seasonMultiSelect?.setSelected([]);
+                } else {
+                    // Switch to multi-season mode
+                    if (this.filters.season.includes('career') || this.filters.season.length === 0) {
+                        // Default to current year if coming from career
+                        this.filters.season = [2024];
+                        this.seasonMultiSelect?.setSelected([2024]);
+                    }
+                }
+
+                this.updateSeasonMultiSelectState();
                 this.currentPage = 1;
-                this.renderTableHeaders(); // Re-render headers for the new season
+                this.clearCache();
+                this.renderTableHeaders();
                 this.loadPlayerStats();
             });
         }
 
+        // Per filter
         const perFilter = document.getElementById('perFilter') as HTMLSelectElement;
         if (perFilter) {
-            perFilter.addEventListener('change', (e) => {
-                this.filters.per = (e.target as HTMLSelectElement).value as 'total' | 'per-game';
+            perFilter.addEventListener('change', () => {
+                this.filters.per = perFilter.value as 'total' | 'per-game';
                 this.currentPage = 1;
+                this.clearCache();
                 this.loadPlayerStats();
             });
         }
 
-        const teamFilter = document.getElementById('teamFilter') as HTMLSelectElement;
-        if (teamFilter) {
-            teamFilter.addEventListener('change', (e) => {
-                this.filters.team = (e.target as HTMLSelectElement).value;
-                this.currentPage = 1;
-                this.loadPlayerStats();
-            });
-        }
+        // Removed old season and team filter listeners - now handled by MultiSelect onChange
 
         // Table header click handlers for sorting
         const tableHeaders = document.getElementById('tableHeaders');
@@ -587,10 +987,14 @@ class PlayerStats {
 
     async loadPlayerStats(): Promise<void> {
         try {
-            // Generate cache key
+            // Sort arrays for consistent cache keys
+            const sortedSeasons = [...this.filters.season].sort();
+            const sortedTeams = [...this.filters.team].sort();
+
+            // Generate cache key with sorted arrays
             const cacheKey = JSON.stringify({
-                season: this.filters.season,
-                team: this.filters.team,
+                season: sortedSeasons,
+                team: sortedTeams,
                 per: this.filters.per,
                 customFilters: this.filters.customFilters,
                 page: this.currentPage,
@@ -618,10 +1022,14 @@ class PlayerStats {
 
             window.ufaStats.showLoading('#playersTableBody', 'Loading player statistics...');
 
+            // Serialize arrays as comma-separated values for API
+            const seasonParam = this.filters.careerMode ? 'career' : sortedSeasons.join(',');
+            const teamParam = sortedTeams.includes('all') ? 'all' : sortedTeams.join(',');
+
             // Prepare query params
             const queryParams: any = {
-                season: this.filters.season,
-                team: this.filters.team,
+                season: seasonParam,
+                team: teamParam,
                 per: this.filters.per,
                 page: this.currentPage,
                 per_page: this.pageSize,

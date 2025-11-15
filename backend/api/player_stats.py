@@ -102,15 +102,28 @@ def get_team_career_sort_column(sort_key: str, per_game: bool = False) -> str:
     return f"tcs.{sort_key}"
 
 
-def calculate_global_percentiles(conn, players, season="career"):
+def calculate_global_percentiles(conn, players, seasons=None, teams=None):
     """
     Calculate global percentile rankings for each player's stats.
 
     Returns a dictionary mapping full_name to percentile values for each stat.
-    Percentiles are calculated across all players globally (0-100 scale).
+    Percentiles are calculated within the selected seasons/teams (0-100 scale).
+
+    Args:
+        conn: Database connection
+        players: List of player dicts to calculate percentiles for
+        seasons: List of season years to filter by (None = all seasons)
+        teams: List of team IDs to filter by (None = all teams)
     """
     if not players:
         return {}
+
+    # Default to career mode if not specified
+    if seasons is None or (isinstance(seasons, list) and "career" in seasons):
+        seasons = None  # Calculate across all seasons
+        is_career_mode = True
+    else:
+        is_career_mode = False
 
     # List of all stat fields to calculate percentiles for
     stat_fields = [
@@ -361,6 +374,29 @@ def create_player_stats_route(stats_system):
     ):
         """Get paginated player statistics with filtering and sorting"""
         try:
+            # Parse comma-separated season and team parameters
+            seasons = []
+            teams = []
+            is_career_mode = season == "career"
+
+            if is_career_mode:
+                # Career mode - aggregate across all seasons
+                seasons = ["career"]
+            else:
+                # Parse comma-separated seasons
+                seasons = [s.strip() for s in season.split(',') if s.strip()]
+                if not seasons:
+                    seasons = ["career"]
+                    is_career_mode = True
+
+            # Parse comma-separated teams
+            if team == "all":
+                teams = ["all"]
+            else:
+                teams = [t.strip() for t in team.split(',') if t.strip()]
+                if not teams:
+                    teams = ["all"]
+
             # Parse custom filters
             filters_list = []
             if custom_filters:
@@ -386,9 +422,23 @@ def create_player_stats_route(stats_system):
             cached_result = cache.get(cache_key)
             if cached_result is not None:
                 return cached_result
-            # Query for player season stats directly from database
-            team_filter = f" AND pss.team_id = '{team}'" if team != "all" else ""
-            season_filter = f" AND pss.year = {season}" if season != "career" else ""
+
+            # Build SQL filters using IN clauses for multi-select
+            if teams[0] == "all":
+                team_filter = ""
+            elif len(teams) == 1:
+                team_filter = f" AND pss.team_id = '{teams[0]}'"
+            else:
+                team_ids_str = ",".join([f"'{t}'" for t in teams])
+                team_filter = f" AND pss.team_id IN ({team_ids_str})"
+
+            if is_career_mode:
+                season_filter = ""
+            elif len(seasons) == 1:
+                season_filter = f" AND pss.year = {seasons[0]}"
+            else:
+                season_years_str = ",".join(seasons)
+                season_filter = f" AND pss.year IN ({season_years_str})"
 
             # Build HAVING clause for custom filters
             per_game_mode = (per == "game")
