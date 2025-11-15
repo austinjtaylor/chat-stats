@@ -106,24 +106,28 @@ def calculate_global_percentiles(conn, players, seasons=None, teams=None):
     """
     Calculate global percentile rankings for each player's stats.
 
-    Returns a dictionary mapping full_name to percentile values for each stat.
-    Percentiles are calculated within the selected seasons/teams (0-100 scale).
-
     Args:
         conn: Database connection
         players: List of player dicts to calculate percentiles for
-        seasons: List of season years to filter by (None = all seasons)
-        teams: List of team IDs to filter by (None = all teams)
+        seasons: List of season years to filter by (None or ["career"] = all seasons)
+        teams: List of team IDs to filter by (None or ["all"] = all teams)
+
+    Returns a dictionary mapping full_name to percentile values for each stat.
+    Percentiles are calculated across all players in the filtered dataset (0-100 scale).
     """
     if not players:
         return {}
 
     # Default to career mode if not specified
     if seasons is None or (isinstance(seasons, list) and "career" in seasons):
-        seasons = None  # Calculate across all seasons
+        seasons = None
         is_career_mode = True
     else:
         is_career_mode = False
+
+    # Default to all teams if not specified
+    if teams is None or (isinstance(teams, list) and "all" in teams):
+        teams = None
 
     # List of all stat fields to calculate percentiles for
     stat_fields = [
@@ -155,9 +159,27 @@ def calculate_global_percentiles(conn, players, seasons=None, teams=None):
             expr = f"ROUND(CAST(CUME_DIST() OVER (ORDER BY {field}) * 100 AS NUMERIC), 0) as {field}_percentile"
         percentile_expressions.append(expr)
 
+    # Build WHERE clause filters for seasons and teams
+    season_where = ""
+    team_where = ""
+
+    if not is_career_mode and seasons:
+        if len(seasons) == 1:
+            season_where = f" AND pss.year = {seasons[0]}"
+        else:
+            season_years_str = ",".join(str(s) for s in seasons)
+            season_where = f" AND pss.year IN ({season_years_str})"
+
+    if teams:
+        if len(teams) == 1:
+            team_where = f" AND pss.team_id = '{teams[0]}'"
+        else:
+            team_ids_str = ",".join([f"'{t}'" for t in teams])
+            team_where = f" AND pss.team_id IN ({team_ids_str})"
+
     # Calculate global percentiles based on the appropriate data source
-    if season == "career":
-        # For career stats, aggregate across all seasons
+    if is_career_mode:
+        # For career stats, aggregate across all seasons (filtered by team if specified)
         percentiles_sql = f"""
         WITH aggregated_career_stats AS (
             SELECT
@@ -234,6 +256,7 @@ def calculate_global_percentiles(conn, players, seasons=None, teams=None):
             FROM player_season_stats pss
             JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
             LEFT JOIN player_game_stats pgs ON pss.player_id = pgs.player_id AND pss.team_id = pgs.team_id AND pss.year = pgs.year
+            WHERE 1=1{team_where}
             GROUP BY p.full_name
         ),
         global_stats AS (
@@ -247,84 +270,86 @@ def calculate_global_percentiles(conn, players, seasons=None, teams=None):
         WHERE full_name IN ({names_str})
         """
     else:
-        # For season-specific stats, use that season's data directly
+        # For season-specific stats, use filtered season data
+        # When multiple seasons are selected, aggregate them
         percentiles_sql = f"""
         WITH season_stats AS (
             SELECT
                 p.full_name,
-                pss.total_goals,
-                pss.total_assists,
-                pss.total_hockey_assists,
-                pss.total_blocks,
-                (pss.total_goals + pss.total_assists + pss.total_blocks -
-                 pss.total_throwaways - pss.total_drops) as calculated_plus_minus,
-                pss.total_completions,
+                SUM(pss.total_goals) as total_goals,
+                SUM(pss.total_assists) as total_assists,
+                SUM(pss.total_hockey_assists) as total_hockey_assists,
+                SUM(pss.total_blocks) as total_blocks,
+                (SUM(pss.total_goals) + SUM(pss.total_assists) + SUM(pss.total_blocks) -
+                 SUM(pss.total_throwaways) - SUM(pss.total_drops)) as calculated_plus_minus,
+                SUM(pss.total_completions) as total_completions,
                 CASE
-                    WHEN pss.total_throw_attempts > 0
-                    THEN pss.total_completions * 100.0 / pss.total_throw_attempts
+                    WHEN SUM(pss.total_throw_attempts) > 0
+                    THEN SUM(pss.total_completions) * 100.0 / SUM(pss.total_throw_attempts)
                     ELSE 0
                 END as completion_percentage,
-                pss.total_yards_thrown,
-                pss.total_yards_received,
-                pss.total_throwaways,
-                pss.total_stalls,
-                pss.total_drops,
-                pss.total_callahans,
-                pss.total_hucks_completed,
-                pss.total_hucks_attempted,
-                pss.total_hucks_received,
-                pss.total_pulls,
-                pss.total_o_points_played,
-                pss.total_d_points_played,
-                pss.total_seconds_played,
-                pss.total_o_opportunities,
-                pss.total_d_opportunities,
-                pss.total_o_opportunity_scores,
-                (SELECT COUNT(DISTINCT game_id)
-                 FROM player_game_stats pgs2
-                 WHERE pgs2.player_id = pss.player_id
-                   AND pgs2.team_id = pss.team_id
-                   AND pgs2.year = pss.year
-                   AND (pgs2.o_points_played > 0 OR pgs2.d_points_played > 0
-                        OR pgs2.seconds_played > 0 OR pgs2.goals > 0 OR pgs2.assists > 0)) as games_played,
-                pss.total_o_opportunities as possessions,
-                (pss.total_goals + pss.total_assists) as score_total,
-                (pss.total_o_points_played + pss.total_d_points_played) as total_points_played,
-                (pss.total_yards_thrown + pss.total_yards_received) as total_yards,
-                pss.total_seconds_played / 60.0 as minutes_played,
-                CASE WHEN pss.total_hucks_attempted > 0
-                    THEN pss.total_hucks_completed * 100.0 / pss.total_hucks_attempted
+                SUM(pss.total_yards_thrown) as total_yards_thrown,
+                SUM(pss.total_yards_received) as total_yards_received,
+                SUM(pss.total_throwaways) as total_throwaways,
+                SUM(pss.total_stalls) as total_stalls,
+                SUM(pss.total_drops) as total_drops,
+                SUM(pss.total_callahans) as total_callahans,
+                SUM(pss.total_hucks_completed) as total_hucks_completed,
+                SUM(pss.total_hucks_attempted) as total_hucks_attempted,
+                SUM(pss.total_hucks_received) as total_hucks_received,
+                SUM(pss.total_pulls) as total_pulls,
+                SUM(pss.total_o_points_played) as total_o_points_played,
+                SUM(pss.total_d_points_played) as total_d_points_played,
+                SUM(pss.total_seconds_played) as total_seconds_played,
+                SUM(pss.total_o_opportunities) as total_o_opportunities,
+                SUM(pss.total_d_opportunities) as total_d_opportunities,
+                SUM(pss.total_o_opportunity_scores) as total_o_opportunity_scores,
+                COUNT(DISTINCT CASE
+                    WHEN (pgs.o_points_played > 0 OR pgs.d_points_played > 0
+                          OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0)
+                    THEN pgs.game_id
+                    ELSE NULL
+                END) as games_played,
+                SUM(pss.total_o_opportunities) as possessions,
+                (SUM(pss.total_goals) + SUM(pss.total_assists)) as score_total,
+                (SUM(pss.total_o_points_played) + SUM(pss.total_d_points_played)) as total_points_played,
+                (SUM(pss.total_yards_thrown) + SUM(pss.total_yards_received)) as total_yards,
+                SUM(pss.total_seconds_played) / 60.0 as minutes_played,
+                CASE WHEN SUM(pss.total_hucks_attempted) > 0
+                    THEN SUM(pss.total_hucks_completed) * 100.0 / SUM(pss.total_hucks_attempted)
                     ELSE 0 END as huck_percentage,
                 CASE
-                    WHEN pss.total_o_opportunities >= 20
-                    THEN pss.total_o_opportunity_scores * 100.0 / pss.total_o_opportunities
+                    WHEN SUM(pss.total_o_opportunities) >= 20
+                    THEN SUM(pss.total_o_opportunity_scores) * 100.0 / SUM(pss.total_o_opportunities)
                     ELSE NULL
                 END as offensive_efficiency,
                 CASE
-                    WHEN (pss.total_throwaways + pss.total_stalls + pss.total_drops) > 0
-                    THEN (pss.total_yards_thrown + pss.total_yards_received) * 1.0 /
-                         (pss.total_throwaways + pss.total_stalls + pss.total_drops)
+                    WHEN (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops)) > 0
+                    THEN (SUM(pss.total_yards_thrown) + SUM(pss.total_yards_received)) * 1.0 /
+                         (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops))
                     ELSE NULL
                 END as yards_per_turn,
                 CASE
-                    WHEN pss.total_completions > 0
-                    THEN pss.total_yards_thrown * 1.0 / pss.total_completions
+                    WHEN SUM(pss.total_completions) > 0
+                    THEN SUM(pss.total_yards_thrown) * 1.0 / SUM(pss.total_completions)
                     ELSE NULL
                 END as yards_per_completion,
                 CASE
-                    WHEN pss.total_catches > 0
-                    THEN pss.total_yards_received * 1.0 / pss.total_catches
+                    WHEN SUM(pss.total_catches) > 0
+                    THEN SUM(pss.total_yards_received) * 1.0 / SUM(pss.total_catches)
                     ELSE NULL
                 END as yards_per_reception,
                 CASE
-                    WHEN (pss.total_throwaways + pss.total_stalls + pss.total_drops) > 0
-                    THEN pss.total_assists * 1.0 /
-                         (pss.total_throwaways + pss.total_stalls + pss.total_drops)
+                    WHEN (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops)) > 0
+                    THEN SUM(pss.total_assists) * 1.0 /
+                         (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops))
                     ELSE NULL
                 END as assists_per_turnover
             FROM player_season_stats pss
             JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
-            WHERE pss.year = {season}
+            LEFT JOIN player_game_stats pgs ON pss.player_id = pgs.player_id AND pss.team_id = pgs.team_id AND pss.year = pgs.year
+            WHERE 1=1{season_where}{team_where}
+            GROUP BY p.full_name
         ),
         global_stats AS (
             SELECT
@@ -380,7 +405,6 @@ def create_player_stats_route(stats_system):
             is_career_mode = season == "career"
 
             if is_career_mode:
-                # Career mode - aggregate across all seasons
                 seasons = ["career"]
             else:
                 # Parse comma-separated seasons
@@ -405,12 +429,14 @@ def create_player_stats_route(stats_system):
                 except json.JSONDecodeError:
                     filters_list = []
 
-            # Check cache first
+            # Check cache first (use sorted arrays for consistent cache keys)
             cache = get_cache()
+            sorted_seasons = sorted(seasons)
+            sorted_teams = sorted(teams)
             cache_key = cache_key_for_endpoint(
                 'player_stats',
-                season=season,
-                team=team,
+                season=','.join(str(s) for s in sorted_seasons),
+                team=','.join(sorted_teams),
                 page=page,
                 per_page=per_page,
                 sort=sort,
@@ -424,6 +450,7 @@ def create_player_stats_route(stats_system):
                 return cached_result
 
             # Build SQL filters using IN clauses for multi-select
+            # Team filter
             if teams[0] == "all":
                 team_filter = ""
             elif len(teams) == 1:
@@ -432,6 +459,7 @@ def create_player_stats_route(stats_system):
                 team_ids_str = ",".join([f"'{t}'" for t in teams])
                 team_filter = f" AND pss.team_id IN ({team_ids_str})"
 
+            # Season filter
             if is_career_mode:
                 season_filter = ""
             elif len(seasons) == 1:
@@ -467,9 +495,10 @@ def create_player_stats_route(stats_system):
             # When team filter is active with career stats, we need to aggregate
             # season stats for that specific team (not use pre-computed career stats
             # which include all teams)
-            if season == "career" and team != "all":
-                # Aggregate career stats for specific team across all seasons
+            if is_career_mode and teams[0] != "all":
+                # Aggregate career stats for specific team(s) across all seasons
                 # Optimized version without expensive LEFT JOINs
+                team_filter_for_query = team_filter.replace(" AND ", "")  # Remove leading " AND "
                 query = f"""
                 WITH team_career_stats AS (
                     SELECT
@@ -538,7 +567,7 @@ def create_player_stats_route(stats_system):
                             ELSE NULL
                         END as assists_per_turnover
                     FROM player_season_stats pss
-                    WHERE pss.team_id = '{team}'
+                    WHERE {team_filter_for_query}
                     GROUP BY pss.player_id, pss.team_id
                 ),
                 player_info AS (
@@ -549,7 +578,7 @@ def create_player_stats_route(stats_system):
                         p.last_name
                     FROM player_season_stats pss
                     JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
-                    WHERE pss.team_id = '{team}'
+                    WHERE {team_filter_for_query}
                     ORDER BY pss.player_id, pss.year DESC
                 ),
                 games_count AS (
@@ -557,7 +586,7 @@ def create_player_stats_route(stats_system):
                         pgs.player_id,
                         COUNT(DISTINCT pgs.game_id) as games_played
                     FROM player_game_stats pgs
-                    WHERE pgs.team_id = '{team}'
+                    WHERE {team_filter_for_query.replace('pss.', 'pgs.')}
                       AND (pgs.o_points_played > 0 OR pgs.d_points_played > 0 OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0)
                     GROUP BY pgs.player_id
                 ),
@@ -567,7 +596,7 @@ def create_player_stats_route(stats_system):
                         t.name,
                         t.full_name
                     FROM teams t
-                    WHERE t.team_id = '{team}'
+                    WHERE {team_filter_for_query.replace('pss.', 't.')}
                     ORDER BY t.team_id, t.year DESC
                 )
                 SELECT
@@ -621,7 +650,7 @@ def create_player_stats_route(stats_system):
                 ORDER BY {get_team_career_sort_column(sort, per_game=(per == "game"))} {order.upper()} NULLS LAST
                 LIMIT {per_page} OFFSET {(page-1) * per_page}
                 """
-            elif season == "career":
+            elif is_career_mode:
                 # Use pre-computed career stats table for much faster queries (no team filter)
                 query = f"""
                 SELECT
@@ -770,8 +799,10 @@ def create_player_stats_route(stats_system):
             if filters_list:
                 # When custom filters are present, we need to count the filtered results
                 # We'll use a subquery approach
-                if season == "career" and team != "all":
+                if is_career_mode and teams[0] != "all":
                     # Reuse the main query structure but just count
+                    # Build team filter for WHERE clauses
+                    team_filter_for_count = team_filter.replace(" AND ", "")  # Remove leading " AND "
                     count_query = f"""
                     WITH team_career_stats AS (
                         SELECT
@@ -801,7 +832,7 @@ def create_player_stats_route(stats_system):
                             SUM(pss.total_d_points_played) as total_d_points_played,
                             SUM(pss.total_hockey_assists) as total_hockey_assists
                         FROM player_season_stats pss
-                        WHERE pss.team_id = '{team}'
+                        WHERE {team_filter_for_count}
                         GROUP BY pss.player_id
                     ),
                     games_count AS (
@@ -809,7 +840,7 @@ def create_player_stats_route(stats_system):
                             pgs.player_id,
                             COUNT(DISTINCT pgs.game_id) as games_played
                         FROM player_game_stats pgs
-                        WHERE pgs.team_id = '{team}'
+                        WHERE {team_filter_for_count.replace('pss.', 'pgs.')}
                           AND (pgs.o_points_played > 0 OR pgs.d_points_played > 0 OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0)
                         GROUP BY pgs.player_id
                     )
@@ -827,19 +858,23 @@ def create_player_stats_route(stats_system):
                     """
             else:
                 # No custom filters - use original optimized count queries
-                if season == "career" and team != "all":
+                if is_career_mode and teams[0] != "all":
+                    # Career mode with team filter(s)
+                    team_filter_for_count = team_filter.replace(" AND ", "")  # Remove leading " AND "
                     count_query = f"""
                     SELECT COUNT(DISTINCT pss.player_id) as total
                     FROM player_season_stats pss
-                    WHERE pss.team_id = '{team}'
+                    WHERE {team_filter_for_count}
                     """
-                elif season == "career":
+                elif is_career_mode:
+                    # Career mode without team filter
                     count_query = f"""
                     SELECT COUNT(*) as total
                     FROM player_career_stats
                     WHERE 1=1
                     """
                 else:
+                    # Specific season(s) query
                     count_query = f"""
                     SELECT COUNT(DISTINCT pss.player_id || '-' || pss.team_id || '-' || pss.year) as total
                     FROM player_season_stats pss
@@ -909,11 +944,16 @@ def create_player_stats_route(stats_system):
             if per == "game":
                 players = convert_to_per_game_stats(players)
 
-            # Calculate global percentiles for all players
+            # Calculate global percentiles for all players (filtered by selected seasons/teams)
             percentiles = {}
             if players:
                 with stats_system.db.engine.connect() as conn:
-                    percentiles = calculate_global_percentiles(conn, players, season)
+                    percentiles = calculate_global_percentiles(
+                        conn,
+                        players,
+                        seasons=seasons if not is_career_mode else None,
+                        teams=teams if teams[0] != "all" else None
+                    )
 
             total_pages = (total + per_page - 1) // per_page
 
