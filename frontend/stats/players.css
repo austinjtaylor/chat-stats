@@ -234,3 +234,27 @@
     background-color: var(--bg-primary) !important;
 }
 
+/* Percentile Display Styling */
+.stat-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.2;
+}
+
+.stat-value {
+    font-size: inherit;
+    font-weight: inherit;
+}
+
+.stat-percentile {
+    font-size: 11px;
+    color: #666;
+    margin-top: 2px;
+}
+
+[data-theme="dark"] .stat-percentile {
+    color: #999;
+}
+

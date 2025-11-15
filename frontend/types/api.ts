@@ -41,6 +41,8 @@ export interface StatsResponse {
 export interface PlayerStatsResponse {
   /** List of player statistics for the requested page */
   players: PlayerSeasonStats[];
+  /** Global percentile rankings for each player's stats (0-100 scale) */
+  percentiles: Record<string, Record<string, number>>;
   /** Total number of players matching the query */
   total: number;
   /** Current page number (1-indexed) */

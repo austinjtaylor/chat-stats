@@ -29,6 +29,7 @@ class PlayerStats {
     currentSort: SortConfig;
     filters: PlayerFilters;
     players: PlayerSeasonStats[];
+    percentiles: Record<string, Record<string, number>>;
     totalPages: number;
     totalPlayers: number;
     teams: TeamInfo[];
@@ -44,6 +45,7 @@ class PlayerStats {
             team: 'all'
         };
         this.players = [];
+        this.percentiles = {};
         this.totalPages = 0;
         this.totalPlayers = 0;
         this.teams = [];
@@ -327,6 +329,7 @@ class PlayerStats {
             const cached = this.cache.get(cacheKey);
             if (cached && Date.now() - cached.timestamp < 5 * 60 * 1000) {
                 this.players = cached.data.players || [];
+                this.percentiles = cached.data.percentiles || {};
                 this.totalPlayers = cached.data.total || 0;
                 this.totalPages = cached.data.total_pages || cached.data.pages || 0;
 
@@ -354,6 +357,7 @@ class PlayerStats {
 
             if (response) {
                 this.players = response.players || [];
+                this.percentiles = response.percentiles || {};
                 this.totalPlayers = response.total || 0;
                 // Fix: API returns 'total_pages' not 'pages'
                 this.totalPages = response.total_pages || 0;
@@ -398,6 +402,21 @@ class PlayerStats {
         }
     }
 
+    getPercentile(playerName: string, statKey: string): number | null {
+        if (!this.percentiles || !this.percentiles[playerName]) {
+            return null;
+        }
+        return this.percentiles[playerName][statKey] ?? null;
+    }
+
+    formatCellWithPercentile(value: string, playerName: string, statKey: string): string {
+        const percentile = this.getPercentile(playerName, statKey);
+        if (percentile !== null && percentile !== undefined) {
+            return `<div class="stat-cell"><div class="stat-value">${value}</div><div class="stat-percentile">${percentile}%</div></div>`;
+        }
+        return value;
+    }
+
     renderPlayersTable(): void {
         const tbody = document.getElementById('playersTableBody');
         if (!tbody) return;
@@ -411,44 +430,56 @@ class PlayerStats {
         const columns = this.getColumnsForSeason(this.filters.season);
 
         tbody.innerHTML = this.players.map(player => {
+            const playerName = player.player_name || `${player.first_name || ''} ${player.last_name || ''}`.trim();
+
             const cells = columns.map(col => {
                 let value: number | string;
+                let displayValue: string;
 
                 switch (col.key) {
                     case 'full_name':
-                        const name = player.player_name || `${player.first_name || ''} ${player.last_name || ''}`.trim();
-                        return `<td class="player-name">${name}</td>`;
+                        return `<td class="player-name">${playerName}</td>`;
                     case 'total_points_played':
                         value = player.total_points_played || 0;
-                        return `<td class="numeric">${this.formatValue(value)}</td>`;
+                        displayValue = this.formatValue(value);
+                        return `<td class="numeric">${this.formatCellWithPercentile(displayValue, playerName, col.key)}</td>`;
                     case 'score_total':
                         value = player.score_total || 0;
-                        return `<td class="numeric">${this.formatValue(value)}</td>`;
+                        displayValue = this.formatValue(value);
+                        return `<td class="numeric">${this.formatCellWithPercentile(displayValue, playerName, col.key)}</td>`;
                     case 'calculated_plus_minus':
-                        return `<td class="numeric">${this.formatValue(player[col.key as keyof PlayerSeasonStats] || 0, false)}</td>`;
+                        displayValue = this.formatValue(player[col.key as keyof PlayerSeasonStats] || 0, false);
+                        return `<td class="numeric">${this.formatCellWithPercentile(displayValue, playerName, col.key)}</td>`;
                     case 'completion_percentage':
                         // Backend already returns this as a percentage value (e.g., 95.79)
                         const compPct = player[col.key as keyof PlayerSeasonStats] as number;
-                        return `<td class="numeric">${compPct ? compPct.toFixed(1) : '-'}</td>`;
+                        displayValue = compPct ? compPct.toFixed(1) : '-';
+                        return `<td class="numeric">${this.formatCellWithPercentile(displayValue, playerName, col.key)}</td>`;
                     case 'huck_percentage':
                         // Backend calculates this, but we may need to calculate for older data
                         const huckPct = player.huck_percentage || this.calculateHuckPercentage(player);
-                        return `<td class="numeric">${huckPct ? huckPct.toFixed(1) : '-'}</td>`;
+                        displayValue = huckPct ? huckPct.toFixed(1) : '-';
+                        return `<td class="numeric">${this.formatCellWithPercentile(displayValue, playerName, col.key)}</td>`;
                     case 'yards_per_turn':
                         const yPerTurn = player.yards_per_turn;
-                        return `<td class="numeric">${yPerTurn !== null && yPerTurn !== undefined ? yPerTurn.toFixed(1) : '-'}</td>`;
+                        displayValue = yPerTurn !== null && yPerTurn !== undefined ? yPerTurn.toFixed(1) : '-';
+                        return `<td class="numeric">${this.formatCellWithPercentile(displayValue, playerName, col.key)}</td>`;
                     case 'yards_per_completion':
                         const yPerComp = player.yards_per_completion;
-                        return `<td class="numeric">${yPerComp !== null && yPerComp !== undefined ? yPerComp.toFixed(1) : '-'}</td>`;
+                        displayValue = yPerComp !== null && yPerComp !== undefined ? yPerComp.toFixed(1) : '-';
+                        return `<td class="numeric">${this.formatCellWithPercentile(displayValue, playerName, col.key)}</td>`;
                     case 'yards_per_reception':
                         const yPerRecep = player.yards_per_reception;
-                        return `<td class="numeric">${yPerRecep !== null && yPerRecep !== undefined ? yPerRecep.toFixed(1) : '-'}</td>`;
+                        displayValue = yPerRecep !== null && yPerRecep !== undefined ? yPerRecep.toFixed(1) : '-';
+                        return `<td class="numeric">${this.formatCellWithPercentile(displayValue, playerName, col.key)}</td>`;
                     case 'assists_per_turnover':
                         const astPerTO = player.assists_per_turnover;
-                        return `<td class="numeric">${astPerTO !== null && astPerTO !== undefined ? astPerTO.toFixed(2) : '-'}</td>`;
+                        displayValue = astPerTO !== null && astPerTO !== undefined ? astPerTO.toFixed(2) : '-';
+                        return `<td class="numeric">${this.formatCellWithPercentile(displayValue, playerName, col.key)}</td>`;
                     default:
                         const fieldValue = player[col.key as keyof PlayerSeasonStats];
-                        return `<td class="numeric">${this.formatValue(fieldValue || 0)}</td>`;
+                        displayValue = this.formatValue(fieldValue || 0);
+                        return `<td class="numeric">${this.formatCellWithPercentile(displayValue, playerName, col.key)}</td>`;
                 }
             });
 
