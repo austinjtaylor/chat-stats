@@ -519,32 +519,3 @@
     color: #999;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-    .modal-content {
-        width: 95%;
-        max-height: 90vh;
-    }
-
-    .filter-row {
-        grid-template-columns: 1fr;
-        gap: 0.5rem;
-    }
-
-    .modal-header,
-    .modal-body,
-    .modal-footer {
-        padding: 1rem;
-    }
-
-    .button-group {
-        flex-direction: column;
-        width: 100%;
-    }
-
-    .primary-button,
-    .secondary-button {
-        width: 100%;
-    }
-}
-

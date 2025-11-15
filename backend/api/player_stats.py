@@ -131,32 +131,198 @@ def calculate_global_percentiles(conn, players, season="career"):
     full_names = [p["full_name"] for p in players]
     names_str = ",".join([f"'{name.replace(chr(39), chr(39)*2)}'" for name in full_names])
 
-    # Build PERCENT_RANK() expressions for all stats
+    # Build CUME_DIST() expressions for all stats
     percentile_expressions = []
     for field in stat_fields:
         # For stats where lower is better (turnovers, etc.), invert the percentile
         invert_stats = ["total_throwaways", "total_stalls", "total_drops"]
         if field in invert_stats:
-            expr = f"ROUND((1 - PERCENT_RANK() OVER (ORDER BY {field})) * 100, 0) as {field}_percentile"
+            expr = f"ROUND(CAST((1 - CUME_DIST() OVER (ORDER BY {field})) * 100 AS NUMERIC), 0) as {field}_percentile"
         else:
-            expr = f"ROUND(PERCENT_RANK() OVER (ORDER BY {field}) * 100, 0) as {field}_percentile"
+            expr = f"ROUND(CAST(CUME_DIST() OVER (ORDER BY {field}) * 100 AS NUMERIC), 0) as {field}_percentile"
         percentile_expressions.append(expr)
 
-    # Use career stats as baseline for global percentiles
-    source_table = "player_career_stats"
-    name_field = "full_name"
-
-    percentiles_sql = f"""
-    WITH global_stats AS (
-        SELECT
-            {name_field},
-            {','.join(percentile_expressions)}
-        FROM {source_table}
-    )
-    SELECT *
-    FROM global_stats
-    WHERE {name_field} IN ({names_str})
-    """
+    # Calculate global percentiles based on the appropriate data source
+    if season == "career":
+        # For career stats, aggregate across all seasons
+        percentiles_sql = f"""
+        WITH aggregated_career_stats AS (
+            SELECT
+                p.full_name,
+                SUM(pss.total_goals) as total_goals,
+                SUM(pss.total_assists) as total_assists,
+                SUM(pss.total_hockey_assists) as total_hockey_assists,
+                SUM(pss.total_blocks) as total_blocks,
+                (SUM(pss.total_goals) + SUM(pss.total_assists) + SUM(pss.total_blocks) -
+                 SUM(pss.total_throwaways) - SUM(pss.total_drops)) as calculated_plus_minus,
+                SUM(pss.total_completions) as total_completions,
+                CASE
+                    WHEN SUM(pss.total_throw_attempts) > 0
+                    THEN SUM(pss.total_completions) * 100.0 / SUM(pss.total_throw_attempts)
+                    ELSE 0
+                END as completion_percentage,
+                SUM(pss.total_yards_thrown) as total_yards_thrown,
+                SUM(pss.total_yards_received) as total_yards_received,
+                SUM(pss.total_throwaways) as total_throwaways,
+                SUM(pss.total_stalls) as total_stalls,
+                SUM(pss.total_drops) as total_drops,
+                SUM(pss.total_callahans) as total_callahans,
+                SUM(pss.total_hucks_completed) as total_hucks_completed,
+                SUM(pss.total_hucks_attempted) as total_hucks_attempted,
+                SUM(pss.total_hucks_received) as total_hucks_received,
+                SUM(pss.total_pulls) as total_pulls,
+                SUM(pss.total_o_points_played) as total_o_points_played,
+                SUM(pss.total_d_points_played) as total_d_points_played,
+                SUM(pss.total_seconds_played) as total_seconds_played,
+                SUM(pss.total_o_opportunities) as total_o_opportunities,
+                SUM(pss.total_d_opportunities) as total_d_opportunities,
+                SUM(pss.total_o_opportunity_scores) as total_o_opportunity_scores,
+                COUNT(DISTINCT CASE
+                    WHEN (pgs.o_points_played > 0 OR pgs.d_points_played > 0
+                          OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0)
+                    THEN pgs.game_id
+                    ELSE NULL
+                END) as games_played,
+                SUM(pss.total_o_opportunities) as possessions,
+                (SUM(pss.total_goals) + SUM(pss.total_assists)) as score_total,
+                (SUM(pss.total_o_points_played) + SUM(pss.total_d_points_played)) as total_points_played,
+                (SUM(pss.total_yards_thrown) + SUM(pss.total_yards_received)) as total_yards,
+                SUM(pss.total_seconds_played) / 60.0 as minutes_played,
+                CASE WHEN SUM(pss.total_hucks_attempted) > 0
+                    THEN SUM(pss.total_hucks_completed) * 100.0 / SUM(pss.total_hucks_attempted)
+                    ELSE 0 END as huck_percentage,
+                CASE
+                    WHEN SUM(pss.total_o_opportunities) >= 20
+                    THEN SUM(pss.total_o_opportunity_scores) * 100.0 / SUM(pss.total_o_opportunities)
+                    ELSE NULL
+                END as offensive_efficiency,
+                CASE
+                    WHEN (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops)) > 0
+                    THEN (SUM(pss.total_yards_thrown) + SUM(pss.total_yards_received)) * 1.0 /
+                         (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops))
+                    ELSE NULL
+                END as yards_per_turn,
+                CASE
+                    WHEN SUM(pss.total_completions) > 0
+                    THEN SUM(pss.total_yards_thrown) * 1.0 / SUM(pss.total_completions)
+                    ELSE NULL
+                END as yards_per_completion,
+                CASE
+                    WHEN SUM(pss.total_catches) > 0
+                    THEN SUM(pss.total_yards_received) * 1.0 / SUM(pss.total_catches)
+                    ELSE NULL
+                END as yards_per_reception,
+                CASE
+                    WHEN (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops)) > 0
+                    THEN SUM(pss.total_assists) * 1.0 /
+                         (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops))
+                    ELSE NULL
+                END as assists_per_turnover
+            FROM player_season_stats pss
+            JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
+            LEFT JOIN player_game_stats pgs ON pss.player_id = pgs.player_id AND pss.team_id = pgs.team_id AND pss.year = pgs.year
+            GROUP BY p.full_name
+        ),
+        global_stats AS (
+            SELECT
+                full_name,
+                {','.join(percentile_expressions)}
+            FROM aggregated_career_stats
+        )
+        SELECT *
+        FROM global_stats
+        WHERE full_name IN ({names_str})
+        """
+    else:
+        # For season-specific stats, use that season's data directly
+        percentiles_sql = f"""
+        WITH season_stats AS (
+            SELECT
+                p.full_name,
+                pss.total_goals,
+                pss.total_assists,
+                pss.total_hockey_assists,
+                pss.total_blocks,
+                (pss.total_goals + pss.total_assists + pss.total_blocks -
+                 pss.total_throwaways - pss.total_drops) as calculated_plus_minus,
+                pss.total_completions,
+                CASE
+                    WHEN pss.total_throw_attempts > 0
+                    THEN pss.total_completions * 100.0 / pss.total_throw_attempts
+                    ELSE 0
+                END as completion_percentage,
+                pss.total_yards_thrown,
+                pss.total_yards_received,
+                pss.total_throwaways,
+                pss.total_stalls,
+                pss.total_drops,
+                pss.total_callahans,
+                pss.total_hucks_completed,
+                pss.total_hucks_attempted,
+                pss.total_hucks_received,
+                pss.total_pulls,
+                pss.total_o_points_played,
+                pss.total_d_points_played,
+                pss.total_seconds_played,
+                pss.total_o_opportunities,
+                pss.total_d_opportunities,
+                pss.total_o_opportunity_scores,
+                (SELECT COUNT(DISTINCT game_id)
+                 FROM player_game_stats pgs2
+                 WHERE pgs2.player_id = pss.player_id
+                   AND pgs2.team_id = pss.team_id
+                   AND pgs2.year = pss.year
+                   AND (pgs2.o_points_played > 0 OR pgs2.d_points_played > 0
+                        OR pgs2.seconds_played > 0 OR pgs2.goals > 0 OR pgs2.assists > 0)) as games_played,
+                pss.total_o_opportunities as possessions,
+                (pss.total_goals + pss.total_assists) as score_total,
+                (pss.total_o_points_played + pss.total_d_points_played) as total_points_played,
+                (pss.total_yards_thrown + pss.total_yards_received) as total_yards,
+                pss.total_seconds_played / 60.0 as minutes_played,
+                CASE WHEN pss.total_hucks_attempted > 0
+                    THEN pss.total_hucks_completed * 100.0 / pss.total_hucks_attempted
+                    ELSE 0 END as huck_percentage,
+                CASE
+                    WHEN pss.total_o_opportunities >= 20
+                    THEN pss.total_o_opportunity_scores * 100.0 / pss.total_o_opportunities
+                    ELSE NULL
+                END as offensive_efficiency,
+                CASE
+                    WHEN (pss.total_throwaways + pss.total_stalls + pss.total_drops) > 0
+                    THEN (pss.total_yards_thrown + pss.total_yards_received) * 1.0 /
+                         (pss.total_throwaways + pss.total_stalls + pss.total_drops)
+                    ELSE NULL
+                END as yards_per_turn,
+                CASE
+                    WHEN pss.total_completions > 0
+                    THEN pss.total_yards_thrown * 1.0 / pss.total_completions
+                    ELSE NULL
+                END as yards_per_completion,
+                CASE
+                    WHEN pss.total_catches > 0
+                    THEN pss.total_yards_received * 1.0 / pss.total_catches
+                    ELSE NULL
+                END as yards_per_reception,
+                CASE
+                    WHEN (pss.total_throwaways + pss.total_stalls + pss.total_drops) > 0
+                    THEN pss.total_assists * 1.0 /
+                         (pss.total_throwaways + pss.total_stalls + pss.total_drops)
+                    ELSE NULL
+                END as assists_per_turnover
+            FROM player_season_stats pss
+            JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
+            WHERE pss.year = {season}
+        ),
+        global_stats AS (
+            SELECT
+                full_name,
+                {','.join(percentile_expressions)}
+            FROM season_stats
+        )
+        SELECT *
+        FROM global_stats
+        WHERE full_name IN ({names_str})
+        """
 
     try:
         result = conn.execute(text(percentiles_sql))
@@ -173,6 +339,8 @@ def calculate_global_percentiles(conn, players, season="career"):
         return percentiles_map
     except Exception as e:
         print(f"Error calculating percentiles: {e}")
+        import traceback
+        traceback.print_exc()
         return {}
 
 
@@ -536,7 +704,7 @@ def create_player_stats_route(stats_system):
                 GROUP BY pss.player_id, pss.team_id, pss.year, p.full_name, p.first_name, p.last_name, p.team_id,
                          pss.total_goals, pss.total_assists, pss.total_hockey_assists, pss.total_blocks, pss.calculated_plus_minus,
                          pss.total_completions, pss.completion_percentage, pss.total_yards_thrown, pss.total_yards_received,
-                         pss.total_throwaways, pss.total_stalls, pss.total_drops, pss.total_catches, pss.total_callahans,
+                         pss.total_catches, pss.total_throwaways, pss.total_stalls, pss.total_drops, pss.total_callahans,
                          pss.total_hucks_completed, pss.total_hucks_attempted, pss.total_hucks_received, pss.total_pulls,
                          pss.total_o_points_played, pss.total_d_points_played, pss.total_seconds_played,
                          pss.total_o_opportunities, pss.total_d_opportunities, pss.total_o_opportunity_scores,
