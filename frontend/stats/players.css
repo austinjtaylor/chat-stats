@@ -6,8 +6,8 @@
     /* Keep padding on larger screens */
     padding-left: 0rem;
     padding-right: 2rem;
-    /* Keep overflow hidden to contain content */
-    overflow: hidden;
+    /* Allow dropdowns to overflow container */
+    overflow: visible;
 }
 
 /* Table container - let stats.css handle overflow */
@@ -526,6 +526,27 @@
     width: 100%;
 }
 
+/* Fixed width for season selector to prevent width changes */
+#seasonFilter {
+    min-width: 120px;
+    max-width: 120px;
+    width: 120px;
+}
+
+/* Fixed width for PER selector to prevent width changes */
+#perFilter {
+    min-width: 120px;
+    max-width: 120px;
+    width: 120px;
+}
+
+/* Fixed width for team selector to prevent width changes */
+#teamFilter {
+    min-width: 170px;
+    max-width: 170px;
+    width: 170px;
+}
+
 .multi-select-toggle {
     width: 100%;
     padding: 0.5rem 2.5rem 0.5rem 0.75rem;
@@ -570,10 +591,11 @@
     border: 1px solid var(--border-color);
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 1000;
+    z-index: 1001; /* Higher than sticky thead (1000) to appear above table */
     max-height: 400px;
     display: flex;
     flex-direction: column;
+    pointer-events: auto; /* Ensure clicks work */
 }
 
 .multi-select-dropdown.hidden {
@@ -656,6 +678,7 @@
     padding: 0.5rem 0.75rem;
     cursor: pointer;
     transition: background-color 0.2s;
+    pointer-events: auto; /* Ensure clicks work */
 }
 
 .multi-select-option:hover {
@@ -668,6 +691,7 @@
     cursor: pointer;
     width: 16px;
     height: 16px;
+    pointer-events: auto; /* Ensure checkbox clicks work */
 }
 
 .multi-select-option label {
@@ -676,6 +700,7 @@
     font-size: 0.875rem;
     color: var(--text-primary);
     margin: 0;
+    pointer-events: auto; /* Ensure label clicks work */
 }
 
 .multi-select-no-results {

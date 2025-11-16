@@ -197,8 +197,7 @@ body.stats-page {
     flex-wrap: wrap;
     gap: 1rem;
     /* No border radius needed, parent handles it */
-    position: relative;
-    z-index: 1;
+    /* Removed position: relative and z-index to allow dropdowns to escape stacking context */
     margin: -1px -1px 0 -1px; /* Compensate for parent border */
     border-radius: 7px 7px 0 0; /* Slightly smaller radius to fit inside parent */
 }
@@ -242,14 +241,62 @@ body.stats-page {
     margin: 0;
 }
 
+/* Select wrapper for custom arrow */
+.select-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+/* Custom dropdown arrow to match multi-select */
+.select-wrapper::after {
+    content: '▼';
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    pointer-events: none; /* Allow clicks to pass through */
+}
+
 .filter-select.compact {
-    padding: 0.375rem 0.5rem;
+    padding: 0.5rem 2.5rem 0.5rem 0.75rem; /* Extra right padding for arrow */
     border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background: var(--surface);
+    border-radius: 6px;
+    background: var(--bg-secondary);
     color: var(--text-primary);
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     min-width: 100px;
+    width: 100%;
+    cursor: pointer;
+    transition: border-color 0.2s, background-color 0.2s;
+    appearance: none; /* Remove default arrow */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
+.filter-select.compact:hover {
+    border-color: var(--accent-color);
+    background: var(--bg-tertiary);
+}
+
+.filter-select.compact:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+/* Style the dropdown options with accent color */
+.filter-select.compact option {
+    background: var(--bg-primary);
+    color: var(--accent-color);
+    padding: 0.5rem;
+}
+
+.filter-select.compact option:checked,
+.filter-select.compact option:hover {
+    background: var(--bg-secondary);
+    color: var(--accent-color);
 }
 
 /* Team selector specific width */

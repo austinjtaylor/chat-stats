@@ -283,14 +283,51 @@ class MultiSelect {
     private handleOptionChange(value: string | number): void {
         let newSelected: (string | number)[];
 
-        if (this.config.exclusiveMode) {
-            // In exclusive mode, selecting one clears all others
-            newSelected = [value];
-        } else {
-            if (this.config.selectedValues.includes(value)) {
-                newSelected = this.config.selectedValues.filter(v => v !== value);
+        // Handle exclusive "career" selection for season filter
+        if (this.config.containerId === 'seasonFilter') {
+            if (value === 'career') {
+                // Career is exclusive - selecting it clears all others
+                newSelected = ['career'];
+            } else if (this.config.selectedValues.includes('career')) {
+                // Clicking any season when career is selected removes career
+                newSelected = [value];
             } else {
-                newSelected = [...this.config.selectedValues, value];
+                // Normal toggle behavior
+                if (this.config.selectedValues.includes(value)) {
+                    newSelected = this.config.selectedValues.filter(v => v !== value);
+                } else {
+                    newSelected = [...this.config.selectedValues, value];
+                }
+            }
+        }
+        // Handle exclusive "all" selection for team filter
+        else if (this.config.containerId === 'teamFilter') {
+            if (value === 'all') {
+                // All is exclusive - selecting it clears all others
+                newSelected = ['all'];
+            } else if (this.config.selectedValues.includes('all')) {
+                // Clicking any team when "all" is selected removes "all"
+                newSelected = [value];
+            } else {
+                // Normal toggle behavior
+                if (this.config.selectedValues.includes(value)) {
+                    newSelected = this.config.selectedValues.filter(v => v !== value);
+                } else {
+                    newSelected = [...this.config.selectedValues, value];
+                }
+            }
+        }
+        // Default behavior for other dropdowns
+        else {
+            if (this.config.exclusiveMode) {
+                // In exclusive mode, selecting one clears all others
+                newSelected = [value];
+            } else {
+                if (this.config.selectedValues.includes(value)) {
+                    newSelected = this.config.selectedValues.filter(v => v !== value);
+                } else {
+                    newSelected = [...this.config.selectedValues, value];
+                }
             }
         }
 
@@ -403,6 +440,7 @@ class PlayerStats {
     teams: TeamInfo[];
     cache: Map<string, { data: any; timestamp: number }>;
     seasonMultiSelect: MultiSelect | null = null;
+    perMultiSelect: MultiSelect | null = null;
     teamMultiSelect: MultiSelect | null = null;
 
     constructor() {
@@ -428,7 +466,9 @@ class PlayerStats {
 
     async init(): Promise<void> {
         this.initializeSeasonMultiSelect();
-        await this.loadTeams();
+        this.initializePerMultiSelect();
+        this.initializeTeamMultiSelect(); // Initialize with just "All" option immediately
+        await this.loadTeams(); // This will update the team list with actual teams
         this.setupEventListeners();
         this.setupModalEventListeners();
         this.renderTableHeaders();
@@ -437,6 +477,7 @@ class PlayerStats {
 
     private initializeSeasonMultiSelect(): void {
         const seasonOptions: MultiSelectOption[] = [
+            { value: 'career', label: 'All' },
             { value: 2025, label: '2025' },
             { value: 2024, label: '2024' },
             { value: 2023, label: '2023' },
@@ -455,20 +496,35 @@ class PlayerStats {
         this.seasonMultiSelect = new MultiSelect({
             containerId: 'seasonFilter',
             options: seasonOptions,
-            selectedValues: [],
+            selectedValues: ['career'],  // Default to All
             placeholder: 'Select seasons...',
-            allowSelectAll: true,
+            allowSelectAll: false,  // Don't allow "Select All" when Career is an option
             searchable: false,
             onChange: (selected) => this.handleSeasonChange(selected)
         });
+    }
 
-        // Disable initially since career mode is active
-        this.updateSeasonMultiSelectState();
+    private initializePerMultiSelect(): void {
+        const perOptions: MultiSelectOption[] = [
+            { value: 'total', label: 'Total' },
+            { value: 'game', label: 'Per Game' }
+        ];
+
+        this.perMultiSelect = new MultiSelect({
+            containerId: 'perFilter',
+            options: perOptions,
+            selectedValues: ['total'],  // Default to Total
+            placeholder: 'Select...',
+            allowSelectAll: false,
+            searchable: false,
+            exclusiveMode: true,  // Only one option can be selected at a time
+            onChange: (selected) => this.handlePerChange(selected)
+        });
     }
 
     private initializeTeamMultiSelect(): void {
         const teamOptions: MultiSelectOption[] = [
-            { value: 'all', label: 'All Teams' }
+            { value: 'all', label: 'All' }
         ];
 
         // Add current teams
@@ -495,51 +551,53 @@ class PlayerStats {
             });
         }
 
-        this.teamMultiSelect = new MultiSelect({
-            containerId: 'teamFilter',
-            options: teamOptions,
-            selectedValues: ['all'],
-            placeholder: 'Select teams...',
-            allowSelectAll: true,
-            searchable: true,
-            onChange: (selected) => this.handleTeamChange(selected)
-        });
-    }
-
-    private updateSeasonMultiSelectState(): void {
-        // Enable/disable season multi-select based on career mode
-        const container = document.getElementById('seasonFilter');
-        if (container) {
-            if (this.filters.careerMode) {
-                container.style.opacity = '0.5';
-                container.style.pointerEvents = 'none';
-            } else {
-                container.style.opacity = '1';
-                container.style.pointerEvents = 'auto';
-            }
+        // If teamMultiSelect already exists, update its options
+        if (this.teamMultiSelect) {
+            this.teamMultiSelect.updateOptions(teamOptions);
+        } else {
+            // Create new MultiSelect instance
+            this.teamMultiSelect = new MultiSelect({
+                containerId: 'teamFilter',
+                options: teamOptions,
+                selectedValues: ['all'],
+                placeholder: 'Select teams...',
+                allowSelectAll: true,
+                searchable: true,
+                onChange: (selected) => this.handleTeamChange(selected)
+            });
         }
     }
 
     private handleSeasonChange(selected: (string | number)[]): void {
-        if (this.filters.careerMode) return; // Ignore changes in career mode
+        // Update filters based on selection (exclusive logic handled in handleOptionChange)
+        if (selected.includes('career')) {
+            this.filters.season = ['career'];
+            this.filters.careerMode = true;
+        } else {
+            this.filters.season = selected;
+            this.filters.careerMode = false;
+        }
 
-        this.filters.season = selected;
         this.currentPage = 1;
         this.clearCache();
         this.renderTableHeaders();
         this.loadPlayerStats();
     }
 
+    private handlePerChange(selected: (string | number)[]): void {
+        // Update filters based on selection (exclusive mode - only one value)
+        const value = selected[0] || 'total';
+        this.filters.per = value === 'game' ? 'per-game' : 'total';
+
+        this.currentPage = 1;
+        this.clearCache();
+        this.loadPlayerStats();
+    }
+
     private handleTeamChange(selected: (string | number)[]): void {
-        // Handle "all" selection logic
-        if (selected.includes('all') && selected.length > 1) {
-            // If "all" is selected with others, keep only "all"
+        // Update filters based on selection (exclusive logic handled in handleOptionChange)
+        if (selected.includes('all')) {
             this.filters.team = ['all'];
-            this.teamMultiSelect?.setSelected(['all']);
-        } else if (selected.length === 0) {
-            // If nothing selected, default to "all"
-            this.filters.team = ['all'];
-            this.teamMultiSelect?.setSelected(['all']);
         } else {
             this.filters.team = selected.filter(v => v !== 'all') as string[];
         }
@@ -573,45 +631,7 @@ class PlayerStats {
     }
 
     setupEventListeners(): void {
-        // Career mode checkbox
-        const careerCheckbox = document.getElementById('careerModeCheckbox') as HTMLInputElement;
-        if (careerCheckbox) {
-            careerCheckbox.addEventListener('change', () => {
-                this.filters.careerMode = careerCheckbox.checked;
-
-                if (this.filters.careerMode) {
-                    // Switch to career mode
-                    this.filters.season = ['career'];
-                    this.seasonMultiSelect?.setSelected([]);
-                } else {
-                    // Switch to multi-season mode
-                    if (this.filters.season.includes('career') || this.filters.season.length === 0) {
-                        // Default to current year if coming from career
-                        this.filters.season = [2024];
-                        this.seasonMultiSelect?.setSelected([2024]);
-                    }
-                }
-
-                this.updateSeasonMultiSelectState();
-                this.currentPage = 1;
-                this.clearCache();
-                this.renderTableHeaders();
-                this.loadPlayerStats();
-            });
-        }
-
-        // Per filter
-        const perFilter = document.getElementById('perFilter') as HTMLSelectElement;
-        if (perFilter) {
-            perFilter.addEventListener('change', () => {
-                this.filters.per = perFilter.value as 'total' | 'per-game';
-                this.currentPage = 1;
-                this.clearCache();
-                this.loadPlayerStats();
-            });
-        }
-
-        // Removed old season and team filter listeners - now handled by MultiSelect onChange
+        // Removed old season, per, and team filter listeners - now handled by MultiSelect onChange
 
         // Table header click handlers for sorting
         const tableHeaders = document.getElementById('tableHeaders');
