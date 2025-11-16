@@ -1,6 +1,6 @@
 // Player statistics page functionality - TypeScript version
 
-import type { PlayerSeasonStats, SortConfig, StatsFilter } from '../types/models';
+import type { PlayerSeasonStats, SortConfig } from '../types/models';
 import type { StatsResponse, PlayerStatsResponse } from '../types/api';
 import { initializeTableTooltips, playerColumnDescriptions } from '../src/utils/table-tooltips';
 
@@ -23,12 +23,16 @@ interface CustomFilter {
     value: number;
 }
 
-interface PlayerFilters extends StatsFilter {
+interface PlayerFilters {
     season: (string | number)[]; // Changed to array for multi-select
     per: 'total' | 'per-game';
     team: string[]; // Changed to array for multi-select
     customFilters: CustomFilter[];
     careerMode: boolean; // Track if career mode is active
+    sort?: string;
+    order?: 'asc' | 'desc';
+    page?: number;
+    per_page?: number;
 }
 
 interface FilterableField {
@@ -726,10 +730,13 @@ class PlayerStats {
         // Filter fields based on season availability
         return FILTERABLE_FIELDS.filter(field => {
             if (!field.minYear) return true; // Available for all years
-            if (season === 'career') return true; // Career shows all fields
 
-            const seasonYear = parseInt(String(season));
-            return seasonYear >= field.minYear;
+            // Check if season includes 'career' or 'all'
+            if (season.includes('career') || season.includes('all')) return true;
+
+            // For specific seasons, check if any selected season meets the minimum year
+            const seasons = season.map(s => parseInt(String(s))).filter(y => !isNaN(y));
+            return seasons.length === 0 || seasons.some(y => y >= (field.minYear || 0));
         });
     }
 
@@ -863,7 +870,13 @@ class PlayerStats {
         }
     }
 
-    getColumnsForSeason(season: string | number): PlayerColumn[] {
+    getColumnsForSeason(season: (string | number)[] | string | number): PlayerColumn[] {
+        // Handle array input by using the earliest numeric season for column filtering
+        const effectiveSeason = Array.isArray(season)
+            ? (season.includes('career') || season.includes('all')
+                ? 'career'
+                : Math.min(...season.map(s => parseInt(String(s))).filter(n => !isNaN(n))))
+            : season;
         // Base columns available for all years
         const baseColumns: PlayerColumn[] = [
             { key: 'full_name', label: 'Player', sortable: true },
@@ -939,14 +952,14 @@ class PlayerStats {
         let columns = [...baseColumns];
 
         // For career stats or 2021+, show all columns
-        if (season === 'career' || (season && parseInt(String(season)) >= 2021)) {
+        if (effectiveSeason === 'career' || (effectiveSeason && parseInt(String(effectiveSeason)) >= 2021)) {
             columns.push(...advancedStats2021);
         }
 
         columns.push(...oeffColumn);
 
         // Hockey assists available from 2014
-        if (season === 'career' || (season && parseInt(String(season)) >= 2014)) {
+        if (effectiveSeason === 'career' || (effectiveSeason && parseInt(String(effectiveSeason)) >= 2014)) {
             columns.push(...hockeyAssistColumn);
         }
 
@@ -956,7 +969,7 @@ class PlayerStats {
         columns.push(...assistTurnoverRatioColumn);
 
         // Y/T from 2021 (when yards data is available)
-        if (season === 'career' || (season && parseInt(String(season)) >= 2021)) {
+        if (effectiveSeason === 'career' || (effectiveSeason && parseInt(String(effectiveSeason)) >= 2021)) {
             columns.push(...yardsPerTurnColumn);
             columns.push(...yardsRatiosColumns);
         }
@@ -964,7 +977,7 @@ class PlayerStats {
         columns.push(...restBaseColumns);
 
         // Huck stats from 2021
-        if (season === 'career' || (season && parseInt(String(season)) >= 2021)) {
+        if (effectiveSeason === 'career' || (effectiveSeason && parseInt(String(effectiveSeason)) >= 2021)) {
             columns.push(...huckStats2021);
         }
 
