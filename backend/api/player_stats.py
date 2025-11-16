@@ -646,7 +646,8 @@ def create_player_stats_route(stats_system):
                 JOIN player_info pi ON tcs.player_id = pi.player_id
                 LEFT JOIN games_count gc ON tcs.player_id = gc.player_id
                 CROSS JOIN team_info ti
-                {"WHERE " + having_clause_career_team if having_clause_career_team else ""}
+                WHERE gc.games_played > 0
+                {" AND " + having_clause_career_team if having_clause_career_team else ""}
                 ORDER BY {get_team_career_sort_column(sort, per_game=(per == "game"))} {order.upper()} NULLS LAST
                 LIMIT {per_page} OFFSET {(page-1) * per_page}
                 """
@@ -697,7 +698,7 @@ def create_player_stats_route(stats_system):
                     yards_per_reception,
                     assists_per_turnover
                 FROM player_career_stats
-                WHERE 1=1
+                WHERE games_played > 0
                 {" AND " + having_clause_career if having_clause_career else ""}
                 ORDER BY {get_sort_column(sort, is_career=True, per_game=(per == "game"), team=team)} {order.upper()} NULLS LAST
                 LIMIT {per_page} OFFSET {(page-1) * per_page}
@@ -788,7 +789,12 @@ def create_player_stats_route(stats_system):
                          pss.total_o_points_played, pss.total_d_points_played, pss.total_seconds_played,
                          pss.total_o_opportunities, pss.total_d_opportunities, pss.total_o_opportunity_scores,
                          t.name, t.full_name
-                {"HAVING " + having_clause_season if having_clause_season else ""}
+                HAVING COUNT(DISTINCT CASE
+                    WHEN (pgs.o_points_played > 0 OR pgs.d_points_played > 0 OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0)
+                    THEN pgs.game_id
+                    ELSE NULL
+                END) > 0
+                {" AND " + having_clause_season if having_clause_season else ""}
                 ORDER BY {get_sort_column(sort, per_game=(per == "game"))} {order.upper()} NULLS LAST
                 LIMIT {per_page} OFFSET {(page-1) * per_page}
                 """
@@ -847,7 +853,8 @@ def create_player_stats_route(stats_system):
                     SELECT COUNT(*) as total
                     FROM team_career_stats tcs
                     LEFT JOIN games_count gc ON tcs.player_id = gc.player_id
-                    {"WHERE " + having_clause_career_team if having_clause_career_team else "WHERE 1=1"}
+                    WHERE gc.games_played > 0
+                    {" AND " + having_clause_career_team if having_clause_career_team else ""}
                     """
                 else:
                     # For other cases with filters, use simpler approach
@@ -865,20 +872,36 @@ def create_player_stats_route(stats_system):
                     SELECT COUNT(DISTINCT pss.player_id) as total
                     FROM player_season_stats pss
                     WHERE {team_filter_for_count}
+                    AND EXISTS (
+                        SELECT 1 FROM player_game_stats pgs
+                        WHERE pgs.player_id = pss.player_id
+                        AND pgs.team_id = pss.team_id
+                        AND (pgs.o_points_played > 0 OR pgs.d_points_played > 0 OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0)
+                    )
                     """
                 elif is_career_mode:
                     # Career mode without team filter
                     count_query = f"""
                     SELECT COUNT(*) as total
                     FROM player_career_stats
-                    WHERE 1=1
+                    WHERE games_played > 0
                     """
                 else:
                     # Specific season(s) query
                     count_query = f"""
-                    SELECT COUNT(DISTINCT pss.player_id || '-' || pss.team_id || '-' || pss.year) as total
-                    FROM player_season_stats pss
-                    WHERE 1=1{season_filter}{team_filter}
+                    SELECT COUNT(*) as total
+                    FROM (
+                        SELECT pss.player_id, pss.team_id, pss.year
+                        FROM player_season_stats pss
+                        LEFT JOIN player_game_stats pgs ON pss.player_id = pgs.player_id AND pss.year = pgs.year AND pss.team_id = pgs.team_id
+                        WHERE 1=1{season_filter}{team_filter}
+                        GROUP BY pss.player_id, pss.team_id, pss.year
+                        HAVING COUNT(DISTINCT CASE
+                            WHEN (pgs.o_points_played > 0 OR pgs.d_points_played > 0 OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0)
+                            THEN pgs.game_id
+                            ELSE NULL
+                        END) > 0
+                    ) as filtered_players
                     """
 
             # Execute queries using the stats system database connection
