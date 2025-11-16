@@ -1,20 +1,33 @@
 """
 Stats processing module for data ingestion and transformation.
-Handles importing sports statistics from various sources into the SQL database.
+
+This file now serves as an orchestrator delegating to specialized importer modules.
+The original 419-line file has been refactored into focused importers for better
+organization and testability.
+
+Refactored from a monolithic 419-line processor into focused importer modules:
+- team_importer.py: Team data import (54 lines)
+- player_importer.py: Player data import (64 lines)
+- game_importer.py: Game data import (72 lines)
+- stats_importer.py: Player game statistics import (68 lines)
+- season_stats_calculator.py: Season statistics calculation (170 lines)
+
+Total: 428 lines across 5 importer modules
+Extracted from monolithic processor for better organization and testability.
 """
 
 import json
-from datetime import date
 from typing import Any
 
 import pandas as pd
 
 from data.database import SQLDatabase
-from models.db import (
-    Game,
-    Player,
-    PlayerGameStats,
-    Team,
+from data.importers import (
+    TeamImporter,
+    PlayerImporter,
+    GameImporter,
+    StatsImporter,
+    SeasonStatsCalculator,
 )
 
 
@@ -30,9 +43,16 @@ class StatsProcessor:
         """
         self.db = db or SQLDatabase()
 
+        # Initialize importer modules
+        self.team_importer = TeamImporter(self.db)
+        self.player_importer = PlayerImporter(self.db)
+        self.game_importer = GameImporter(self.db)
+        self.stats_importer = StatsImporter(self.db)
+        self.season_calculator = SeasonStatsCalculator(self.db)
+
     def import_teams(self, teams_data: list[dict[str, Any]]) -> int:
         """
-        Import team data into the database.
+        Import team data - delegated to TeamImporter.
 
         Args:
             teams_data: List of team dictionaries
@@ -40,34 +60,11 @@ class StatsProcessor:
         Returns:
             Number of teams imported
         """
-        count = 0
-        for team_dict in teams_data:
-            try:
-                # Skip None values
-                if not team_dict:
-                    continue
-
-                # Check if team already exists
-                existing = self.db.execute_query(
-                    "SELECT id FROM teams WHERE name = :name",
-                    {"name": team_dict.get("name")},
-                )
-
-                if not existing:
-                    team = Team(**team_dict)
-                    team_data = team.dict(exclude_none=True, exclude={"id"})
-                    self.db.insert_data("teams", team_data)
-                    count += 1
-            except Exception as e:
-                # Log error and continue with next team
-                print(f"Error importing team {team_dict}: {e}")
-                continue
-
-        return count
+        return self.team_importer.import_teams(teams_data)
 
     def import_players(self, players_data: list[dict[str, Any]]) -> int:
         """
-        Import player data into the database.
+        Import player data - delegated to PlayerImporter.
 
         Args:
             players_data: List of player dictionaries
@@ -75,44 +72,11 @@ class StatsProcessor:
         Returns:
             Number of players imported
         """
-        count = 0
-        for player_dict in players_data:
-            try:
-                # Skip None values
-                if not player_dict:
-                    continue
-
-                # Check if player already exists
-                existing = self.db.execute_query(
-                    "SELECT id FROM players WHERE name = :name",
-                    {"name": player_dict.get("name")},
-                )
-
-                if not existing:
-                    # Get team_id if team name is provided
-                    if "team_name" in player_dict:
-                        team_result = self.db.execute_query(
-                            "SELECT id FROM teams WHERE name = :name",
-                            {"name": player_dict["team_name"]},
-                        )
-                        if team_result:
-                            player_dict["team_id"] = team_result[0]["id"]
-                        player_dict.pop("team_name", None)
-
-                    player = Player(**player_dict)
-                    player_data = player.dict(exclude_none=True, exclude={"id"})
-                    self.db.insert_data("players", player_data)
-                    count += 1
-            except Exception as e:
-                # Log error and continue with next player
-                print(f"Error importing player {player_dict}: {e}")
-                continue
-
-        return count
+        return self.player_importer.import_players(players_data)
 
     def import_game(self, game_data: dict[str, Any]) -> int | None:
         """
-        Import a single game into the database.
+        Import a single game - delegated to GameImporter.
 
         Args:
             game_data: Game dictionary
@@ -120,51 +84,11 @@ class StatsProcessor:
         Returns:
             Game ID if imported, None if already exists
         """
-        # Convert team names to IDs if needed
-        if "home_team_name" in game_data:
-            home_team = self.db.execute_query(
-                "SELECT id FROM teams WHERE name = :name OR abbreviation = :name",
-                {"name": game_data["home_team_name"]},
-            )
-            if home_team:
-                game_data["home_team_id"] = home_team[0]["id"]
-            game_data.pop("home_team_name", None)
-
-        if "away_team_name" in game_data:
-            away_team = self.db.execute_query(
-                "SELECT id FROM teams WHERE name = :name OR abbreviation = :name",
-                {"name": game_data["away_team_name"]},
-            )
-            if away_team:
-                game_data["away_team_id"] = away_team[0]["id"]
-            game_data.pop("away_team_name", None)
-
-        # Check if game already exists
-        existing = self.db.execute_query(
-            """SELECT id FROM games 
-               WHERE game_date = :game_date 
-               AND home_team_id = :home_team_id 
-               AND away_team_id = :away_team_id""",
-            {
-                "game_date": game_data.get("game_date"),
-                "home_team_id": game_data.get("home_team_id"),
-                "away_team_id": game_data.get("away_team_id"),
-            },
-        )
-
-        if not existing:
-            game = Game(**game_data)
-            game_dict = game.dict(exclude_none=True, exclude={"id"})
-            # Convert date to string for SQLite
-            if isinstance(game_dict.get("game_date"), date):
-                game_dict["game_date"] = game_dict["game_date"].isoformat()
-            return self.db.insert_data("games", game_dict)
-
-        return existing[0]["id"] if existing else None
+        return self.game_importer.import_game(game_data)
 
     def import_player_game_stats(self, stats_data: list[dict[str, Any]]) -> int:
         """
-        Import player game statistics.
+        Import player game statistics - delegated to StatsImporter.
 
         Args:
             stats_data: List of player game stats dictionaries
@@ -172,182 +96,16 @@ class StatsProcessor:
         Returns:
             Number of stats records imported
         """
-        count = 0
-        for stat_dict in stats_data:
-            try:
-                # Skip None values
-                if not stat_dict:
-                    continue
-
-                # Convert player name to ID if needed
-                if "player_name" in stat_dict:
-                    player = self.db.execute_query(
-                        "SELECT id FROM players WHERE name = :name",
-                        {"name": stat_dict["player_name"]},
-                    )
-                    if player:
-                        stat_dict["player_id"] = player[0]["id"]
-                    stat_dict.pop("player_name", None)
-
-                # Check if stats already exist for this player/game
-                existing = self.db.execute_query(
-                    """SELECT id FROM player_game_stats 
-                       WHERE player_id = :player_id AND game_id = :game_id""",
-                    {
-                        "player_id": stat_dict.get("player_id"),
-                        "game_id": stat_dict.get("game_id"),
-                    },
-                )
-
-                if not existing:
-                    stats = PlayerGameStats(**stat_dict)
-                    stats_data = stats.dict(exclude_none=True, exclude={"id"})
-                    self.db.insert_data("player_game_stats", stats_data)
-                    count += 1
-            except Exception as e:
-                # Log error and continue with next stat record
-                print(f"Error importing player game stats {stat_dict}: {e}")
-                continue
-
-        return count
+        return self.stats_importer.import_player_game_stats(stats_data)
 
     def calculate_season_stats(self, season):
         """
-        Calculate and store aggregated season statistics for all players and teams.
+        Calculate and store aggregated season statistics - delegated to SeasonStatsCalculator.
 
         Args:
             season: Season identifier (year or season string like "2023-24")
         """
-        try:
-            # Calculate player season stats - use UFA statistics
-            player_stats_query = """
-            SELECT 
-                pgs.player_id,
-                pgs.team_id,
-                COUNT(DISTINCT pgs.game_id) as games_played,
-                SUM(pgs.seconds_played) as total_seconds_played,
-                SUM(pgs.goals) as total_goals,
-                SUM(pgs.assists) as total_assists,
-                SUM(pgs.hockey_assists) as total_hockey_assists,
-                SUM(pgs.completions) as total_completions,
-                SUM(pgs.throw_attempts) as total_throw_attempts,
-                SUM(pgs.throwaways) as total_throwaways,
-                SUM(pgs.blocks) as total_blocks,
-                SUM(pgs.callahans) as total_callahans,
-                SUM(pgs.drops) as total_drops,
-                SUM(pgs.stalls) as total_stalls,
-                CASE 
-                    WHEN SUM(pgs.throw_attempts) > 0 
-                    THEN CAST(SUM(pgs.completions) AS FLOAT) / SUM(pgs.throw_attempts) * 100
-                    ELSE 0 
-                END as completion_percentage
-            FROM player_game_stats pgs
-            JOIN games g ON pgs.game_id = g.id
-            WHERE g.year = :year
-            GROUP BY pgs.player_id, pgs.team_id
-            """
-
-            # Handle both year (int) and season string formats
-            year_param = (
-                season if isinstance(season, int) else int(str(season).split("-")[0])
-            )
-            player_results = self.db.execute_query(
-                player_stats_query, {"year": year_param}
-            )
-
-            # Clear existing season stats first
-            self.db.execute_query(
-                "DELETE FROM player_season_stats WHERE year = :year",
-                {"year": year_param},
-            )
-
-            for row in player_results:
-                try:
-                    # Add year to the row data
-                    row["year"] = year_param
-
-                    # Insert new record
-                    self.db.insert_data("player_season_stats", row)
-                except Exception as e:
-                    print(
-                        f"Error calculating season stats for player {row.get('player_id')}: {e}"
-                    )
-                    continue
-        except Exception as e:
-            print(f"Error in calculate_season_stats: {e}")
-            return
-
-            # Calculate team season stats
-            try:
-                team_stats_query = """
-                SELECT 
-                    t.id as team_id,
-                    COUNT(DISTINCT g.id) as games_played,
-                    SUM(CASE 
-                        WHEN (g.home_team_id = t.id AND g.home_score > g.away_score) 
-                          OR (g.away_team_id = t.id AND g.away_score > g.home_score)
-                        THEN 1 ELSE 0 
-                    END) as wins,
-                    SUM(CASE 
-                        WHEN (g.home_team_id = t.id AND g.home_score < g.away_score) 
-                          OR (g.away_team_id = t.id AND g.away_score < g.home_score)
-                        THEN 1 ELSE 0 
-                    END) as losses,
-                    SUM(CASE 
-                        WHEN g.home_team_id = t.id THEN g.home_score 
-                        WHEN g.away_team_id = t.id THEN g.away_score 
-                        ELSE 0 
-                    END) as points_for,
-                    SUM(CASE 
-                        WHEN g.home_team_id = t.id THEN g.away_score 
-                        WHEN g.away_team_id = t.id THEN g.home_score 
-                        ELSE 0 
-                    END) as points_against
-                FROM teams t
-                LEFT JOIN games g ON (g.home_team_id = t.id OR g.away_team_id = t.id) 
-                                  AND g.year = :year
-                GROUP BY t.id
-                """
-
-                team_results = self.db.execute_query(
-                    team_stats_query, {"year": year_param}
-                )
-
-                # Clear existing team season stats first
-                self.db.execute_query(
-                    "DELETE FROM team_season_stats WHERE year = :year",
-                    {"year": year_param},
-                )
-
-                for row in team_results:
-                    try:
-                        # Calculate derived stats
-                        if row.get("games_played") and row["games_played"] > 0:
-                            row["avg_points_for"] = (
-                                row["points_for"] / row["games_played"]
-                            )
-                            row["avg_points_against"] = (
-                                row["points_against"] / row["games_played"]
-                            )
-                            row["win_percentage"] = row["wins"] / row["games_played"]
-                        else:
-                            row["avg_points_for"] = 0
-                            row["avg_points_against"] = 0
-                            row["win_percentage"] = 0
-
-                        # Add year to the row data
-                        row["year"] = year_param
-
-                        # Insert new record
-                        self.db.insert_data("team_season_stats", row)
-                    except Exception as e:
-                        print(
-                            f"Error calculating team season stats for team {row.get('team_id')}: {e}"
-                        )
-                        continue
-            except Exception as e:
-                print(f"Error in team season stats calculation: {e}")
-                return
+        return self.season_calculator.calculate_season_stats(season)
 
     def import_from_csv(self, csv_path: str, data_type: str) -> int:
         """
