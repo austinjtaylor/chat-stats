@@ -30,7 +30,7 @@ body.stats-page {
 .stats-main {
     max-width: none; /* Remove max-width constraint */
     margin: 0;
-    padding: 1rem 1.5rem 0rem 1.5rem; /* Reduced side padding, no bottom padding */
+    padding: 0 1.5rem 0rem 1.5rem; /* No top padding, reduced side padding, no bottom padding */
     height: 100vh;
     overflow: hidden; /* Prevent main area scrolling */
     display: flex;
@@ -587,7 +587,7 @@ body[data-page="games"] .menu-dropdown .dropdown-item[href*="games"] {
 @media (max-width: 768px) {
     .stats-main {
         padding: 1rem;
-        padding-top: 0.5rem;
+        padding-top: 0;
     }
 
     /* Position stats title to the right of hamburger button - CORRECT CLASS */
