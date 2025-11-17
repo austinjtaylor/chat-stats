@@ -8,6 +8,7 @@ from typing import Optional
 def build_having_clause(
     custom_filters: list,
     per_game: bool = False,
+    per_possession: bool = False,
     table_prefix: str = "",
     alias_mapping: Optional[dict] = None
 ) -> str:
@@ -17,6 +18,7 @@ def build_having_clause(
     Args:
         custom_filters: List of filter dicts with 'field', 'operator', and 'value'
         per_game: Whether to apply per-game conversion to counting stats
+        per_possession: Whether to apply per-100-possession conversion to counting stats
         table_prefix: Prefix for field names (e.g., 'tcs.' for team_career_stats CTE)
         alias_mapping: Optional dict mapping field aliases to full SQL expressions (for season stats)
 
@@ -55,6 +57,12 @@ def build_having_clause(
         if alias_mapping and field in alias_mapping:
             # Use the full SQL expression from the mapping
             field_ref = alias_mapping[field]
+        elif per_possession and field not in non_counting_stats:
+            # For per-possession filters on counting stats, divide by possessions and multiply by 100
+            if table_prefix:
+                field_ref = f"CASE WHEN COALESCE({table_prefix}total_o_opportunities, 0) > 0 THEN CAST({table_prefix}{field} AS NUMERIC) / {table_prefix}total_o_opportunities * 100 ELSE 0 END"
+            else:
+                field_ref = f"CASE WHEN total_o_opportunities > 0 THEN CAST({field} AS NUMERIC) / total_o_opportunities * 100 ELSE 0 END"
         elif per_game and field not in non_counting_stats:
             # For per-game filters on counting stats, divide by games_played
             if table_prefix:
@@ -75,14 +83,16 @@ def build_having_clause(
     return " AND ".join(conditions) if conditions else ""
 
 
-def get_team_career_sort_column(sort_key: str, per_game: bool = False) -> str:
+def get_team_career_sort_column(sort_key: str, per_game: bool = False, per_possession: bool = False) -> str:
     """
     Get the sort column for team career stats queries.
     Handles per-game sorting by dividing counting stats by games_played.
+    Handles per-possession sorting by dividing counting stats by possessions and multiplying by 100.
 
     Args:
         sort_key: The stat field to sort by
         per_game: Whether to apply per-game conversion
+        per_possession: Whether to apply per-100-possession conversion
 
     Returns:
         SQL expression for the sort column
@@ -99,6 +109,11 @@ def get_team_career_sort_column(sort_key: str, per_game: bool = False) -> str:
         "assists_per_turnover",
         "games_played",
     ]
+
+    # If per_possession mode and this is a counting stat, divide by possessions and multiply by 100
+    if per_possession and sort_key not in non_counting_stats:
+        # Use COALESCE to handle NULL total_o_opportunities
+        return f"CASE WHEN COALESCE(tcs.total_o_opportunities, 0) > 0 THEN CAST(tcs.{sort_key} AS NUMERIC) / tcs.total_o_opportunities * 100 ELSE 0 END"
 
     # If per_game mode and this is a counting stat, divide by games_played
     if per_game and sort_key not in non_counting_stats:

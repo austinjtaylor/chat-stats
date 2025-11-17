@@ -9,6 +9,7 @@ def get_sort_column(
     sort_key: str,
     is_career: bool = False,
     per_game: bool = False,
+    per_possession: bool = False,
     team: str | None = None,
 ) -> str:
     """Map sort keys to actual database columns with proper table prefixes"""
@@ -52,8 +53,8 @@ def get_sort_column(
         }
         base_column = career_columns.get(sort_key, sort_key)
 
-        # If per_game mode and sorting by a counting stat, divide by games_played
-        if per_game and sort_key not in [
+        # Define non-counting stats
+        non_counting_stats = [
             "full_name",
             "completion_percentage",
             "huck_percentage",
@@ -63,8 +64,14 @@ def get_sort_column(
             "yards_per_reception",
             "assists_per_turnover",
             "games_played",
-        ]:
-            # For pre-computed career stats, just use games_played column
+        ]
+
+        # If per_possession mode and sorting by a counting stat, divide by possessions and multiply by 100
+        if per_possession and sort_key not in non_counting_stats:
+            return f"CASE WHEN possessions > 0 THEN CAST({base_column} AS NUMERIC) / possessions * 100 ELSE 0 END"
+
+        # If per_game mode and sorting by a counting stat, divide by games_played
+        if per_game and sort_key not in non_counting_stats:
             return f"CASE WHEN games_played > 0 THEN CAST({base_column} AS NUMERIC) / games_played ELSE 0 END"
 
         return base_column
@@ -109,8 +116,8 @@ def get_sort_column(
     # Get the base column
     base_column = column_mapping.get(sort_key, f"pss.{sort_key}")
 
-    # If per_game mode and sorting by a counting stat, divide by games_played
-    if per_game and sort_key not in [
+    # Define non-counting stats
+    non_counting_stats = [
         "full_name",
         "completion_percentage",
         "huck_percentage",
@@ -120,7 +127,15 @@ def get_sort_column(
         "yards_per_reception",
         "assists_per_turnover",
         "games_played",
-    ]:
+    ]
+
+    # If per_possession mode and sorting by a counting stat, divide by possessions and multiply by 100
+    if per_possession and sort_key not in non_counting_stats:
+        possessions_col = column_mapping["possessions"]
+        return f"CASE WHEN {possessions_col} > 0 THEN CAST({base_column} AS NUMERIC) / {possessions_col} * 100 ELSE 0 END"
+
+    # If per_game mode and sorting by a counting stat, divide by games_played
+    if per_game and sort_key not in non_counting_stats:
         games_played_col = column_mapping["games_played"]
         return f"CASE WHEN {games_played_col} > 0 THEN CAST({base_column} AS NUMERIC) / {games_played_col} ELSE 0 END"
 
@@ -169,8 +184,49 @@ def convert_to_per_game_stats(players: list[dict[str, Any]]) -> list[dict[str, A
                     player[stat] = float(format(value, ".1f"))
 
             # Plus/minus also needs to be averaged
-            if player["calculated_plus_minus"] is not None:
+            if "calculated_plus_minus" in player and player["calculated_plus_minus"] is not None:
                 value = player["calculated_plus_minus"] / games
+                player["calculated_plus_minus"] = float(format(value, ".1f"))
+
+    return players
+
+
+def convert_to_per_possession_stats(players: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Convert player statistics to per-100-possession rates."""
+    for player in players:
+        # Use offensive possessions (total_o_opportunities) as the denominator
+        possessions = player.get("total_o_opportunities") or player.get("possessions") or 0
+        if possessions > 0:
+            # Convert counting stats to per-100-possession rates
+            per_possession_stats = [
+                "score_total",
+                "total_assists",
+                "total_goals",
+                "total_blocks",
+                "total_completions",
+                "total_yards",
+                "total_yards_thrown",
+                "total_yards_received",
+                "total_hockey_assists",
+                "total_throwaways",
+                "total_stalls",
+                "total_drops",
+                "total_callahans",
+                "total_hucks_completed",
+                "total_hucks_attempted",
+                "total_hucks_received",
+            ]
+
+            for stat in per_possession_stats:
+                if stat in player and player[stat] is not None:
+                    # Calculate per-100-possession rate
+                    value = (player[stat] / possessions) * 100
+                    # Round to 1 decimal place, ensuring proper precision
+                    player[stat] = float(format(value, ".1f"))
+
+            # Plus/minus also needs to be converted
+            if "calculated_plus_minus" in player and player["calculated_plus_minus"] is not None:
+                value = (player["calculated_plus_minus"] / possessions) * 100
                 player["calculated_plus_minus"] = float(format(value, ".1f"))
 
     return players

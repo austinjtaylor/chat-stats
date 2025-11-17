@@ -16,6 +16,7 @@ class PlayerStatsQueryBuilder:
         is_career_mode: bool,
         filters_list: list,
         per_game_mode: bool,
+        per_possession_mode: bool,
         sort: str,
         order: str,
         page: int,
@@ -26,6 +27,7 @@ class PlayerStatsQueryBuilder:
         self.is_career_mode = is_career_mode
         self.filters_list = filters_list
         self.per_game_mode = per_game_mode
+        self.per_possession_mode = per_possession_mode
         self.sort = sort
         self.order = order
         self.page = page
@@ -34,6 +36,7 @@ class PlayerStatsQueryBuilder:
         # Build filters
         self.season_filter = self._build_season_filter()
         self.team_filter = self._build_team_filter()
+        self.possession_threshold = self._build_possession_threshold()
 
     def _build_season_filter(self) -> str:
         """Build SQL WHERE clause for season filtering."""
@@ -54,6 +57,85 @@ class PlayerStatsQueryBuilder:
         else:
             team_ids_str = ",".join([f"'{t}'" for t in self.teams])
             return f" AND pss.team_id IN ({team_ids_str})"
+
+    def _build_possession_threshold(self) -> int:
+        """Determine the minimum possession threshold based on query type."""
+        if not self.per_possession_mode:
+            return 0
+
+        # For career mode or multiple seasons: require 100 possessions
+        if self.is_career_mode or len(self.seasons) > 1:
+            return 100
+
+        # For single season: require 20 possessions
+        return 20
+
+    def _build_possession_year_filter(self) -> str:
+        """Build year filter for possession stats (requires 2014+)."""
+        if not self.per_possession_mode:
+            return ""
+        # Possession data before 2014 is unreliable
+        return " AND pss.year >= 2014"
+
+    def _build_cte_career_sort_column(self) -> str:
+        """Build sort column for CTE-based career query (per-possession mode)."""
+        # Map sort keys to CTE column names
+        column_map = {
+            "full_name": "pi.full_name",
+            "total_goals": "cs.total_goals",
+            "total_assists": "cs.total_assists",
+            "total_blocks": "cs.total_blocks",
+            "calculated_plus_minus": "cs.calculated_plus_minus",
+            "completion_percentage": "cs.completion_percentage",
+            "total_completions": "cs.total_completions",
+            "total_yards_thrown": "cs.total_yards_thrown",
+            "total_yards_received": "cs.total_yards_received",
+            "total_hockey_assists": "cs.total_hockey_assists",
+            "total_throwaways": "cs.total_throwaways",
+            "total_stalls": "cs.total_stalls",
+            "total_drops": "cs.total_drops",
+            "total_callahans": "cs.total_callahans",
+            "total_hucks_completed": "cs.total_hucks_completed",
+            "total_hucks_attempted": "cs.total_hucks_attempted",
+            "total_hucks_received": "cs.total_hucks_received",
+            "total_pulls": "cs.total_pulls",
+            "total_o_points_played": "cs.total_o_points_played",
+            "total_d_points_played": "cs.total_d_points_played",
+            "total_seconds_played": "cs.total_seconds_played",
+            "games_played": "gc.games_played",
+            "possessions": "cs.total_o_opportunities",
+            "score_total": "cs.score_total",
+            "total_points_played": "cs.total_points_played",
+            "total_yards": "cs.total_yards",
+            "minutes_played": "cs.minutes_played",
+            "huck_percentage": "cs.huck_percentage",
+            "offensive_efficiency": "cs.offensive_efficiency",
+            "yards_per_turn": "cs.yards_per_turn",
+            "yards_per_completion": "cs.yards_per_completion",
+            "yards_per_reception": "cs.yards_per_reception",
+            "assists_per_turnover": "cs.assists_per_turnover",
+        }
+
+        base_column = column_map.get(self.sort, f"cs.{self.sort}")
+
+        # Non-counting stats that shouldn't be divided
+        non_counting_stats = [
+            "full_name",
+            "completion_percentage",
+            "huck_percentage",
+            "offensive_efficiency",
+            "yards_per_turn",
+            "yards_per_completion",
+            "yards_per_reception",
+            "assists_per_turnover",
+            "games_played",
+        ]
+
+        # For per-possession mode, divide counting stats by possessions and multiply by 100
+        if self.per_possession_mode and self.sort not in non_counting_stats:
+            return f"CASE WHEN cs.total_o_opportunities > 0 THEN CAST({base_column} AS NUMERIC) / cs.total_o_opportunities * 100 ELSE 0 END"
+
+        return base_column
 
     def build_main_query(self) -> str:
         """Build the main SELECT query for player stats."""
@@ -80,6 +162,7 @@ class PlayerStatsQueryBuilder:
         having_clause = build_having_clause(
             self.filters_list,
             per_game=self.per_game_mode,
+            per_possession=self.per_possession_mode,
             table_prefix="tcs."
         )
 
@@ -151,7 +234,7 @@ class PlayerStatsQueryBuilder:
                     ELSE NULL
                 END as assists_per_turnover
             FROM player_season_stats pss
-            WHERE {team_filter_for_query}
+            WHERE {team_filter_for_query}{self._build_possession_year_filter()}
             GROUP BY pss.player_id, pss.team_id
         ),
         player_info AS (
@@ -231,8 +314,9 @@ class PlayerStatsQueryBuilder:
         LEFT JOIN games_count gc ON tcs.player_id = gc.player_id
         CROSS JOIN team_info ti
         WHERE gc.games_played > 0
+        {f" AND tcs.total_o_opportunities >= {self.possession_threshold}" if self.possession_threshold > 0 else ""}
         {" AND " + having_clause if having_clause else ""}
-        ORDER BY {get_team_career_sort_column(self.sort, per_game=self.per_game_mode)} {self.order.upper()} NULLS LAST
+        ORDER BY {get_team_career_sort_column(self.sort, per_game=self.per_game_mode, per_possession=self.per_possession_mode)} {self.order.upper()} NULLS LAST
         LIMIT {self.per_page} OFFSET {(self.page-1) * self.per_page}
         """
 
@@ -241,65 +325,225 @@ class PlayerStatsQueryBuilder:
         having_clause = build_having_clause(
             self.filters_list,
             per_game=self.per_game_mode,
+            per_possession=self.per_possession_mode,
             table_prefix=""
         )
 
-        return f"""
-        SELECT
-            full_name,
-            first_name,
-            last_name,
-            most_recent_team_id as team_id,
-            NULL as year,
-            total_goals,
-            total_assists,
-            total_hockey_assists,
-            total_blocks,
-            calculated_plus_minus,
-            total_completions,
-            completion_percentage,
-            total_yards_thrown,
-            total_yards_received,
-            total_throwaways,
-            total_stalls,
-            total_drops,
-            total_callahans,
-            total_hucks_completed,
-            total_hucks_attempted,
-            total_hucks_received,
-            total_pulls,
-            total_o_points_played,
-            total_d_points_played,
-            total_seconds_played,
-            total_o_opportunities,
-            total_d_opportunities,
-            total_o_opportunity_scores,
-            most_recent_team_name as team_name,
-            most_recent_team_full_name as team_full_name,
-            games_played,
-            possessions,
-            score_total,
-            total_points_played,
-            total_yards,
-            minutes_played,
-            huck_percentage,
-            offensive_efficiency,
-            yards_per_turn,
-            yards_per_completion,
-            yards_per_reception,
-            assists_per_turnover
-        FROM player_career_stats
-        WHERE games_played > 0
-        {" AND " + having_clause if having_clause else ""}
-        ORDER BY {get_sort_column(self.sort, is_career=True, per_game=self.per_game_mode, team=self.teams[0])} {self.order.upper()} NULLS LAST
-        LIMIT {self.per_page} OFFSET {(self.page-1) * self.per_page}
-        """
+        # When in per_possession mode, we need to filter by year >= 2014
+        # Since player_career_stats includes all years, we aggregate from player_season_stats instead
+        if self.per_possession_mode:
+            having_clause_cte = build_having_clause(
+                self.filters_list,
+                per_game=self.per_game_mode,
+                per_possession=self.per_possession_mode,
+                table_prefix="cs."
+            )
+
+            return f"""
+            WITH career_stats AS (
+                SELECT
+                    pss.player_id,
+                    SUM(pss.total_goals) as total_goals,
+                    SUM(pss.total_assists) as total_assists,
+                    SUM(pss.total_hockey_assists) as total_hockey_assists,
+                    SUM(pss.total_blocks) as total_blocks,
+                    (SUM(pss.total_goals) + SUM(pss.total_assists) + SUM(pss.total_blocks) -
+                     SUM(pss.total_throwaways) - SUM(pss.total_drops)) as calculated_plus_minus,
+                    SUM(pss.total_completions) as total_completions,
+                    CASE
+                        WHEN SUM(pss.total_throw_attempts) > 0
+                        THEN ROUND(SUM(pss.total_completions) * 100.0 / SUM(pss.total_throw_attempts), 1)
+                        ELSE 0
+                    END as completion_percentage,
+                    SUM(pss.total_yards_thrown) as total_yards_thrown,
+                    SUM(pss.total_yards_received) as total_yards_received,
+                    SUM(pss.total_throwaways) as total_throwaways,
+                    SUM(pss.total_stalls) as total_stalls,
+                    SUM(pss.total_drops) as total_drops,
+                    SUM(pss.total_callahans) as total_callahans,
+                    SUM(pss.total_hucks_completed) as total_hucks_completed,
+                    SUM(pss.total_hucks_attempted) as total_hucks_attempted,
+                    SUM(pss.total_hucks_received) as total_hucks_received,
+                    SUM(pss.total_pulls) as total_pulls,
+                    SUM(pss.total_o_points_played) as total_o_points_played,
+                    SUM(pss.total_d_points_played) as total_d_points_played,
+                    SUM(pss.total_seconds_played) as total_seconds_played,
+                    SUM(pss.total_o_opportunities) as total_o_opportunities,
+                    SUM(pss.total_d_opportunities) as total_d_opportunities,
+                    SUM(pss.total_o_opportunity_scores) as total_o_opportunity_scores,
+                    (SUM(pss.total_goals) + SUM(pss.total_assists)) as score_total,
+                    (SUM(pss.total_o_points_played) + SUM(pss.total_d_points_played)) as total_points_played,
+                    (SUM(pss.total_yards_thrown) + SUM(pss.total_yards_received)) as total_yards,
+                    ROUND(SUM(pss.total_seconds_played) / 60.0, 0) as minutes_played,
+                    CASE
+                        WHEN SUM(pss.total_hucks_attempted) > 0
+                        THEN ROUND(SUM(pss.total_hucks_completed) * 100.0 / SUM(pss.total_hucks_attempted), 1)
+                        ELSE 0
+                    END as huck_percentage,
+                    CASE
+                        WHEN SUM(pss.total_o_opportunities) >= 20
+                        THEN ROUND(SUM(pss.total_o_opportunity_scores) * 100.0 / SUM(pss.total_o_opportunities), 1)
+                        ELSE NULL
+                    END as offensive_efficiency,
+                    CASE
+                        WHEN (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops)) > 0
+                        THEN ROUND((SUM(pss.total_yards_thrown) + SUM(pss.total_yards_received)) * 1.0 / (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops)), 1)
+                        ELSE NULL
+                    END as yards_per_turn,
+                    CASE
+                        WHEN SUM(pss.total_completions) > 0
+                        THEN ROUND(SUM(pss.total_yards_thrown) * 1.0 / SUM(pss.total_completions), 1)
+                        ELSE NULL
+                    END as yards_per_completion,
+                    CASE
+                        WHEN SUM(pss.total_catches) > 0
+                        THEN ROUND(SUM(pss.total_yards_received) * 1.0 / SUM(pss.total_catches), 1)
+                        ELSE NULL
+                    END as yards_per_reception,
+                    CASE
+                        WHEN (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops)) > 0
+                        THEN ROUND(SUM(pss.total_assists) * 1.0 / (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops)), 2)
+                        ELSE NULL
+                    END as assists_per_turnover
+                FROM player_season_stats pss
+                WHERE pss.year >= 2014
+                GROUP BY pss.player_id
+            ),
+            player_info AS (
+                SELECT DISTINCT ON (p.player_id)
+                    p.player_id,
+                    p.full_name,
+                    p.first_name,
+                    p.last_name,
+                    p.team_id as most_recent_team_id,
+                    t.name as most_recent_team_name,
+                    t.full_name as most_recent_team_full_name
+                FROM players p
+                LEFT JOIN teams t ON p.team_id = t.team_id AND p.year = t.year
+                ORDER BY p.player_id, p.year DESC
+            ),
+            games_count AS (
+                SELECT
+                    pgs.player_id,
+                    COUNT(DISTINCT pgs.game_id) as games_played
+                FROM player_game_stats pgs
+                JOIN games g ON pgs.game_id = g.game_id
+                WHERE g.year >= 2014
+                  AND (pgs.o_points_played > 0 OR pgs.d_points_played > 0 OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0)
+                GROUP BY pgs.player_id
+            )
+            SELECT
+                pi.full_name,
+                pi.first_name,
+                pi.last_name,
+                pi.most_recent_team_id as team_id,
+                NULL as year,
+                cs.total_goals,
+                cs.total_assists,
+                cs.total_hockey_assists,
+                cs.total_blocks,
+                cs.calculated_plus_minus,
+                cs.total_completions,
+                cs.completion_percentage,
+                cs.total_yards_thrown,
+                cs.total_yards_received,
+                cs.total_throwaways,
+                cs.total_stalls,
+                cs.total_drops,
+                cs.total_callahans,
+                cs.total_hucks_completed,
+                cs.total_hucks_attempted,
+                cs.total_hucks_received,
+                cs.total_pulls,
+                cs.total_o_points_played,
+                cs.total_d_points_played,
+                cs.total_seconds_played,
+                cs.total_o_opportunities,
+                cs.total_d_opportunities,
+                cs.total_o_opportunity_scores,
+                pi.most_recent_team_name as team_name,
+                pi.most_recent_team_full_name as team_full_name,
+                gc.games_played,
+                cs.total_o_opportunities as possessions,
+                cs.score_total,
+                cs.total_points_played,
+                cs.total_yards,
+                cs.minutes_played,
+                cs.huck_percentage,
+                cs.offensive_efficiency,
+                cs.yards_per_turn,
+                cs.yards_per_completion,
+                cs.yards_per_reception,
+                cs.assists_per_turnover
+            FROM career_stats cs
+            JOIN player_info pi ON cs.player_id = pi.player_id
+            LEFT JOIN games_count gc ON cs.player_id = gc.player_id
+            WHERE gc.games_played > 0
+            {f" AND cs.total_o_opportunities >= {self.possession_threshold}" if self.possession_threshold > 0 else ""}
+            {" AND " + having_clause_cte if having_clause_cte else ""}
+            ORDER BY {self._build_cte_career_sort_column()} {self.order.upper()} NULLS LAST
+            LIMIT {self.per_page} OFFSET {(self.page-1) * self.per_page}
+            """
+        else:
+            # Use pre-aggregated view when not in per_possession mode
+            return f"""
+            SELECT
+                full_name,
+                first_name,
+                last_name,
+                most_recent_team_id as team_id,
+                NULL as year,
+                total_goals,
+                total_assists,
+                total_hockey_assists,
+                total_blocks,
+                calculated_plus_minus,
+                total_completions,
+                completion_percentage,
+                total_yards_thrown,
+                total_yards_received,
+                total_throwaways,
+                total_stalls,
+                total_drops,
+                total_callahans,
+                total_hucks_completed,
+                total_hucks_attempted,
+                total_hucks_received,
+                total_pulls,
+                total_o_points_played,
+                total_d_points_played,
+                total_seconds_played,
+                total_o_opportunities,
+                total_d_opportunities,
+                total_o_opportunity_scores,
+                most_recent_team_name as team_name,
+                most_recent_team_full_name as team_full_name,
+                games_played,
+                possessions,
+                score_total,
+                total_points_played,
+                total_yards,
+                minutes_played,
+                huck_percentage,
+                offensive_efficiency,
+                yards_per_turn,
+                yards_per_completion,
+                yards_per_reception,
+                assists_per_turnover
+            FROM player_career_stats
+            WHERE games_played > 0
+            {f" AND possessions >= {self.possession_threshold}" if self.possession_threshold > 0 else ""}
+            {" AND " + having_clause if having_clause else ""}
+            ORDER BY {get_sort_column(self.sort, is_career=True, per_game=self.per_game_mode, per_possession=self.per_possession_mode, team=self.teams[0])} {self.order.upper()} NULLS LAST
+            LIMIT {self.per_page} OFFSET {(self.page-1) * self.per_page}
+            """
 
     def _build_season_query(self) -> str:
         """Build query for season-specific stats."""
         having_clause = build_having_clause(
             self.filters_list,
             per_game=self.per_game_mode,
+            per_possession=self.per_possession_mode,
             table_prefix="",
             alias_mapping=SEASON_STATS_ALIAS_MAPPING
         )
@@ -379,7 +623,7 @@ class PlayerStatsQueryBuilder:
         LEFT JOIN teams t ON pss.team_id = t.team_id AND pss.year = t.year
         LEFT JOIN player_game_stats pgs ON pss.player_id = pgs.player_id AND pss.year = pgs.year AND pss.team_id = pgs.team_id
         LEFT JOIN games g ON pgs.game_id = g.game_id AND g.year = pss.year
-        WHERE 1=1{self.season_filter}{self.team_filter}
+        WHERE 1=1{self.season_filter}{self.team_filter}{self._build_possession_year_filter()}
         GROUP BY pss.player_id, pss.team_id, pss.year, p.full_name, p.first_name, p.last_name, p.team_id,
                  pss.total_goals, pss.total_assists, pss.total_hockey_assists, pss.total_blocks, pss.calculated_plus_minus,
                  pss.total_completions, pss.completion_percentage, pss.total_yards_thrown, pss.total_yards_received,
@@ -393,8 +637,9 @@ class PlayerStatsQueryBuilder:
             THEN pgs.game_id
             ELSE NULL
         END) > 0
+        {f" AND pss.total_o_opportunities >= {self.possession_threshold}" if self.possession_threshold > 0 else ""}
         {" AND " + having_clause if having_clause else ""}
-        ORDER BY {get_sort_column(self.sort, per_game=self.per_game_mode)} {self.order.upper()} NULLS LAST
+        ORDER BY {get_sort_column(self.sort, per_game=self.per_game_mode, per_possession=self.per_possession_mode)} {self.order.upper()} NULLS LAST
         LIMIT {self.per_page} OFFSET {(self.page-1) * self.per_page}
         """
 
@@ -417,6 +662,7 @@ class PlayerStatsQueryBuilder:
         having_clause = build_having_clause(
             self.filters_list,
             per_game=self.per_game_mode,
+            per_possession=self.per_possession_mode,
             table_prefix="tcs."
         )
 
@@ -449,7 +695,7 @@ class PlayerStatsQueryBuilder:
                 SUM(pss.total_d_points_played) as total_d_points_played,
                 SUM(pss.total_hockey_assists) as total_hockey_assists
             FROM player_season_stats pss
-            WHERE {team_filter_for_count}
+            WHERE {team_filter_for_count}{self._build_possession_year_filter()}
             GROUP BY pss.player_id
         ),
         games_count AS (
@@ -475,7 +721,7 @@ class PlayerStatsQueryBuilder:
             return f"""
             SELECT COUNT(DISTINCT pss.player_id) as total
             FROM player_season_stats pss
-            WHERE {team_filter_for_count}
+            WHERE {team_filter_for_count}{self._build_possession_year_filter()}
             AND EXISTS (
                 SELECT 1 FROM player_game_stats pgs
                 WHERE pgs.player_id = pss.player_id
@@ -484,11 +730,26 @@ class PlayerStatsQueryBuilder:
             )
             """
         elif self.is_career_mode:
-            return f"""
-            SELECT COUNT(*) as total
-            FROM player_career_stats
-            WHERE games_played > 0
-            """
+            # When in per_possession mode, count from player_season_stats with year filter
+            if self.per_possession_mode:
+                return f"""
+                SELECT COUNT(DISTINCT pss.player_id) as total
+                FROM player_season_stats pss
+                WHERE pss.year >= 2014
+                AND EXISTS (
+                    SELECT 1 FROM player_game_stats pgs
+                    JOIN games g ON pgs.game_id = g.game_id
+                    WHERE pgs.player_id = pss.player_id
+                    AND g.year >= 2014
+                    AND (pgs.o_points_played > 0 OR pgs.d_points_played > 0 OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0)
+                )
+                """
+            else:
+                return f"""
+                SELECT COUNT(*) as total
+                FROM player_career_stats
+                WHERE games_played > 0
+                """
         else:
             return f"""
             SELECT COUNT(*) as total
@@ -496,7 +757,7 @@ class PlayerStatsQueryBuilder:
                 SELECT pss.player_id, pss.team_id, pss.year
                 FROM player_season_stats pss
                 LEFT JOIN player_game_stats pgs ON pss.player_id = pgs.player_id AND pss.year = pgs.year AND pss.team_id = pgs.team_id
-                WHERE 1=1{self.season_filter}{self.team_filter}
+                WHERE 1=1{self.season_filter}{self.team_filter}{self._build_possession_year_filter()}
                 GROUP BY pss.player_id, pss.team_id, pss.year
                 HAVING COUNT(DISTINCT CASE
                     WHEN (pgs.o_points_played > 0 OR pgs.d_points_played > 0 OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0)
