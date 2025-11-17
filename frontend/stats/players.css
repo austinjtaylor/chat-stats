@@ -535,9 +535,9 @@
 
 /* Fixed width for PER selector to prevent width changes */
 #perFilter {
-    min-width: 120px;
-    max-width: 120px;
-    width: 120px;
+    min-width: 145px;
+    max-width: 145px;
+    width: 145px;
 }
 
 /* Fixed width for team selector to prevent width changes */

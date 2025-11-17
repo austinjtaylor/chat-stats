@@ -7,7 +7,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import text
 
-from utils.query import convert_to_per_game_stats
+from utils.query import convert_to_per_game_stats, convert_to_per_possession_stats
 from data.cache import get_cache, cache_key_for_endpoint
 from .query_builder import PlayerStatsQueryBuilder
 from .percentile_calculator import calculate_global_percentiles
@@ -58,12 +58,14 @@ def create_player_stats_route(stats_system):
 
             # Build queries using query builder
             per_game_mode = (per == "game")
+            per_possession_mode = (per == "possession")
             query_builder = PlayerStatsQueryBuilder(
                 seasons=seasons,
                 teams=teams,
                 is_career_mode=is_career_mode,
                 filters_list=filters_list,
                 per_game_mode=per_game_mode,
+                per_possession_mode=per_possession_mode,
                 sort=sort,
                 order=order,
                 page=page,
@@ -86,6 +88,8 @@ def create_player_stats_route(stats_system):
             # Convert to per-game stats if requested
             if per == "game":
                 players = convert_to_per_game_stats(players)
+            elif per == "possession":
+                players = convert_to_per_possession_stats(players)
 
             # Calculate global percentiles for all players
             percentiles = {}

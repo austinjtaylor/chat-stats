@@ -25,7 +25,7 @@ interface CustomFilter {
 
 interface PlayerFilters {
     season: (string | number)[]; // Changed to array for multi-select
-    per: 'total' | 'per-game';
+    per: 'total' | 'game' | 'possession';
     team: string[]; // Changed to array for multi-select
     customFilters: CustomFilter[];
     careerMode: boolean; // Track if career mode is active
@@ -511,7 +511,8 @@ class PlayerStats {
     private initializePerMultiSelect(): void {
         const perOptions: MultiSelectOption[] = [
             { value: 'total', label: 'Total' },
-            { value: 'game', label: 'Per Game' }
+            { value: 'game', label: 'Per Game' },
+            { value: 'possession', label: 'Per 100 Poss' }
         ];
 
         this.perMultiSelect = new MultiSelect({
@@ -591,7 +592,7 @@ class PlayerStats {
     private handlePerChange(selected: (string | number)[]): void {
         // Update filters based on selection (exclusive mode - only one value)
         const value = selected[0] || 'total';
-        this.filters.per = value === 'game' ? 'per-game' : 'total';
+        this.filters.per = value as 'total' | 'game' | 'possession';
 
         this.currentPage = 1;
         this.clearCache();
