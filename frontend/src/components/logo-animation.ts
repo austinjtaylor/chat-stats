@@ -16,8 +16,7 @@ interface LogoElements {
 }
 
 // Configuration
-const ACTIVATION_RADIUS = 150; // Distance in pixels to activate the animation (reduced from 200)
-const LOGO_CENTER = { x: 100, y: 100 }; // Center point in SVG viewBox coordinates
+const ACTIVATION_RADIUS = 80; // Distance in pixels to activate the animation
 const BASE_HEIGHTS = { bar1: 30, bar2: 50, bar3: 40 }; // Base heights for the stat bars
 const HEIGHT_VARIATION = 25; // How much the heights can vary
 
@@ -60,6 +59,9 @@ export class LogoAnimation {
             console.warn('Some logo elements not found');
             return;
         }
+
+        // Set initial static tail position
+        this.resetLogo();
 
         // Add event listener for mouse movement
         document.addEventListener('mousemove', this.handleMouseMove);
@@ -122,7 +124,7 @@ export class LogoAnimation {
                 this.isActive = true;
                 this.elements.wrapper.classList.add('logo-active');
             }
-            this.updateAnimation(dx, dy, distance);
+            this.updateAnimation(dx, dy);
         } else {
             if (this.isActive) {
                 this.isActive = false;
@@ -135,7 +137,7 @@ export class LogoAnimation {
     /**
      * Update the logo animation based on cursor position
      */
-    private updateAnimation(dx: number, dy: number, distance: number): void {
+    private updateAnimation(dx: number, dy: number): void {
         if (!this.elements) return;
 
         // Calculate angle in radians (-π to π)
@@ -144,52 +146,10 @@ export class LogoAnimation {
         // Convert to degrees (0-360)
         const degrees = ((angle * 180 / Math.PI) + 360) % 360;
 
-        // Update tail direction
-        this.updateTail(angle, distance);
+        // Tail is now static, no longer follows cursor
 
         // Update bar heights based on angle
         this.updateBarHeights(degrees);
-    }
-
-    /**
-     * Update the tail to point toward the cursor
-     */
-    private updateTail(angle: number, distance: number): void {
-        if (!this.elements) return;
-
-        // Calculate tail anchor point on the circle (same side as cursor, pointing toward it)
-        const tailBaseAngle = angle;
-        const circleRadius = 75;
-
-        // Calculate the tail width (angular spread) - narrower tail
-        const tailWidthAngle = 0.25; // radians
-
-        // Three anchor points on the circle edge
-        const anchor1Angle = tailBaseAngle - tailWidthAngle;
-        const anchor2Angle = tailBaseAngle + tailWidthAngle;
-        const anchorCenterAngle = tailBaseAngle;
-
-        const anchor1X = LOGO_CENTER.x + Math.cos(anchor1Angle) * circleRadius;
-        const anchor1Y = LOGO_CENTER.y + Math.sin(anchor1Angle) * circleRadius;
-
-        const anchor2X = LOGO_CENTER.x + Math.cos(anchor2Angle) * circleRadius;
-        const anchor2Y = LOGO_CENTER.y + Math.sin(anchor2Angle) * circleRadius;
-
-        // Center anchor for smoother connection
-        const anchorCenterX = LOGO_CENTER.x + Math.cos(anchorCenterAngle) * circleRadius;
-        const anchorCenterY = LOGO_CENTER.y + Math.sin(anchorCenterAngle) * circleRadius;
-
-        // Tail tip (extends outward from the circle) - shorter length
-        const tailLength = Math.min(30, 25 + distance / 30); // Reduced length
-        const tipX = LOGO_CENTER.x + Math.cos(tailBaseAngle) * (circleRadius + tailLength);
-        const tipY = LOGO_CENTER.y + Math.sin(tailBaseAngle) * (circleRadius + tailLength);
-
-        // Create polygon points: anchor1 -> tip -> anchor2 -> anchorCenter (back to circle)
-        const points = `${anchor1X},${anchor1Y} ${tipX},${tipY} ${anchor2X},${anchor2Y} ${anchorCenterX},${anchorCenterY}`;
-
-        // Update both light and dark versions
-        this.elements.tailLight.setAttribute('points', points);
-        this.elements.tailDark.setAttribute('points', points);
     }
 
     /**
@@ -248,11 +208,11 @@ export class LogoAnimation {
     private resetLogo(): void {
         if (!this.elements) return;
 
-        // Reset tail to original position (bottom-left, pointing to lower-left)
-        const originalTailPoints = "62.71,165.09 34.89,137.26 29.72,173.93";
+        // Static tail position pointing down-left at 45 degrees (from original SVG)
+        const staticTailPoints = "62.71,165.09 34.89,137.26 29.72,173.93";
 
-        this.elements.tailLight.setAttribute('points', originalTailPoints);
-        this.elements.tailDark.setAttribute('points', originalTailPoints);
+        this.elements.tailLight.setAttribute('points', staticTailPoints);
+        this.elements.tailDark.setAttribute('points', staticTailPoints);
 
         // Reset bars to original heights
         this.elements.bar1Light.setAttribute('y', '95');
