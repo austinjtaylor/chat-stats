@@ -5,12 +5,12 @@ This file now serves as a thin orchestrator delegating to specialized service mo
 The original 707-line file has been split into focused services for better maintainability.
 
 See backend/services/chat_system/ for the new modular structure:
-- database_stats.py: Database statistics and health checks (280 lines)
-- search.py: Player/team search functionality (72 lines)
-- team_stats.py: Comprehensive team statistics (254 lines)
-- data_import.py: Data import operations (65 lines)
+- database_stats.py: Database statistics and health checks (271 lines)
+- search.py: Player/team search and recent games (78 lines)
+- team_stats.py: Comprehensive team statistics (252 lines)
+- data_import.py: Data import operations (71 lines)
 
-Total: 671 lines across 4 focused service modules (was 707 lines in 1 monolithic file)
+Total: 672 lines across 4 focused service modules (was 707 lines in 1 monolithic file)
 """
 
 from typing import Any

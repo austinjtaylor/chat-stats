@@ -2,8 +2,6 @@
 Stripe payment and subscription API routes.
 """
 
-from datetime import datetime, timedelta
-
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 
 from auth import get_current_user
@@ -19,6 +17,12 @@ from models.subscription import (
 )
 from services.stripe_service import get_stripe_service
 from services.subscription_service import get_subscription_service
+from services.stripe_webhook import (
+    CheckoutHandler,
+    InvoiceHandler,
+    SubscriptionHandler,
+    map_price_to_tier,
+)
 from utils.security_logger import log_webhook_event, log_payment_attempt
 from utils.validators import validate_price_id, validate_redirect_url, validate_customer_email
 
@@ -161,141 +165,23 @@ def create_stripe_routes(stats_system):
 
         subscription_service = get_subscription_service(stats_system.db)
 
-        # Handle different event types
+        # Handle different event types using specialized handlers
         if event.type == "checkout.session.completed":
-            # Payment successful - subscription created
-            session = event.data.object
-            user_id = session.metadata.get("user_id")
-            stripe_customer_id = session.customer
-            stripe_subscription_id = session.subscription
-
-            if user_id and stripe_subscription_id:
-                # Get price from checkout session line items (more reliable than subscription)
-                import stripe
-                line_items = stripe.checkout.Session.list_line_items(session.id, limit=1)
-                price_id = line_items.data[0].price.id
-
-                # Map price_id to tier
-                tier = _map_price_to_tier(price_id)
-
-                # Fetch the subscription to get accurate period dates
-                subscription = stripe.Subscription.retrieve(stripe_subscription_id)
-
-                # Set the payment method as customer's default (so it shows in payment settings)
-                if subscription.get('default_payment_method'):
-                    try:
-                        stripe.Customer.modify(
-                            stripe_customer_id,
-                            invoice_settings={
-                                'default_payment_method': subscription['default_payment_method']
-                            }
-                        )
-                    except Exception as e:
-                        # Log but don't fail the webhook if setting default payment method fails
-                        print(f"Warning: Failed to set default payment method: {e}")
-
-                # Get period dates with fallback (Stripe may not populate these immediately)
-                now = datetime.now()
-                period_start = subscription.get('current_period_start')
-                period_end = subscription.get('current_period_end')
-
-                # Calculate defaults if not available (30 days for monthly subscriptions)
-                if not period_start:
-                    period_start = int(now.timestamp())
-                if not period_end:
-                    period_end = int((now + timedelta(days=30)).timestamp())
-
-                # Update user subscription
-                subscription_service.update_subscription_from_stripe(
-                    user_id=user_id,
-                    stripe_customer_id=stripe_customer_id,
-                    stripe_subscription_id=stripe_subscription_id,
-                    stripe_price_id=price_id,
-                    tier=tier,
-                    status="active",
-                    current_period_start=datetime.fromtimestamp(period_start),
-                    current_period_end=datetime.fromtimestamp(period_end),
-                )
-
+            CheckoutHandler.handle_checkout_completed(
+                event, subscription_service, map_price_to_tier
+            )
         elif event.type == "invoice.payment_succeeded":
-            # Recurring payment successful
-            invoice = event.data.object
-            stripe_subscription_id = invoice.get('subscription')
-
-            if stripe_subscription_id:
-                # Reset monthly query count
-                query = """
-                SELECT user_id FROM user_subscriptions
-                WHERE stripe_subscription_id = :subscription_id
-                """
-                result = stats_system.db.execute_query(
-                    query, {"subscription_id": stripe_subscription_id}
-                )
-
-                if result:
-                    user_id = str(result[0]["user_id"])
-                    subscription_service.reset_monthly_queries(user_id)
-
+            InvoiceHandler.handle_payment_succeeded(
+                event, subscription_service, stats_system.db
+            )
         elif event.type == "customer.subscription.updated":
-            # Subscription changed (tier upgrade/downgrade, cancellation scheduled)
-            subscription = event.data.object
-            stripe_subscription_id = subscription.id
-
-            # Find user
-            query = """
-            SELECT user_id FROM user_subscriptions
-            WHERE stripe_subscription_id = :subscription_id
-            """
-            result = stats_system.db.execute_query(
-                query, {"subscription_id": stripe_subscription_id}
+            SubscriptionHandler.handle_subscription_updated(
+                event, subscription_service, stats_system.db, map_price_to_tier
             )
-
-            if result:
-                user_id = str(result[0]["user_id"])
-
-                if subscription.get('cancel_at_period_end'):
-                    # User scheduled cancellation
-                    subscription_service.cancel_subscription(
-                        user_id, cancel_at_period_end=True
-                    )
-                else:
-                    # Subscription reactivated or upgraded
-                    price_id = subscription['items']['data'][0]['price']['id']
-                    tier = _map_price_to_tier(price_id)
-
-                    # Get period dates with fallback
-                    now = datetime.now()
-                    period_start = subscription.get('current_period_start', int(now.timestamp()))
-                    period_end = subscription.get('current_period_end', int((now + timedelta(days=30)).timestamp()))
-
-                    subscription_service.update_subscription_from_stripe(
-                        user_id=user_id,
-                        stripe_customer_id=subscription['customer'],
-                        stripe_subscription_id=stripe_subscription_id,
-                        stripe_price_id=price_id,
-                        tier=tier,
-                        status=subscription['status'],
-                        current_period_start=datetime.fromtimestamp(period_start),
-                        current_period_end=datetime.fromtimestamp(period_end),
-                    )
-
         elif event.type == "customer.subscription.deleted":
-            # Subscription canceled/ended
-            subscription = event.data.object
-            stripe_subscription_id = subscription.id
-
-            # Find user and downgrade to free
-            query = """
-            SELECT user_id FROM user_subscriptions
-            WHERE stripe_subscription_id = :subscription_id
-            """
-            result = stats_system.db.execute_query(
-                query, {"subscription_id": stripe_subscription_id}
+            SubscriptionHandler.handle_subscription_deleted(
+                event, subscription_service, stats_system.db
             )
-
-            if result:
-                user_id = str(result[0]["user_id"])
-                subscription_service.downgrade_to_free(user_id)
 
         return {"status": "success"}
 
@@ -546,19 +432,3 @@ def create_stripe_routes(stats_system):
         return StripeSetupIntentResponse(client_secret=setup_intent["client_secret"])
 
     return router
-
-
-def _map_price_to_tier(price_id: str) -> str:
-    """
-    Map Stripe Price ID to subscription tier.
-
-    TODO: Configure these in your environment variables or database.
-    Create prices in Stripe dashboard and map them here.
-    """
-    # Map your actual Stripe price IDs
-    price_tier_map = {
-        "price_1SHunhFDSSUl9V6nc8jPnWX7": "pro",  # Pro plan: $4.99/month (PRODUCTION)
-        "price_1SIsmsFDSSUl9V6nwVqyHUGY": "pro",  # Pro plan: $0.10/month (TEST - LIVE MODE)
-    }
-
-    return price_tier_map.get(price_id, "free")
