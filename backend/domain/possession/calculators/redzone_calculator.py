@@ -40,7 +40,7 @@ class RedzoneCalculator:
         if not events:
             return {
                 "redzone_possessions": 0,
-                "redzone_scores": 0,
+                "redzone_goals": 0,
                 "redzone_attempts": 0,
             }
 
@@ -146,7 +146,7 @@ class RedzoneCalculator:
         for team_id in team_ids:
             team_stats = {
                 "redzone_possessions": 0,
-                "redzone_scores": 0,
+                "redzone_goals": 0,
                 "redzone_attempts": 0,
             }
 
@@ -158,7 +158,7 @@ class RedzoneCalculator:
 
                     # Aggregate stats
                     team_stats["redzone_possessions"] += game_stats.redzone_possessions
-                    team_stats["redzone_scores"] += game_stats.redzone_scores
+                    team_stats["redzone_goals"] += game_stats.redzone_goals
                     team_stats["redzone_attempts"] += game_stats.redzone_attempts
 
             results[team_id] = team_stats

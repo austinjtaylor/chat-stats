@@ -78,14 +78,14 @@ class RedzoneStats:
     Aggregated redzone statistics for a team.
     """
     redzone_possessions: int = 0
-    redzone_scores: int = 0
+    redzone_goals: int = 0
     redzone_attempts: int = 0  # Possessions that reached redzone
 
     def to_dict(self) -> dict:
         """Convert to dictionary format."""
         return {
             "redzone_possessions": self.redzone_possessions,
-            "redzone_scores": self.redzone_scores,
+            "redzone_goals": self.redzone_goals,
             "redzone_attempts": self.redzone_attempts,
         }
 
