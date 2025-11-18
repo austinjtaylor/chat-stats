@@ -92,28 +92,97 @@ def populate_possession_stats(db):
                     season_param=year
                 )
 
+                # Calculate opponent stats for each team
+                print(f"     🔄 Calculating opponent stats...")
+                opponent_stats_map = {}
+                for team_id in year_teams:
+                    # Get all opponents this team faced during the season
+                    opponents_query = text("""
+                        SELECT
+                            CASE
+                                WHEN g.home_team_id = :team_id THEN g.away_team_id
+                                ELSE g.home_team_id
+                            END as opponent_id
+                        FROM games g
+                        WHERE (g.home_team_id = :team_id OR g.away_team_id = :team_id)
+                            AND g.year = :year
+                            AND g.game_type NOT IN ('all-star', 'showcase')
+                    """)
+
+                    opponents = conn.execute(opponents_query, {
+                        'team_id': team_id,
+                        'year': year
+                    }).fetchall()
+
+                    # Aggregate opponent stats
+                    opp_o_line_points = 0
+                    opp_o_line_scores = 0
+                    opp_o_line_possessions = 0
+                    opp_d_line_points = 0
+                    opp_d_line_scores = 0
+                    opp_d_line_possessions = 0
+                    opp_rz_scores = 0
+                    opp_rz_attempts = 0
+
+                    for (opponent_id,) in opponents:
+                        opp_poss = possession_stats.get(opponent_id, {})
+                        opp_rz = redzone_stats.get(opponent_id, {})
+
+                        opp_o_line_points += opp_poss.get('o_line_points', 0)
+                        opp_o_line_scores += opp_poss.get('o_line_scores', 0)
+                        opp_o_line_possessions += opp_poss.get('o_line_possessions', 0)
+                        opp_d_line_points += opp_poss.get('d_line_points', 0)
+                        opp_d_line_scores += opp_poss.get('d_line_scores', 0)
+                        opp_d_line_possessions += opp_poss.get('d_line_possessions', 0)
+                        opp_rz_scores += opp_rz.get('redzone_goals', 0)
+                        opp_rz_attempts += opp_rz.get('redzone_attempts', 0)
+
+                    # Calculate opponent percentages
+                    opp_hold_pct = round((opp_o_line_scores / opp_o_line_points) * 100, 2) if opp_o_line_points > 0 else 0.0
+                    opp_o_conv = round((opp_o_line_scores / opp_o_line_possessions) * 100, 2) if opp_o_line_possessions > 0 else 0.0
+                    opp_break_pct = round((opp_d_line_scores / opp_d_line_points) * 100, 2) if opp_d_line_points > 0 else 0.0
+                    opp_d_conv = round((opp_d_line_scores / opp_d_line_possessions) * 100, 2) if opp_d_line_possessions > 0 else 0.0
+                    opp_rz_conv = round((opp_rz_scores / opp_rz_attempts) * 100, 2) if opp_rz_attempts > 0 else 0.0
+
+                    opponent_stats_map[team_id] = {
+                        'opp_o_line_points': opp_o_line_points,
+                        'opp_o_line_scores': opp_o_line_scores,
+                        'opp_o_line_possessions': opp_o_line_possessions,
+                        'opp_d_line_points': opp_d_line_points,
+                        'opp_d_line_scores': opp_d_line_scores,
+                        'opp_d_line_possessions': opp_d_line_possessions,
+                        'opp_rz_scores': opp_rz_scores,
+                        'opp_rz_attempts': opp_rz_attempts,
+                        'opp_hold_pct': opp_hold_pct,
+                        'opp_o_conv': opp_o_conv,
+                        'opp_break_pct': opp_break_pct,
+                        'opp_d_conv': opp_d_conv,
+                        'opp_rz_conv': opp_rz_conv,
+                    }
+
                 # Update each team's stats in the database
                 print(f"     💾 Updating database...")
                 for team_id in year_teams:
                     poss = possession_stats.get(team_id, {})
                     rz = redzone_stats.get(team_id, {})
+                    opp = opponent_stats_map.get(team_id, {})
 
-                    # Get raw counts
+                    # Get team raw counts
                     o_line_points = poss.get('o_line_points', 0)
                     o_line_scores = poss.get('o_line_scores', 0)
                     o_line_possessions = poss.get('o_line_possessions', 0)
                     d_line_points = poss.get('d_line_points', 0)
                     d_line_scores = poss.get('d_line_scores', 0)
                     d_line_possessions = poss.get('d_line_possessions', 0)
-                    rz_possessions = rz.get('possessions', 0)
-                    rz_goals = rz.get('goals', 0)
+                    rz_scores = rz.get('redzone_goals', 0)
+                    rz_attempts = rz.get('redzone_attempts', 0)
 
-                    # Calculate percentages
+                    # Calculate team percentages
                     hold_pct = round((o_line_scores / o_line_points) * 100, 2) if o_line_points > 0 else 0.0
                     o_conv = round((o_line_scores / o_line_possessions) * 100, 2) if o_line_possessions > 0 else 0.0
                     break_pct = round((d_line_scores / d_line_points) * 100, 2) if d_line_points > 0 else 0.0
                     d_conv = round((d_line_scores / d_line_possessions) * 100, 2) if d_line_possessions > 0 else 0.0
-                    rz_conv = round((rz_goals / rz_possessions) * 100, 2) if rz_possessions > 0 else 0.0
+                    rz_conv = round((rz_scores / rz_attempts) * 100, 2) if rz_attempts > 0 else 0.0
 
                     update_query = text("""
                         UPDATE team_season_stats
@@ -124,13 +193,26 @@ def populate_possession_stats(db):
                             d_line_points = :d_line_points,
                             d_line_scores = :d_line_scores,
                             d_line_possessions = :d_line_possessions,
-                            redzone_possessions = :rz_possessions,
                             redzone_goals = :rz_goals,
+                            redzone_attempts = :rz_attempts,
                             hold_percentage = :hold_pct,
                             o_line_conversion = :o_conv,
                             break_percentage = :break_pct,
                             d_line_conversion = :d_conv,
                             red_zone_conversion = :rz_conv,
+                            opp_o_line_points = :opp_o_line_points,
+                            opp_o_line_scores = :opp_o_line_scores,
+                            opp_o_line_possessions = :opp_o_line_possessions,
+                            opp_d_line_points = :opp_d_line_points,
+                            opp_d_line_scores = :opp_d_line_scores,
+                            opp_d_line_possessions = :opp_d_line_possessions,
+                            opp_redzone_goals = :opp_rz_goals,
+                            opp_redzone_attempts = :opp_rz_attempts,
+                            opp_hold_percentage = :opp_hold_pct,
+                            opp_o_line_conversion = :opp_o_conv,
+                            opp_break_percentage = :opp_break_pct,
+                            opp_d_line_conversion = :opp_d_conv,
+                            opp_red_zone_conversion = :opp_rz_conv,
                             updated_at = CURRENT_TIMESTAMP
                         WHERE team_id = :team_id AND year = :year
                     """)
@@ -142,13 +224,26 @@ def populate_possession_stats(db):
                         'd_line_points': d_line_points,
                         'd_line_scores': d_line_scores,
                         'd_line_possessions': d_line_possessions,
-                        'rz_possessions': rz_possessions,
-                        'rz_goals': rz_goals,
+                        'rz_goals': rz_scores,
+                        'rz_attempts': rz_attempts,
                         'hold_pct': hold_pct,
                         'o_conv': o_conv,
                         'break_pct': break_pct,
                         'd_conv': d_conv,
                         'rz_conv': rz_conv,
+                        'opp_o_line_points': opp.get('opp_o_line_points', 0),
+                        'opp_o_line_scores': opp.get('opp_o_line_scores', 0),
+                        'opp_o_line_possessions': opp.get('opp_o_line_possessions', 0),
+                        'opp_d_line_points': opp.get('opp_d_line_points', 0),
+                        'opp_d_line_scores': opp.get('opp_d_line_scores', 0),
+                        'opp_d_line_possessions': opp.get('opp_d_line_possessions', 0),
+                        'opp_rz_goals': opp.get('opp_rz_scores', 0),
+                        'opp_rz_attempts': opp.get('opp_rz_attempts', 0),
+                        'opp_hold_pct': opp.get('opp_hold_pct', 0.0),
+                        'opp_o_conv': opp.get('opp_o_conv', 0.0),
+                        'opp_break_pct': opp.get('opp_break_pct', 0.0),
+                        'opp_d_conv': opp.get('opp_d_conv', 0.0),
+                        'opp_rz_conv': opp.get('opp_rz_conv', 0.0),
                         'team_id': team_id,
                         'year': year
                     })

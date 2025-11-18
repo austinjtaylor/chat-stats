@@ -313,7 +313,7 @@ class RedzoneEventProcessor:
 
         stats.redzone_possessions = len(possessions)
         stats.redzone_attempts = sum(1 for p in possessions if p.reached_redzone)
-        stats.redzone_scores = sum(
+        stats.redzone_goals = sum(
             1 for p in possessions if p.reached_redzone and p.scored
         )
 

@@ -143,8 +143,8 @@ class TeamStatsService:
                     THEN ROUND((CAST(SUM(tss.d_line_scores) AS NUMERIC) / SUM(tss.d_line_possessions)) * 100, 2)
                     ELSE 0
                 END as d_line_conversion,
-                CASE WHEN SUM(tss.redzone_possessions) > 0
-                    THEN ROUND((CAST(SUM(tss.redzone_goals) AS NUMERIC) / SUM(tss.redzone_possessions)) * 100, 2)
+                CASE WHEN SUM(tss.redzone_attempts) > 0
+                    THEN ROUND((CAST(SUM(tss.redzone_goals) AS NUMERIC) / SUM(tss.redzone_attempts)) * 100, 2)
                     ELSE 0
                 END as red_zone_conversion
             FROM team_season_stats tss
