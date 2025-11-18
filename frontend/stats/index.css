@@ -4,7 +4,7 @@
 
 /* Stats Header */
 .stats-header {
-  padding: 0rem 2rem 0rem;
+  padding: 1rem 2rem 0rem;
 }
 
 .stats-title {
@@ -77,7 +77,7 @@
 /* Responsive */
 @media (max-width: 768px) {
   .stats-header {
-    padding: 1rem;
+    padding: 1.5rem 1rem;
   }
 
   .stats-title {
