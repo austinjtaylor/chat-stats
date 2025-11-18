@@ -180,6 +180,26 @@ async function updateUIForAuthState(session: Session | null) {
   }
 }
 
+/**
+ * Initialize mobile top bar scroll detection
+ * Shows/hides border when chat content scrolls
+ */
+function initMobileTopBar() {
+  const mobileTopBar = document.getElementById('mobileTopBar');
+  const chatContainer = document.querySelector('.chat-page-container');
+
+  if (!mobileTopBar || !chatContainer) return;
+
+  // Add scroll listener to detect when content scrolls
+  chatContainer.addEventListener('scroll', () => {
+    if (chatContainer.scrollTop > 0) {
+      mobileTopBar.classList.add('scrolled');
+    } else {
+      mobileTopBar.classList.remove('scrolled');
+    }
+  });
+}
+
 // Initialize the application when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', async () => {
@@ -190,6 +210,8 @@ if (document.readyState === 'loading') {
     initDropdowns();
     // Initialize the interactive logo animation
     initLogoAnimation();
+    // Initialize mobile top bar scroll detection
+    initMobileTopBar();
     // Initialize authentication
     await initAuth();
   });
@@ -202,6 +224,8 @@ if (document.readyState === 'loading') {
     initDropdowns();
     // Initialize the interactive logo animation
     initLogoAnimation();
+    // Initialize mobile top bar scroll detection
+    initMobileTopBar();
     // Initialize authentication
     await initAuth();
   })();

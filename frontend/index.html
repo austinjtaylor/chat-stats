@@ -41,6 +41,17 @@
     <link rel="stylesheet" href="styles/main.css">
 </head>
 <body class="chat-page">
+    <!-- Mobile Top Bar (only visible on mobile) -->
+    <div class="mobile-top-bar" id="mobileTopBar">
+        <!-- Mobile menu button will be positioned inside this bar via CSS -->
+        <h1 class="mobile-top-bar-title">Chat Stats</h1>
+        <button class="mobile-new-chat-button" aria-label="New chat" id="mobileNewChatButton" data-tooltip="New Chat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 5v14M5 12h14"></path>
+            </svg>
+        </button>
+    </div>
+
     <!-- Static Sidebar (enhanced by JavaScript) -->
     <aside class="app-sidebar" role="navigation" aria-label="Main navigation" id="appSidebar">
       <div class="sidebar-header">
