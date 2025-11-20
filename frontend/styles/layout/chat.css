@@ -332,7 +332,7 @@ body.sidebar-expanded.chat-active .chat-input-area {
 @media (max-width: 768px) {
     .chat-title {
         font-size: 1.75rem;
-        margin-bottom: 1rem;
+        margin-bottom: 0;
     }
 
     .chat-container-full {
@@ -371,7 +371,7 @@ body.sidebar-expanded.chat-active .chat-input-area {
 
     /* Adjust chat messages padding for mobile */
     .chat-active .chat-messages {
-        padding: 60px 1rem var(--chat-input-height, 74px) 1rem;
+        padding: 70px 1rem var(--chat-input-height, 74px) 1rem;
         width: 100%;
         margin-left: 0;
     }
@@ -403,5 +403,10 @@ body.sidebar-expanded.chat-active .chat-input-area {
 
     .chat-input-container {
         padding: 0.625rem 0.875rem 0.625rem 1.125rem;
+    }
+
+    /* Keep gradient just below mobile top bar */
+    .chat-active .chat-container-full::before {
+        top: 48px;
     }
 }

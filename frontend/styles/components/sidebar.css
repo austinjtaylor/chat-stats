@@ -848,13 +848,124 @@ body:not(.sidebar-expanded) .settings-container {
   background: var(--text-secondary);
 }
 
+/* Mobile Top Bar */
+.mobile-top-bar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-top-bar {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 48px;
+    background: var(--background);
+    z-index: 9998;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s ease;
+  }
+
+  .mobile-top-bar.scrolled {
+    border-bottom-color: var(--border-color);
+  }
+
+  .mobile-top-bar-title {
+    position: fixed;
+    top: 0;
+    left: 52px;
+    height: 48px;
+    display: none;
+    align-items: center;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    z-index: 9998;
+    pointer-events: none;
+  }
+
+  /* Show title only when chat is active */
+  .chat-active .mobile-top-bar-title {
+    display: flex;
+  }
+
+  .mobile-new-chat-button {
+    position: fixed;
+    top: 4px;
+    right: 4px;
+    width: 40px;
+    height: 40px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    z-index: 9999;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+    padding: 0;
+  }
+
+  /* Show new chat button only when chat is active */
+  .chat-active .mobile-new-chat-button {
+    display: flex;
+  }
+
+  .mobile-new-chat-button:hover {
+    background: var(--surface-hover);
+  }
+
+  .mobile-new-chat-button svg {
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+  }
+
+  /* Hide new chat button when sidebar is expanded */
+  .app-sidebar.expanded ~ .mobile-top-bar .mobile-new-chat-button {
+    display: none;
+  }
+}
+
+/* Tooltip for mobile new chat button */
+.mobile-new-chat-button::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: calc(100% + 2px);
+  right: 0;
+  background: var(--surface);
+  color: var(--text-primary);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 10001;
+  border: 1px solid var(--border-color);
+}
+
+/* Show tooltip on hover */
+.mobile-new-chat-button:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
 /* Mobile Hamburger Menu Button */
 .mobile-menu-button {
   position: fixed;
-  top: 8px;
-  left: 8px;
-  width: 44px;
-  height: 44px;
+  top: 4px;
+  left: 4px;
+  width: 40px;
+  height: 40px;
   display: none;
   align-items: center;
   justify-content: center;
@@ -873,6 +984,34 @@ body:not(.sidebar-expanded) .settings-container {
 }
 
 .mobile-menu-button svg {
+  pointer-events: none;
+}
+
+/* Mobile Close Button (when sidebar is expanded) */
+.mobile-close-button {
+  position: fixed;
+  top: 4px;
+  right: 4px;
+  width: 40px;
+  height: 40px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  z-index: 10001;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.mobile-close-button:hover {
+  background: var(--surface-hover);
+}
+
+.mobile-close-button svg {
   pointer-events: none;
 }
 

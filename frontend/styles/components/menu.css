@@ -113,6 +113,14 @@
     margin-bottom: 1rem;
 }
 
+.chat-title-wrapper .logo-wrapper {
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .chat-title-wrapper .logo-wrapper img,
 .chat-title-wrapper .logo-wrapper svg {
     height: 45px;
@@ -123,7 +131,7 @@
     backface-visibility: hidden;
     image-rendering: crisp-edges;
     image-rendering: -webkit-optimize-contrast;
-    transform: translateY(8px);  /* Slight downward adjustment for vertical centering */
+    transform: none;  /* Override the general translateY(8px) */
 }
 
 /* Logo on stats pages - next to menu button */

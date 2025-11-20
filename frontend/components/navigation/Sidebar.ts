@@ -278,7 +278,7 @@ export class Sidebar {
     mobileButton.innerHTML = `
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
         <line x1="3" y1="7" x2="21" y2="7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        <line x1="3" y1="17" x2="18" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <line x1="3" y1="17" x2="16" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       </svg>
     `;
 
@@ -287,6 +287,36 @@ export class Sidebar {
 
     // Append to body (outside sidebar so it's always visible)
     document.body.appendChild(mobileButton);
+
+    // Create close button (shows when sidebar is open)
+    const closeButton = document.createElement('button');
+    closeButton.className = 'mobile-close-button';
+    closeButton.setAttribute('aria-label', 'Close menu');
+    closeButton.innerHTML = `
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    `;
+
+    // Add click handler to close sidebar
+    closeButton.addEventListener('click', () => this.collapse());
+
+    // Append to body
+    document.body.appendChild(closeButton);
+
+    // Set up mobile new chat button (already in HTML)
+    this.setupMobileNewChatButton();
+  }
+
+  /**
+   * Set up mobile new chat button click handler
+   */
+  private setupMobileNewChatButton(): void {
+    const mobileNewChatButton = document.getElementById('mobileNewChatButton');
+    if (mobileNewChatButton) {
+      mobileNewChatButton.addEventListener('click', () => this.handleNewChat());
+    }
   }
 
   /**
