@@ -472,12 +472,10 @@ export class Sidebar {
       this.collapse();
     });
 
-    // Middle expander (clickable area to toggle sidebar)
+    // Middle expander (clickable area to expand sidebar when collapsed)
     const middleExpander = this.sidebar.querySelector('.sidebar-middle-expander');
     middleExpander?.addEventListener('click', () => {
-      if (this.isExpanded) {
-        this.collapse();
-      } else {
+      if (!this.isExpanded) {
         this.expand();
       }
     });
@@ -535,6 +533,14 @@ export class Sidebar {
     userBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.toggleUserDropdown();
+    });
+
+    // Settings link - close sidebar on mobile
+    const settingsLink = this.sidebar.querySelector('a[href="/settings.html"]');
+    settingsLink?.addEventListener('click', () => {
+      if (window.innerWidth <= 768) {
+        this.collapse();
+      }
     });
 
     // Logout button

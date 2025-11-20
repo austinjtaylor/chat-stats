@@ -102,29 +102,6 @@
   display: block !important;
 }
 
-/* Hover middle expander in expanded state: switch to base variants */
-/* Dark theme: switch from light-variant2 to light-base on hover */
-.app-sidebar.expanded:has(.sidebar-middle-expander:hover) .sidebar-logo-expanded .logo-light-variant2 {
-  display: none !important;
-}
-
-.app-sidebar.expanded:has(.sidebar-middle-expander:hover) .sidebar-logo-expanded .logo-light-base {
-  display: block !important;
-}
-
-/* Light theme: switch from dark-variant2 to dark-base on hover */
-:root[data-theme="light"] .app-sidebar.expanded:has(.sidebar-middle-expander:hover) .sidebar-logo-expanded .logo-dark-variant2 {
-  display: none !important;
-}
-
-:root[data-theme="light"] .app-sidebar.expanded:has(.sidebar-middle-expander:hover) .sidebar-logo-expanded .logo-dark-base {
-  display: block !important;
-}
-
-:root[data-theme="light"] .app-sidebar.expanded:has(.sidebar-middle-expander:hover) .sidebar-logo-expanded .logo-light-base {
-  display: none !important;
-}
-
 /* Close button for expanded state (top right) */
 .sidebar-close-button {
   display: none;
@@ -259,15 +236,6 @@ body.chat-page:not(.chat-active) .app-sidebar.expanded .sidebar-toggle-arrow-lef
 }
 
 .app-sidebar.expanded .sidebar-toggle:hover .sidebar-toggle-arrow-left {
-  opacity: 1;
-}
-
-/* Hover middle expander: Hide hamburger, show arrow-left */
-.app-sidebar.expanded:has(.sidebar-middle-expander:hover) .sidebar-toggle-hamburger {
-  opacity: 0;
-}
-
-.app-sidebar.expanded:has(.sidebar-middle-expander:hover) .sidebar-toggle-arrow-left {
   opacity: 1;
 }
 
@@ -446,9 +414,9 @@ body.chat-page:not(.chat-active) .app-sidebar.expanded .sidebar-toggle-arrow-lef
   transition: background 0.2s ease;
 }
 
-/* When expanded, hovering middle expander changes entire sidebar background (opposite of collapsed) */
-.app-sidebar.expanded:has(.sidebar-middle-expander:hover) {
-  background: var(--background);
+/* Remove pointer cursor when sidebar is expanded */
+.app-sidebar.expanded .sidebar-middle-expander {
+  cursor: default;
 }
 
 /* Tooltips for collapsed sidebar */
