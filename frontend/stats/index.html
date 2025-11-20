@@ -43,6 +43,7 @@
     <!-- Static Sidebar (enhanced by JavaScript) -->
     <aside class="app-sidebar" role="navigation" aria-label="Main navigation" id="appSidebar">
       <div class="sidebar-header">
+        <!-- Toggle button for collapsed state -->
         <button class="sidebar-toggle" aria-label="Toggle sidebar" aria-expanded="false" data-tooltip="Expand sidebar">
           <img src="/images/logo/chat-stats-logo-light.svg" alt="Chat Stats" class="sidebar-toggle-logo logo-light">
           <img src="/images/logo/chat-stats-logo-dark.svg" alt="Chat Stats" class="sidebar-toggle-logo logo-dark">
@@ -63,9 +64,28 @@
             </svg>
           </span>
         </button>
+
+        <!-- Plain logo for expanded state (top left) -->
+        <div class="sidebar-logo-expanded">
+          <img src="/images/logo/chat-stats-logo-light2.svg" alt="Chat Stats" class="logo-light-variant2">
+          <img src="/images/logo/chat-stats-logo-dark2.svg" alt="Chat Stats" class="logo-dark-variant2">
+          <img src="/images/logo/chat-stats-logo-light.svg" alt="Chat Stats" class="logo-light-base">
+          <img src="/images/logo/chat-stats-logo-dark.svg" alt="Chat Stats" class="logo-dark-base">
+        </div>
+
+        <!-- Title for expanded state -->
         <div class="sidebar-title">
           <h2>Chat Stats</h2>
         </div>
+
+        <!-- Close button for expanded state (top right) -->
+        <button class="sidebar-close-button" aria-label="Close sidebar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="6" y1="4" x2="6" y2="20"></line>
+            <line x1="10" y1="12" x2="18" y2="12"></line>
+            <polyline points="14 8 10 12 14 16"></polyline>
+          </svg>
+        </button>
       </div>
 
       <nav class="sidebar-nav">

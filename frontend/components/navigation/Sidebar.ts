@@ -68,6 +68,9 @@ export class Sidebar {
       this.sidebar = existingSidebar;
       this.backdrop = document.querySelector('.sidebar-backdrop');
 
+      // Attach click listener to pre-rendered backdrop
+      this.backdrop?.addEventListener('click', () => this.collapse());
+
       // Render user section with cached data (instant display, no fetching!)
       this.renderUserSection(false);
 
@@ -173,6 +176,7 @@ export class Sidebar {
 
     sidebar.innerHTML = `
       <div class="sidebar-header">
+        <!-- Toggle button for collapsed state -->
         <button class="sidebar-toggle" aria-label="Toggle sidebar" aria-expanded="${this.isExpanded}" data-tooltip="Expand sidebar">
           <img src="/images/logo/chat-stats-logo-light.svg" alt="Chat Stats" class="sidebar-toggle-logo logo-light">
           <img src="/images/logo/chat-stats-logo-dark.svg" alt="Chat Stats" class="sidebar-toggle-logo logo-dark">
@@ -193,9 +197,28 @@ export class Sidebar {
             </svg>
           </span>
         </button>
+
+        <!-- Plain logo for expanded state (top left) -->
+        <div class="sidebar-logo-expanded">
+          <img src="/images/logo/chat-stats-logo-light2.svg" alt="Chat Stats" class="logo-light-variant2">
+          <img src="/images/logo/chat-stats-logo-dark2.svg" alt="Chat Stats" class="logo-dark-variant2">
+          <img src="/images/logo/chat-stats-logo-light.svg" alt="Chat Stats" class="logo-light-base">
+          <img src="/images/logo/chat-stats-logo-dark.svg" alt="Chat Stats" class="logo-dark-base">
+        </div>
+
+        <!-- Title for expanded state -->
         <div class="sidebar-title">
           <h2>Chat Stats</h2>
         </div>
+
+        <!-- Close button for expanded state (top right) -->
+        <button class="sidebar-close-button" aria-label="Close sidebar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="6" y1="4" x2="6" y2="20"></line>
+            <line x1="10" y1="12" x2="18" y2="12"></line>
+            <polyline points="14 8 10 12 14 16"></polyline>
+          </svg>
+        </button>
       </div>
 
       <nav class="sidebar-nav">
@@ -264,23 +287,6 @@ export class Sidebar {
 
     // Append to body (outside sidebar so it's always visible)
     document.body.appendChild(mobileButton);
-
-    // Create close button (shows when sidebar is open)
-    const closeButton = document.createElement('button');
-    closeButton.className = 'mobile-close-button';
-    closeButton.setAttribute('aria-label', 'Close menu');
-    closeButton.innerHTML = `
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-    `;
-
-    // Add click handler to close sidebar
-    closeButton.addEventListener('click', () => this.collapse());
-
-    // Append to body
-    document.body.appendChild(closeButton);
   }
 
   /**
@@ -428,6 +434,12 @@ export class Sidebar {
     toggleBtn?.addEventListener('mouseleave', () => {
       // Remove clicked class when mouse leaves
       toggleBtn.classList.remove('clicked');
+    });
+
+    // Close button (for expanded state)
+    const closeBtn = this.sidebar.querySelector('.sidebar-close-button');
+    closeBtn?.addEventListener('click', () => {
+      this.collapse();
     });
 
     // Middle expander (clickable area to toggle sidebar)
