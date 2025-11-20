@@ -340,6 +340,18 @@ body.sidebar-expanded.chat-active .chat-input-area {
         padding: 0 1rem;
     }
 
+    /* Prevent chat page container shift on mobile (both active and non-active states) */
+    body.sidebar-expanded .chat-page-container,
+    body:not(.sidebar-expanded) .chat-page-container {
+        margin-left: 0 !important;
+    }
+
+    /* Prevent chat-main-full horizontal shift on mobile when sidebar expands */
+    body.sidebar-expanded .chat-main-full,
+    body.sidebar-expanded:not(.chat-active) .chat-main-full {
+        left: 50% !important;
+    }
+
     /* Make chat input responsive on mobile */
     .chat-input-container {
         width: 100%;

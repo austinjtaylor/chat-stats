@@ -790,6 +790,11 @@ html[data-theme="light"] .theme-option-title {
     padding: 16px;
   }
 
+  /* Prevent settings page shift on mobile when sidebar expands */
+  body.sidebar-expanded #settingsPageContainer {
+    left: 50% !important;
+  }
+
   .settings-header h1 {
     font-size: 24px;
   }
