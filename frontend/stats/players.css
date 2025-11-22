@@ -1,11 +1,16 @@
 /* Players Page Specific Styles */
 
+/* Remove sidebar margin for players page when sidebar is collapsed */
+body.stats-page[data-page="players"]:not(.sidebar-expanded) .stats-container {
+    margin-left: 0 !important;
+}
+
 /* Override container for players page */
 .stats-page[data-page="players"] .stats-main {
     max-width: min(1400px, calc(100vw - 40px)); /* Responsive: never exceed viewport - THIS IS THE FIX */
-    /* Keep padding on larger screens */
-    padding-left: 0rem;
-    padding-right: 2rem;
+    /* Remove padding to extend table to edges */
+    padding-left: 0 !important;
+    padding-right: 0;
     /* Allow dropdowns to overflow container */
     overflow: visible;
 }
@@ -28,8 +33,8 @@
 /* Player name column - fixed width to prevent overlap and make sticky */
 .stats-page[data-page="players"] .stats-table th:first-child,
 .stats-page[data-page="players"] .stats-table td:first-child {
-    width: 150px;
-    min-width: 150px;
+    width: 120px;
+    min-width: 120px;
     text-align: left;
     padding-left: 12px;
     padding-right: 8px;
@@ -469,6 +474,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    margin-top: 27px; /* Align with dropdowns (label height + gap) */
 }
 
 .filter-button:hover {
@@ -723,6 +729,96 @@
     .multi-select-option {
         padding: 0.75rem;
         min-height: 44px; /* Touch-friendly */
+    }
+
+    /* Compact filters for mobile */
+    #seasonFilter {
+        min-width: 100px;
+        max-width: 100px;
+        width: 100px;
+    }
+
+    #perFilter {
+        min-width: 100px;
+        max-width: 100px;
+        width: 100px;
+    }
+
+    #teamFilter {
+        min-width: 100px;
+        max-width: 100px;
+        width: 100px;
+    }
+
+    /* Reduce filter label font size and ensure proper alignment */
+    .filter-group.compact label {
+        font-size: 0.7rem;
+        margin: 0;
+        padding: 0;
+        width: auto;
+    }
+
+    /* Reduce dropdown toggle text size and padding */
+    .multi-select-toggle {
+        font-size: 0.75rem;
+        padding: 0.4rem 2rem 0.4rem 0.5rem;
+    }
+
+    .multi-select-toggle::after {
+        right: 0.5rem;
+        font-size: 0.6rem;
+    }
+
+    /* Hide filter button text on mobile, show only icon */
+    .filter-button-text {
+        display: none;
+    }
+
+    .filter-button-icon {
+        display: block;
+        width: 20px;
+        height: 20px;
+    }
+
+    /* Adjust filter button padding for icon-only mode */
+    .filter-button {
+        padding: 0.4rem 0.6rem;
+        min-height: auto;
+        position: relative; /* For absolute badge positioning */
+        margin-top: 23px; /* Align with dropdowns (label height + gap) */
+    }
+
+    /* Adjust badge position for icon-only button */
+    .filter-badge {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 4px;
+        font-size: 0.7rem;
+    }
+
+    /* Ensure filter groups stay compact and aligned */
+    .filter-group.compact {
+        flex-shrink: 0; /* Don't allow shrinking */
+    }
+
+    /* Remove max-width constraint and remove right padding on mobile */
+    .stats-page[data-page="players"] .stats-main {
+        max-width: none !important; /* Remove desktop max-width constraint */
+        padding-right: 0 !important; /* Remove right padding to extend table to edge */
+    }
+}
+
+/* Desktop: hide icon, show text */
+@media (min-width: 769px) {
+    .filter-button-icon {
+        display: none;
+    }
+
+    .filter-button-text {
+        display: inline;
     }
 }
 
