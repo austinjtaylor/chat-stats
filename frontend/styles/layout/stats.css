@@ -586,8 +586,7 @@ body[data-page="games"] .menu-dropdown .dropdown-item[href*="games"] {
 
 @media (max-width: 768px) {
     .stats-main {
-        padding: 1rem;
-        padding-top: 0;
+        padding: 0 0.5rem; /* 8px horizontal padding for content spacing */
     }
 
     /* Position stats title to the right of hamburger button - CORRECT CLASS */
@@ -604,6 +603,39 @@ body[data-page="games"] .menu-dropdown .dropdown-item[href*="games"] {
         margin-left: 90px;
         margin-top: 8px;
         margin-bottom: 1.5rem;
+    }
+
+    /* Stack table header elements on mobile */
+    .table-header {
+        flex-direction: column;
+        align-items: stretch; /* Use full width */
+        gap: 0.5rem;
+        width: 100%;
+    }
+
+    /* Give filters full width on mobile */
+    .table-filters {
+        gap: 0.3rem;
+        margin-left: 0;
+        margin-right: 0;
+        flex-wrap: nowrap; /* Keep filters horizontal */
+        width: 100%;
+    }
+
+    /* Stack labels above dropdowns on mobile */
+    .filter-group.compact {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+        flex: 0 0 auto; /* Don't grow, don't shrink, auto size */
+        width: auto; /* Size to content, not full width */
+    }
+
+    /* Move table-info to its own row, remove negative margin */
+    .table-info {
+        align-self: flex-start;
+        margin-top: 0;
+        width: 100%;
     }
 
     .filters-row {
@@ -640,18 +672,23 @@ body[data-page="games"] .menu-dropdown .dropdown-item[href*="games"] {
 }
 
 @media (max-width: 640px) {
+    /* Keep filters horizontal even on very small screens */
     .table-filters {
-        flex-direction: column;
-        align-items: stretch;
+        flex-direction: row; /* Override to keep horizontal */
+        flex-wrap: nowrap;
+        gap: 0.3rem;
     }
 
     .filter-group.compact {
-        width: 100%;
-        justify-content: space-between;
+        flex-direction: column; /* Stack label above dropdown */
+        align-items: flex-start;
+        gap: 0.25rem;
+        flex: 0 0 auto; /* Don't grow, don't shrink, auto size */
+        width: auto; /* Size to content, not full width */
     }
 
     .filter-select.compact {
-        flex: 1;
+        width: 100%;
         min-width: 0;
     }
 }
