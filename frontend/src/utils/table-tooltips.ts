@@ -96,9 +96,9 @@ export const teamColumnDescriptions: Record<string, string> = {
     SA: 'Scores Against',
     C: 'Completions',
     T: 'Turnovers',
-    'C%': 'Completion Percentage',
+    'C %': 'Completion Percentage',
     H: 'Hucks',
-    'H%': 'Huck Percentage',
+    'H %': 'Huck Percentage',
     'HLD %': 'Hold Percentage\n(O-line scores / O-line points)',
     'OLC %': 'O-line Conversion Percentage\n(O-line scores / O-line possessions)',
     B: 'Blocks',
@@ -106,19 +106,19 @@ export const teamColumnDescriptions: Record<string, string> = {
     'DLC %': 'D-line Conversion Percentage\n(D-line scores / D-line possessions)',
     'RZC %': 'Red Zone Conversion Percentage\n(Red zone scores / possessions within 20 yards of the endzone)',
     // Opponent stats
-    'Opp S': 'Opponent Scores',
-    'Opp SA': 'Opponent Scores Against',
-    'Opp C': 'Opponent Completions',
-    'Opp T': 'Opponent Turnovers',
-    'Opp C%': 'Opponent Completion Percentage',
-    'Opp H': 'Opponent Hucks',
-    'Opp H%': 'Opponent Huck Percentage',
-    'Opp HLD %': 'Opponent Hold Percentage\n(Opponent O-line scores / Opponent O-line points)',
-    'Opp OLC %': 'Opponent O-line Conversion Percentage\n(Opponent O-line scores / Opponent O-line possessions)',
-    'Opp B': 'Opponent Blocks',
-    'Opp BRK %': 'Opponent Break Percentage\n(Opponent D-line scores / Opponent D-line points)',
-    'Opp DLC %': 'Opponent D-line Conversion Percentage\n(Opponent D-line scores / Opponent D-line possessions)',
-    'Opp RZC %': 'Opponent Red Zone Conversion Percentage\n(Opponent Red zone scores / possessions within 20 yards of the endzone)'
+    'OppS': 'Opponent Scores',
+    'OppSA': 'Opponent Scores Against',
+    'OppC': 'Opponent Completions',
+    'OppT': 'Opponent Turnovers',
+    'OppC %': 'Opponent Completion Percentage',
+    'OppH': 'Opponent Hucks',
+    'OppH %': 'Opponent Huck Percentage',
+    'OppHLD %': 'Opponent Hold Percentage\n(Opponent O-line scores / Opponent O-line points)',
+    'OppOLC %': 'Opponent O-line Conversion Percentage\n(Opponent O-line scores / Opponent O-line possessions)',
+    'OppB': 'Opponent Blocks',
+    'OppBRK %': 'Opponent Break Percentage\n(Opponent D-line scores / Opponent D-line points)',
+    'OppDLC %': 'Opponent D-line Conversion Percentage\n(Opponent D-line scores / Opponent D-line possessions)',
+    'OppRZC %': 'Opponent Red Zone Conversion Percentage\n(Opponent Red zone scores / possessions within 20 yards of the endzone)'
 };
 
 // Column descriptions for Game Box Score table
@@ -200,8 +200,13 @@ export function initializeTableTooltips(tableId: string, columnDescriptions: Rec
 
     headers.forEach(header => {
         const th = header as HTMLElement;
-        const columnKey = th.getAttribute('data-sort') || th.textContent?.trim() || '';
-        const description = columnDescriptions[columnKey] || columnDescriptions[th.textContent?.trim() || ''];
+        const textContent = th.textContent?.trim() || '';
+        const dataSort = th.getAttribute('data-sort') || '';
+
+        // For opponent stats (starting with "Opp"), check textContent first
+        // Otherwise use data-sort attribute first
+        const columnKey = textContent.startsWith('Opp') ? textContent : (dataSort || textContent);
+        const description = columnDescriptions[columnKey] || columnDescriptions[textContent] || columnDescriptions[dataSort];
 
         if (description) {
             let tooltipTimeout: ReturnType<typeof setTimeout> | undefined;

@@ -192,3 +192,13 @@ body.stats-page[data-page="teams"]:not(.sidebar-expanded) .stats-container {
     background-color: var(--bg-primary) !important;
 }
 
+/* Support multi-line headers for opponent stats */
+.stats-page[data-page="teams"] .stats-table thead th {
+    white-space: normal; /* Allow line breaks */
+    line-height: 1.3; /* Tighter line spacing for multi-line headers */
+    vertical-align: middle; /* Center multi-line text vertically */
+    padding-top: 8px;
+    padding-bottom: 8px;
+    text-transform: none; /* Override uppercase transform to show "Opp" not "OPP" */
+}
+

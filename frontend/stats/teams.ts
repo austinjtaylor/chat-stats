@@ -105,7 +105,7 @@ class TeamStats {
 
     getColumnsForSeason(_season: string | number): TeamColumn[] {
         const isOpponent = this.filters.perspective === 'opponent';
-        const oppPrefix = isOpponent ? 'Opp ' : '';
+        const oppPrefix = isOpponent ? 'Opp\n' : '';
 
         // Base columns available for all years
         const baseColumns: TeamColumn[] = [
@@ -113,17 +113,17 @@ class TeamStats {
             { key: 'games_played', label: 'G', sortable: true },
             { key: 'wins', label: 'W', sortable: true },
             { key: 'losses', label: 'L', sortable: true },
-            { key: 'scores', label: isOpponent ? 'Opp S' : 'S', sortable: true },
-            { key: 'scores_against', label: isOpponent ? 'Opp SA' : 'SA', sortable: true },
+            { key: 'scores', label: 'S', sortable: true },
+            { key: 'scores_against', label: 'SA', sortable: true },
             { key: 'completions', label: `${oppPrefix}C`, sortable: true },
             { key: 'turnovers', label: `${oppPrefix}T`, sortable: true },
-            { key: 'completion_percentage', label: `${oppPrefix}C%`, sortable: true }
+            { key: 'completion_percentage', label: `${oppPrefix}C %`, sortable: true }
         ];
 
         // Advanced stats columns
         const advancedColumns: TeamColumn[] = [
             { key: 'hucks_completed', label: `${oppPrefix}H`, sortable: true },
-            { key: 'huck_percentage', label: `${oppPrefix}H%`, sortable: true },
+            { key: 'huck_percentage', label: `${oppPrefix}H %`, sortable: true },
             { key: 'hold_percentage', label: `${oppPrefix}HLD %`, sortable: true },
             { key: 'o_line_conversion', label: `${oppPrefix}OLC %`, sortable: true },
             { key: 'blocks', label: `${oppPrefix}B`, sortable: true },
@@ -147,7 +147,7 @@ class TeamStats {
         headerRow.innerHTML = '';
         columns.forEach(col => {
             const th = document.createElement('th');
-            th.textContent = col.label;
+            th.innerHTML = col.label.replace(/\n/g, '<br>');
             th.className = col.key === 'name' ? 'team-name' : 'numeric';
 
             if (col.sortable) {
