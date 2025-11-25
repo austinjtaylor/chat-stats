@@ -298,6 +298,47 @@ body.sidebar-expanded.chat-active .chat-input-area {
     transform: translateX(80px);
 }
 
+/* Scroll to Bottom Button */
+.scroll-to-bottom-button {
+    display: none; /* Hidden by default */
+    position: fixed;
+    bottom: calc(var(--chat-input-height, 74px) + 16px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow);
+    transition: all 0.2s ease;
+    z-index: 11; /* Above chat input area */
+}
+
+.scroll-to-bottom-button:hover {
+    background: var(--surface-hover);
+    border-color: var(--text-secondary);
+}
+
+.scroll-to-bottom-button svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Only show when chat is active and button is visible */
+.chat-active .scroll-to-bottom-button.visible {
+    display: flex;
+}
+
+/* Shift button when sidebar expands */
+body.sidebar-expanded.chat-active .scroll-to-bottom-button {
+    transform: translateX(calc(-50% + 80px));
+}
+
 /* When chat is active, hide centered and show inline */
 .chat-active .try-asking-container.try-asking-centered {
     display: none !important;
@@ -385,6 +426,22 @@ body.sidebar-expanded.chat-active .chat-input-area {
     body.sidebar-expanded.chat-active .chat-messages,
     body.sidebar-expanded.chat-active .chat-input-area {
         transform: none;
+    }
+
+    /* Scroll to bottom button mobile */
+    .scroll-to-bottom-button {
+        width: 44px;
+        height: 44px;
+    }
+
+    .scroll-to-bottom-button svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    /* No sidebar shift on mobile */
+    body.sidebar-expanded.chat-active .scroll-to-bottom-button {
+        transform: translateX(-50%);
     }
 
     /* Increase button sizes for better touch targets */

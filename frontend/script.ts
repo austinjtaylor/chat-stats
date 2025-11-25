@@ -32,6 +32,7 @@ let chatMessages: HTMLElement | null;
 let chatInput: HTMLTextAreaElement | null;
 let sendButton: HTMLButtonElement | null;
 let cancelButton: HTMLButtonElement | null;
+let scrollToBottomButton: HTMLButtonElement | null;
 let totalPlayers: HTMLElement | null;
 let totalTeams: HTMLElement | null;
 let totalGames: HTMLElement | null;
@@ -43,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     chatInput = DOM.$('#chatInput') as HTMLTextAreaElement | null;
     sendButton = DOM.$('#sendButton') as HTMLButtonElement | null;
     cancelButton = DOM.$('#cancelButton') as HTMLButtonElement | null;
+    scrollToBottomButton = DOM.$('#scrollToBottomButton') as HTMLButtonElement | null;
     totalPlayers = DOM.$('#totalPlayers') as HTMLElement | null;
     totalTeams = DOM.$('#totalTeams') as HTMLElement | null;
     totalGames = DOM.$('#totalGames') as HTMLElement | null;
@@ -132,6 +134,12 @@ function setupEventListeners(): void {
     });
 
     // Theme toggle handled by nav.js
+
+    // Scroll to bottom button functionality
+    scrollToBottomButton?.addEventListener('click', scrollToBottom);
+
+    // Track chat scroll position to show/hide scroll-to-bottom button
+    chatMessages?.addEventListener('scroll', handleChatScroll);
 
     // Note: Suggested item clicks are now handled in dropdown.ts to avoid duplicate event listeners
 
@@ -415,6 +423,9 @@ async function createNewSession(): Promise<void> {
         chatMessages.innerHTML = '';
     }
 
+    // Hide scroll to bottom button when creating new session
+    scrollToBottomButton?.classList.remove('visible');
+
     // Try Asking container now always visible in the input area
 }
 
@@ -447,3 +458,28 @@ async function loadSportsStats(): Promise<void> {
 }
 
 // Theme functions moved to nav.js to avoid conflicts
+
+// Scroll to bottom of chat
+function scrollToBottom(): void {
+    if (!chatMessages) return;
+    chatMessages.scrollTo({
+        top: chatMessages.scrollHeight,
+        behavior: 'smooth'
+    });
+}
+
+// Handle chat scroll to show/hide scroll-to-bottom button
+function handleChatScroll(): void {
+    if (!chatMessages || !scrollToBottomButton) return;
+
+    // Calculate if we're near the bottom (within 150px threshold)
+    const scrollBottom = chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.offsetHeight;
+    const isNearBottom = scrollBottom < 150;
+
+    // Toggle visibility class
+    if (isNearBottom) {
+        scrollToBottomButton.classList.remove('visible');
+    } else {
+        scrollToBottomButton.classList.add('visible');
+    }
+}
