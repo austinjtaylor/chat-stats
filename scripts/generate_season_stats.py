@@ -211,36 +211,40 @@ def generate_team_season_stats(engine):
             GROUP BY pgs.team_id, pgs.year
         ),
         opponent_stats AS (
-            -- Get opponent stats by joining games and reversing team perspective
+            -- Get opponent stats from player_game_stats for SPECIFIC GAMES (not season totals)
+            -- For home games: sum away team's stats IN THOSE SPECIFIC GAMES
             SELECT
-                home.team_id,
-                home.year,
-                SUM(away_stats.total_completions) as opp_completions,
-                SUM(away_stats.total_attempts) as opp_attempts,
-                SUM(away_stats.total_turnovers) as opp_turnovers,
-                SUM(away_stats.hucks_completed) as opp_hucks_completed,
-                SUM(away_stats.hucks_attempted) as opp_hucks_attempted,
-                SUM(away_stats.total_blocks) as opp_blocks
-            FROM teams home
-            INNER JOIN games g ON g.home_team_id = home.team_id AND g.year = home.year
-            INNER JOIN team_player_stats away_stats ON away_stats.team_id = g.away_team_id AND away_stats.year = g.year
-            GROUP BY home.team_id, home.year
+                g.home_team_id as team_id,
+                g.year,
+                SUM(pgs.completions) as opp_completions,
+                SUM(pgs.throw_attempts) as opp_attempts,
+                SUM(pgs.throwaways + pgs.drops + pgs.stalls) as opp_turnovers,
+                SUM(pgs.hucks_completed) as opp_hucks_completed,
+                SUM(pgs.hucks_attempted) as opp_hucks_attempted,
+                SUM(pgs.blocks) as opp_blocks
+            FROM games g
+            INNER JOIN player_game_stats pgs
+                ON pgs.game_id = g.game_id
+                AND pgs.team_id = g.away_team_id
+            GROUP BY g.home_team_id, g.year
 
             UNION ALL
 
+            -- For away games: sum home team's stats IN THOSE SPECIFIC GAMES
             SELECT
-                away.team_id,
-                away.year,
-                SUM(home_stats.total_completions) as opp_completions,
-                SUM(home_stats.total_attempts) as opp_attempts,
-                SUM(home_stats.total_turnovers) as opp_turnovers,
-                SUM(home_stats.hucks_completed) as opp_hucks_completed,
-                SUM(home_stats.hucks_attempted) as opp_hucks_attempted,
-                SUM(home_stats.total_blocks) as opp_blocks
-            FROM teams away
-            INNER JOIN games g ON g.away_team_id = away.team_id AND g.year = away.year
-            INNER JOIN team_player_stats home_stats ON home_stats.team_id = g.home_team_id AND home_stats.year = g.year
-            GROUP BY away.team_id, away.year
+                g.away_team_id as team_id,
+                g.year,
+                SUM(pgs.completions) as opp_completions,
+                SUM(pgs.throw_attempts) as opp_attempts,
+                SUM(pgs.throwaways + pgs.drops + pgs.stalls) as opp_turnovers,
+                SUM(pgs.hucks_completed) as opp_hucks_completed,
+                SUM(pgs.hucks_attempted) as opp_hucks_attempted,
+                SUM(pgs.blocks) as opp_blocks
+            FROM games g
+            INNER JOIN player_game_stats pgs
+                ON pgs.game_id = g.game_id
+                AND pgs.team_id = g.home_team_id
+            GROUP BY g.away_team_id, g.year
         ),
         aggregated_team_stats AS (
             SELECT

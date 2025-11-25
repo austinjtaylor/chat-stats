@@ -23,6 +23,26 @@ from data.possession import calculate_possessions_batch, calculate_redzone_stats
 load_dotenv()
 
 
+class DatabaseWrapper:
+    """Wrapper class that provides execute_query() method for compatibility."""
+
+    def __init__(self, engine):
+        self.engine = engine
+
+    def execute_query(self, query, params=None):
+        """Execute a query and return results as list of dicts"""
+        with self.engine.connect() as conn:
+            if isinstance(query, str):
+                from sqlalchemy import text
+
+                query = text(query)
+            result = conn.execute(query, params or {})
+            if result.returns_rows:
+                columns = result.keys()
+                return [dict(zip(columns, row)) for row in result.fetchall()]
+            return []
+
+
 def populate_possession_stats(db):
     """
     Calculate and populate possession statistics for all team-season records.
@@ -92,29 +112,97 @@ def populate_possession_stats(db):
                     season_param=year
                 )
 
-                # Calculate opponent stats for each team
-                print(f"     🔄 Calculating opponent stats...")
+                # Calculate opponent stats for each team (game-by-game, not season totals)
+                print(f"     🔄 Calculating opponent stats (per-game)...")
                 opponent_stats_map = {}
+
+                # Build a mapping of game_id -> {home_team_id, away_team_id, home_stats, away_stats}
+                # by processing game events for this year
+                from domain.possession import PossessionEventProcessor, RedzoneEventProcessor
+
+                # Fetch all game events for this year with game info
+                events_query = text("""
+                    SELECT
+                        g.game_id,
+                        g.home_team_id,
+                        g.away_team_id,
+                        ge.event_index,
+                        ge.event_type,
+                        ge.team,
+                        ge.receiver_y,
+                        ge.thrower_y
+                    FROM games g
+                    JOIN game_events ge ON g.game_id = ge.game_id
+                    WHERE g.year = :year
+                        AND g.game_type NOT IN ('all-star', 'showcase')
+                    ORDER BY g.game_id, ge.event_index,
+                        CASE
+                            WHEN ge.event_type IN (19, 15) THEN 0
+                            WHEN ge.event_type = 1 THEN 1
+                            ELSE 2
+                        END
+                """)
+                all_events = conn.execute(events_query, {'year': year}).fetchall()
+
+                # Group events by game and team type
+                game_events = {}
+                for event in all_events:
+                    game_id = event[0]
+                    home_team = event[1]
+                    away_team = event[2]
+                    team_type = event[5]  # 'home' or 'away'
+
+                    if game_id not in game_events:
+                        game_events[game_id] = {
+                            'home_team_id': home_team,
+                            'away_team_id': away_team,
+                            'home_events': [],
+                            'away_events': []
+                        }
+
+                    event_dict = {
+                        'event_index': event[3],
+                        'event_type': event[4],
+                        'team': team_type,
+                        'receiver_y': event[6],
+                        'thrower_y': event[7]
+                    }
+
+                    if team_type == 'home':
+                        game_events[game_id]['home_events'].append(event_dict)
+                    else:
+                        game_events[game_id]['away_events'].append(event_dict)
+
+                # Calculate per-game stats for each team (home and away)
+                game_team_stats = {}  # {(game_id, team_id): {poss_stats, rz_stats}}
+                for game_id, game_data in game_events.items():
+                    home_team = game_data['home_team_id']
+                    away_team = game_data['away_team_id']
+
+                    # Process home team stats
+                    if game_data['home_events']:
+                        poss_processor = PossessionEventProcessor('home')
+                        poss_stats = poss_processor.process_events(game_data['home_events'])
+                        rz_processor = RedzoneEventProcessor('home')
+                        rz_stats = rz_processor.process_events(game_data['home_events'])
+                        game_team_stats[(game_id, home_team)] = {
+                            'poss': poss_stats.to_dict(),
+                            'rz': rz_stats.to_dict()
+                        }
+
+                    # Process away team stats
+                    if game_data['away_events']:
+                        poss_processor = PossessionEventProcessor('away')
+                        poss_stats = poss_processor.process_events(game_data['away_events'])
+                        rz_processor = RedzoneEventProcessor('away')
+                        rz_stats = rz_processor.process_events(game_data['away_events'])
+                        game_team_stats[(game_id, away_team)] = {
+                            'poss': poss_stats.to_dict(),
+                            'rz': rz_stats.to_dict()
+                        }
+
+                # Now calculate opponent stats for each team by summing opponent's per-game stats
                 for team_id in year_teams:
-                    # Get all opponents this team faced during the season
-                    opponents_query = text("""
-                        SELECT
-                            CASE
-                                WHEN g.home_team_id = :team_id THEN g.away_team_id
-                                ELSE g.home_team_id
-                            END as opponent_id
-                        FROM games g
-                        WHERE (g.home_team_id = :team_id OR g.away_team_id = :team_id)
-                            AND g.year = :year
-                            AND g.game_type NOT IN ('all-star', 'showcase')
-                    """)
-
-                    opponents = conn.execute(opponents_query, {
-                        'team_id': team_id,
-                        'year': year
-                    }).fetchall()
-
-                    # Aggregate opponent stats
                     opp_o_line_points = 0
                     opp_o_line_scores = 0
                     opp_o_line_possessions = 0
@@ -124,18 +212,28 @@ def populate_possession_stats(db):
                     opp_rz_scores = 0
                     opp_rz_attempts = 0
 
-                    for (opponent_id,) in opponents:
-                        opp_poss = possession_stats.get(opponent_id, {})
-                        opp_rz = redzone_stats.get(opponent_id, {})
+                    # Find all games this team played and get opponent's stats from THAT GAME
+                    for game_id, game_data in game_events.items():
+                        opponent_id = None
+                        if game_data['home_team_id'] == team_id:
+                            opponent_id = game_data['away_team_id']
+                        elif game_data['away_team_id'] == team_id:
+                            opponent_id = game_data['home_team_id']
 
-                        opp_o_line_points += opp_poss.get('o_line_points', 0)
-                        opp_o_line_scores += opp_poss.get('o_line_scores', 0)
-                        opp_o_line_possessions += opp_poss.get('o_line_possessions', 0)
-                        opp_d_line_points += opp_poss.get('d_line_points', 0)
-                        opp_d_line_scores += opp_poss.get('d_line_scores', 0)
-                        opp_d_line_possessions += opp_poss.get('d_line_possessions', 0)
-                        opp_rz_scores += opp_rz.get('redzone_goals', 0)
-                        opp_rz_attempts += opp_rz.get('redzone_attempts', 0)
+                        if opponent_id:
+                            # Get opponent's stats from THIS SPECIFIC GAME
+                            opp_game_stats = game_team_stats.get((game_id, opponent_id), {})
+                            opp_poss = opp_game_stats.get('poss', {})
+                            opp_rz = opp_game_stats.get('rz', {})
+
+                            opp_o_line_points += opp_poss.get('o_line_points', 0)
+                            opp_o_line_scores += opp_poss.get('o_line_scores', 0)
+                            opp_o_line_possessions += opp_poss.get('o_line_possessions', 0)
+                            opp_d_line_points += opp_poss.get('d_line_points', 0)
+                            opp_d_line_scores += opp_poss.get('d_line_scores', 0)
+                            opp_d_line_possessions += opp_poss.get('d_line_possessions', 0)
+                            opp_rz_scores += opp_rz.get('redzone_goals', 0)
+                            opp_rz_attempts += opp_rz.get('redzone_attempts', 0)
 
                     # Calculate opponent percentages
                     opp_hold_pct = round((opp_o_line_scores / opp_o_line_points) * 100, 2) if opp_o_line_points > 0 else 0.0
@@ -279,23 +377,6 @@ def main():
         sys.exit(1)
 
     print(f"🐘 PostgreSQL database: {database_url.split('@')[1].split('/')[0]}\n")
-
-    # Create a wrapper class that provides execute_query() method for compatibility
-    class DatabaseWrapper:
-        def __init__(self, engine):
-            self.engine = engine
-
-        def execute_query(self, query, params=None):
-            """Execute a query and return results as list of dicts"""
-            with self.engine.connect() as conn:
-                if isinstance(query, str):
-                    from sqlalchemy import text
-                    query = text(query)
-                result = conn.execute(query, params or {})
-                if result.returns_rows:
-                    columns = result.keys()
-                    return [dict(zip(columns, row)) for row in result.fetchall()]
-                return []
 
     engine = create_engine(database_url)
     db_wrapper = DatabaseWrapper(engine)
