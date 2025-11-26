@@ -37,6 +37,7 @@ class PlayerStatsQueryBuilder:
         self.season_filter = self._build_season_filter()
         self.team_filter = self._build_team_filter()
         self.possession_threshold = self._build_possession_threshold()
+        self.throw_attempts_threshold = self._build_throw_attempts_threshold()
 
     def _build_season_filter(self) -> str:
         """Build SQL WHERE clause for season filtering."""
@@ -69,6 +70,12 @@ class PlayerStatsQueryBuilder:
 
         # For single season: require 20 possessions
         return 20
+
+    def _build_throw_attempts_threshold(self) -> int:
+        """Return minimum throw attempts threshold when sorting by completion_percentage."""
+        if self.sort == "completion_percentage":
+            return 100
+        return 0
 
     def _build_possession_year_filter(self) -> str:
         """Build year filter for possession stats (requires 2014+)."""
@@ -179,10 +186,11 @@ class PlayerStatsQueryBuilder:
                 (SUM(pss.total_goals) + SUM(pss.total_assists) + SUM(pss.total_blocks) -
                  SUM(pss.total_throwaways) - SUM(pss.total_drops)) as calculated_plus_minus,
                 SUM(pss.total_completions) as total_completions,
+                SUM(pss.total_throw_attempts) as total_throw_attempts,
                 CASE
-                    WHEN SUM(pss.total_throw_attempts) > 0
+                    WHEN SUM(pss.total_throw_attempts) >= 100
                     THEN ROUND(SUM(pss.total_completions) * 100.0 / SUM(pss.total_throw_attempts), 1)
-                    ELSE 0
+                    ELSE NULL
                 END as completion_percentage,
                 SUM(pss.total_yards_thrown) as total_yards_thrown,
                 SUM(pss.total_yards_received) as total_yards_received,
@@ -207,7 +215,7 @@ class PlayerStatsQueryBuilder:
                 ROUND(SUM(pss.total_seconds_played) / 60.0, 0) as minutes_played,
                 CASE WHEN SUM(pss.total_hucks_attempted) > 0 THEN ROUND(SUM(pss.total_hucks_completed) * 100.0 / SUM(pss.total_hucks_attempted), 1) ELSE 0 END as huck_percentage,
                 CASE
-                    WHEN SUM(pss.total_o_opportunities) >= 20
+                    WHEN SUM(pss.total_o_opportunities) >= 100
                     THEN ROUND(SUM(pss.total_o_opportunity_scores) * 100.0 / SUM(pss.total_o_opportunities), 1)
                     ELSE NULL
                 END as offensive_efficiency,
@@ -315,6 +323,7 @@ class PlayerStatsQueryBuilder:
         CROSS JOIN team_info ti
         WHERE gc.games_played > 0
         {f" AND tcs.total_o_opportunities >= {self.possession_threshold}" if self.possession_threshold > 0 else ""}
+        {f" AND tcs.total_throw_attempts >= {self.throw_attempts_threshold}" if self.throw_attempts_threshold > 0 else ""}
         {" AND " + having_clause if having_clause else ""}
         ORDER BY {get_team_career_sort_column(self.sort, per_game=self.per_game_mode, per_possession=self.per_possession_mode)} {self.order.upper()} NULLS LAST
         LIMIT {self.per_page} OFFSET {(self.page-1) * self.per_page}
@@ -350,10 +359,11 @@ class PlayerStatsQueryBuilder:
                     (SUM(pss.total_goals) + SUM(pss.total_assists) + SUM(pss.total_blocks) -
                      SUM(pss.total_throwaways) - SUM(pss.total_drops)) as calculated_plus_minus,
                     SUM(pss.total_completions) as total_completions,
+                    SUM(pss.total_throw_attempts) as total_throw_attempts,
                     CASE
-                        WHEN SUM(pss.total_throw_attempts) > 0
+                        WHEN SUM(pss.total_throw_attempts) >= 100
                         THEN ROUND(SUM(pss.total_completions) * 100.0 / SUM(pss.total_throw_attempts), 1)
-                        ELSE 0
+                        ELSE NULL
                     END as completion_percentage,
                     SUM(pss.total_yards_thrown) as total_yards_thrown,
                     SUM(pss.total_yards_received) as total_yards_received,
@@ -381,7 +391,7 @@ class PlayerStatsQueryBuilder:
                         ELSE 0
                     END as huck_percentage,
                     CASE
-                        WHEN SUM(pss.total_o_opportunities) >= 20
+                        WHEN SUM(pss.total_o_opportunities) >= 100
                         THEN ROUND(SUM(pss.total_o_opportunity_scores) * 100.0 / SUM(pss.total_o_opportunities), 1)
                         ELSE NULL
                     END as offensive_efficiency,
@@ -480,6 +490,7 @@ class PlayerStatsQueryBuilder:
             LEFT JOIN games_count gc ON cs.player_id = gc.player_id
             WHERE gc.games_played > 0
             {f" AND cs.total_o_opportunities >= {self.possession_threshold}" if self.possession_threshold > 0 else ""}
+            {f" AND cs.total_throw_attempts >= {self.throw_attempts_threshold}" if self.throw_attempts_threshold > 0 else ""}
             {" AND " + having_clause_cte if having_clause_cte else ""}
             ORDER BY {self._build_cte_career_sort_column()} {self.order.upper()} NULLS LAST
             LIMIT {self.per_page} OFFSET {(self.page-1) * self.per_page}
@@ -499,6 +510,7 @@ class PlayerStatsQueryBuilder:
                 total_blocks,
                 calculated_plus_minus,
                 total_completions,
+                total_throw_attempts,
                 completion_percentage,
                 total_yards_thrown,
                 total_yards_received,
@@ -525,7 +537,7 @@ class PlayerStatsQueryBuilder:
                 total_yards,
                 minutes_played,
                 huck_percentage,
-                offensive_efficiency,
+                CASE WHEN total_o_opportunities >= 100 THEN ROUND(total_o_opportunity_scores * 100.0 / total_o_opportunities, 1) ELSE NULL END as offensive_efficiency,
                 yards_per_turn,
                 yards_per_completion,
                 yards_per_reception,
@@ -533,6 +545,7 @@ class PlayerStatsQueryBuilder:
             FROM player_career_stats
             WHERE games_played > 0
             {f" AND possessions >= {self.possession_threshold}" if self.possession_threshold > 0 else ""}
+            {f" AND total_throw_attempts >= {self.throw_attempts_threshold}" if self.throw_attempts_threshold > 0 else ""}
             {" AND " + having_clause if having_clause else ""}
             ORDER BY {get_sort_column(self.sort, is_career=True, per_game=self.per_game_mode, per_possession=self.per_possession_mode, team=self.teams[0])} {self.order.upper()} NULLS LAST
             LIMIT {self.per_page} OFFSET {(self.page-1) * self.per_page}
@@ -561,7 +574,12 @@ class PlayerStatsQueryBuilder:
             pss.total_blocks,
             pss.calculated_plus_minus,
             pss.total_completions,
-            pss.completion_percentage,
+            pss.total_throw_attempts,
+            CASE
+                WHEN pss.total_throw_attempts >= 100
+                THEN ROUND(pss.total_completions * 100.0 / pss.total_throw_attempts, 1)
+                ELSE NULL
+            END as completion_percentage,
             pss.total_yards_thrown,
             pss.total_yards_received,
             pss.total_throwaways,
@@ -592,7 +610,7 @@ class PlayerStatsQueryBuilder:
             ROUND(pss.total_seconds_played / 60.0, 0) as minutes_played,
             CASE WHEN pss.total_hucks_attempted > 0 THEN ROUND(pss.total_hucks_completed * 100.0 / pss.total_hucks_attempted, 1) ELSE 0 END as huck_percentage,
             CASE
-                WHEN pss.total_o_opportunities >= 20
+                WHEN pss.total_o_opportunities >= 100
                 THEN ROUND(pss.total_o_opportunity_scores * 100.0 / pss.total_o_opportunities, 1)
                 ELSE NULL
             END as offensive_efficiency,
@@ -626,7 +644,7 @@ class PlayerStatsQueryBuilder:
         WHERE 1=1{self.season_filter}{self.team_filter}{self._build_possession_year_filter()}
         GROUP BY pss.player_id, pss.team_id, pss.year, p.full_name, p.first_name, p.last_name, p.team_id,
                  pss.total_goals, pss.total_assists, pss.total_hockey_assists, pss.total_blocks, pss.calculated_plus_minus,
-                 pss.total_completions, pss.completion_percentage, pss.total_yards_thrown, pss.total_yards_received,
+                 pss.total_completions, pss.total_throw_attempts, pss.total_yards_thrown, pss.total_yards_received,
                  pss.total_catches, pss.total_throwaways, pss.total_stalls, pss.total_drops, pss.total_callahans,
                  pss.total_hucks_completed, pss.total_hucks_attempted, pss.total_hucks_received, pss.total_pulls,
                  pss.total_o_points_played, pss.total_d_points_played, pss.total_seconds_played,
@@ -638,6 +656,7 @@ class PlayerStatsQueryBuilder:
             ELSE NULL
         END) > 0
         {f" AND pss.total_o_opportunities >= {self.possession_threshold}" if self.possession_threshold > 0 else ""}
+        {f" AND pss.total_throw_attempts >= {self.throw_attempts_threshold}" if self.throw_attempts_threshold > 0 else ""}
         {" AND " + having_clause if having_clause else ""}
         ORDER BY {get_sort_column(self.sort, per_game=self.per_game_mode, per_possession=self.per_possession_mode)} {self.order.upper()} NULLS LAST
         LIMIT {self.per_page} OFFSET {(self.page-1) * self.per_page}
@@ -683,9 +702,10 @@ class PlayerStatsQueryBuilder:
                 (SUM(pss.total_o_points_played) + SUM(pss.total_d_points_played)) as total_points_played,
                 (SUM(pss.total_yards_thrown) + SUM(pss.total_yards_received)) as total_yards,
                 SUM(pss.total_blocks) as total_blocks,
-                CASE WHEN SUM(pss.total_throw_attempts) > 0 THEN ROUND(SUM(pss.total_completions) * 100.0 / SUM(pss.total_throw_attempts), 1) ELSE 0 END as completion_percentage,
+                SUM(pss.total_throw_attempts) as total_throw_attempts,
+                CASE WHEN SUM(pss.total_throw_attempts) >= 100 THEN ROUND(SUM(pss.total_completions) * 100.0 / SUM(pss.total_throw_attempts), 1) ELSE NULL END as completion_percentage,
                 CASE WHEN SUM(pss.total_hucks_attempted) > 0 THEN ROUND(SUM(pss.total_hucks_completed) * 100.0 / SUM(pss.total_hucks_attempted), 1) ELSE 0 END as huck_percentage,
-                CASE WHEN SUM(pss.total_o_opportunities) >= 20 THEN ROUND(SUM(pss.total_o_opportunity_scores) * 100.0 / SUM(pss.total_o_opportunities), 1) ELSE NULL END as offensive_efficiency,
+                CASE WHEN SUM(pss.total_o_opportunities) >= 100 THEN ROUND(SUM(pss.total_o_opportunity_scores) * 100.0 / SUM(pss.total_o_opportunities), 1) ELSE NULL END as offensive_efficiency,
                 CASE WHEN (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops)) > 0 THEN ROUND((SUM(pss.total_yards_thrown) + SUM(pss.total_yards_received)) * 1.0 / (SUM(pss.total_throwaways) + SUM(pss.total_stalls) + SUM(pss.total_drops)), 1) ELSE NULL END as yards_per_turn,
                 CASE WHEN SUM(pss.total_completions) > 0 THEN ROUND(SUM(pss.total_yards_thrown) * 1.0 / SUM(pss.total_completions), 1) ELSE NULL END as yards_per_completion,
                 CASE WHEN SUM(pss.total_catches) > 0 THEN ROUND(SUM(pss.total_yards_received) * 1.0 / SUM(pss.total_catches), 1) ELSE NULL END as yards_per_reception,

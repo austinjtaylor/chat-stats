@@ -213,9 +213,9 @@ class PercentileCalculator:
                  SUM(pss.total_throwaways) - SUM(pss.total_drops)) as calculated_plus_minus,
                 SUM(pss.total_completions) as total_completions,
                 CASE
-                    WHEN SUM(pss.total_throw_attempts) > 0
+                    WHEN SUM(pss.total_throw_attempts) >= 100
                     THEN SUM(pss.total_completions) * 100.0 / SUM(pss.total_throw_attempts)
-                    ELSE 0
+                    ELSE NULL
                 END as completion_percentage,
                 SUM(pss.total_yards_thrown) as total_yards_thrown,
                 SUM(pss.total_yards_received) as total_yards_received,
@@ -248,7 +248,7 @@ class PercentileCalculator:
                     THEN SUM(pss.total_hucks_completed) * 100.0 / SUM(pss.total_hucks_attempted)
                     ELSE 0 END as huck_percentage,
                 CASE
-                    WHEN SUM(pss.total_o_opportunities) >= 20
+                    WHEN SUM(pss.total_o_opportunities) >= 100
                     THEN SUM(pss.total_o_opportunity_scores) * 100.0 / SUM(pss.total_o_opportunities)
                     ELSE NULL
                 END as offensive_efficiency,
