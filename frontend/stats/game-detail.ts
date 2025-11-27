@@ -29,7 +29,6 @@ export interface PlayerStats {
     hucks_received: number;
     huck_percentage: number;
     turnovers: number;
-    yards_per_turn: number | null;
     stalls: number;
     callahans: number;
     drops: number;

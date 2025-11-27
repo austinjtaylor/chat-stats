@@ -139,7 +139,7 @@ def create_box_score_routes(stats_system):
                     "hucks_completed": player["hucks_completed"],
                     "hucks_received": player["hucks_received"],
                     "huck_percentage": player["huck_percentage"],
-                    "turnovers": player["throwaways"] + player["stalls"],
+                    "turnovers": player["throwaways"],
                     "yards_per_turn": player["yards_per_turn"],
                     "stalls": player["stalls"],
                     "callahans": player["callahans"],

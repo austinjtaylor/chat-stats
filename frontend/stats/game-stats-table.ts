@@ -124,7 +124,6 @@ export class GameStatsTable {
                 <td class="numeric">${player.huck_percentage.toFixed(1)}</td>
                 <td class="numeric">${player.hockey_assists}</td>
                 <td class="numeric">${player.turnovers}</td>
-                <td class="numeric">${player.yards_per_turn !== null ? player.yards_per_turn.toFixed(1) : '-'}</td>
                 <td class="numeric">${player.stalls}</td>
                 <td class="numeric">${player.callahans}</td>
                 <td class="numeric">${player.drops}</td>
