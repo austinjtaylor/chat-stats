@@ -8,17 +8,41 @@ from sqlalchemy import text
 
 # List of all stat fields to calculate percentiles for
 STAT_FIELDS = [
-    "total_goals", "total_assists", "total_hockey_assists", "total_blocks",
-    "calculated_plus_minus", "total_completions", "completion_percentage",
-    "total_yards_thrown", "total_yards_received", "total_throwaways",
-    "total_stalls", "total_drops", "total_callahans", "total_hucks_completed",
-    "total_hucks_attempted", "total_hucks_received", "total_pulls",
-    "total_o_points_played", "total_d_points_played", "total_seconds_played",
-    "total_o_opportunities", "total_d_opportunities", "total_o_opportunity_scores",
-    "games_played", "possessions", "score_total", "total_points_played",
-    "total_yards", "minutes_played", "huck_percentage", "offensive_efficiency",
-    "yards_per_turn", "yards_per_completion", "yards_per_reception",
-    "assists_per_turnover"
+    "total_goals",
+    "total_assists",
+    "total_hockey_assists",
+    "total_blocks",
+    "calculated_plus_minus",
+    "total_completions",
+    "completion_percentage",
+    "total_yards_thrown",
+    "total_yards_received",
+    "total_throwaways",
+    "total_stalls",
+    "total_drops",
+    "total_callahans",
+    "total_hucks_completed",
+    "total_hucks_attempted",
+    "total_hucks_received",
+    "total_pulls",
+    "total_o_points_played",
+    "total_d_points_played",
+    "total_seconds_played",
+    "total_o_opportunities",
+    "total_d_opportunities",
+    "total_o_opportunity_scores",
+    "games_played",
+    "possessions",
+    "score_total",
+    "total_points_played",
+    "total_yards",
+    "minutes_played",
+    "huck_percentage",
+    "offensive_efficiency",
+    "yards_per_turn",
+    "yards_per_completion",
+    "yards_per_reception",
+    "assists_per_turnover",
 ]
 
 # Stats where lower is better (turnovers, etc.) - percentile should be inverted
@@ -38,7 +62,7 @@ def build_percentile_expressions() -> list[str]:
         if field in INVERT_STATS:
             expr = f"ROUND(CAST((1 - CUME_DIST() OVER (ORDER BY {field})) * 100 AS NUMERIC), 0) as {field}_percentile"
         else:
-            expr = f"ROUND(CAST(CUME_DIST() OVER (ORDER BY {field}) * 100 AS NUMERIC), 0) as {field}_percentile"
+            expr = f"ROUND(CAST(CUME_DIST() OVER (ORDER BY {field} NULLS FIRST) * 100 AS NUMERIC), 0) as {field}_percentile"
         percentile_expressions.append(expr)
     return percentile_expressions
 
@@ -47,7 +71,7 @@ def calculate_global_percentiles(
     conn,
     players: list[dict],
     seasons: Optional[list] = None,
-    teams: Optional[list] = None
+    teams: Optional[list] = None,
 ) -> dict:
     """
     Calculate global percentile rankings for each player's stats.
@@ -78,7 +102,9 @@ def calculate_global_percentiles(
 
     # Extract full names for filtering
     full_names = [p["full_name"] for p in players]
-    names_str = ",".join([f"'{name.replace(chr(39), chr(39)*2)}'" for name in full_names])
+    names_str = ",".join(
+        [f"'{name.replace(chr(39), chr(39)*2)}'" for name in full_names]
+    )
 
     # Build CUME_DIST() expressions for all stats
     percentile_expressions = build_percentile_expressions()
@@ -120,27 +146,88 @@ def calculate_global_percentiles(
             percentiles = {}
             # Map all percentile values (skip the first column which is full_name)
             for i, field in enumerate(STAT_FIELDS):
-                percentiles[field] = row[i + 1] if row[i + 1] is not None else 0
+                percentiles[field] = row[i + 1]  # Keep None as-is for frontend to show "-"
             percentiles_map[full_name] = percentiles
 
         return percentiles_map
     except Exception as e:
         print(f"Error calculating percentiles: {e}")
         import traceback
+
         traceback.print_exc()
         return {}
 
 
 def _build_career_percentiles_query(
-    percentile_expressions: list[str],
-    team_where: str,
-    names_str: str
+    percentile_expressions: list[str], team_where: str, names_str: str
 ) -> str:
-    """Build SQL query for career mode percentiles."""
+    """Build SQL query for career mode percentiles.
+
+    Uses the player_career_stats materialized view to ensure percentiles
+    match the displayed stats exactly.
+    """
+    # For career mode without team filter, use the pre-aggregated view directly
+    # This ensures percentiles match the main query exactly
+    if not team_where:
+        # Build modified percentile expressions that handle 0-turnover edge cases
+        # For yards_per_turn and assists_per_turnover, return NULL when turnovers = 0
+        modified_expressions = []
+        for field in STAT_FIELDS:
+            if field in INVERT_STATS:
+                expr = f"ROUND(CAST((1 - CUME_DIST() OVER (ORDER BY {field})) * 100 AS NUMERIC), 0) as {field}_percentile"
+            elif field == "yards_per_turn":
+                # Return NULL percentile when turnovers = 0 (displayed value is total yards, not a ratio)
+                expr = f"""CASE WHEN (total_throwaways + total_stalls + total_drops) = 0 THEN NULL
+                    ELSE ROUND(CAST(CUME_DIST() OVER (ORDER BY CASE WHEN (total_throwaways + total_stalls + total_drops) > 0 THEN {field} ELSE NULL END NULLS FIRST) * 100 AS NUMERIC), 0)
+                END as {field}_percentile"""
+            elif field == "assists_per_turnover":
+                # Return NULL percentile when turnovers = 0 (displayed value is NULL or not meaningful)
+                expr = f"""CASE WHEN (total_throwaways + total_stalls + total_drops) = 0 THEN NULL
+                    ELSE ROUND(CAST(CUME_DIST() OVER (ORDER BY CASE WHEN (total_throwaways + total_stalls + total_drops) > 0 THEN {field} ELSE NULL END NULLS FIRST) * 100 AS NUMERIC), 0)
+                END as {field}_percentile"""
+            elif field == "completion_percentage":
+                # Return NULL percentile when throw_attempts < 100 (stat shows "-")
+                expr = f"""CASE WHEN {field} IS NULL THEN NULL
+                    ELSE ROUND(CAST(CUME_DIST() OVER (ORDER BY {field} NULLS FIRST) * 100 AS NUMERIC), 0)
+                END as {field}_percentile"""
+            elif field == "offensive_efficiency":
+                # Return NULL percentile when o_opportunities < 100 (stat shows "-")
+                expr = f"""CASE WHEN {field} IS NULL THEN NULL
+                    ELSE ROUND(CAST(CUME_DIST() OVER (ORDER BY {field} NULLS FIRST) * 100 AS NUMERIC), 0)
+                END as {field}_percentile"""
+            elif field == "yards_per_completion":
+                # Return NULL percentile when completions = 0 (stat shows "-")
+                expr = f"""CASE WHEN {field} IS NULL THEN NULL
+                    ELSE ROUND(CAST(CUME_DIST() OVER (ORDER BY {field} NULLS FIRST) * 100 AS NUMERIC), 0)
+                END as {field}_percentile"""
+            elif field == "yards_per_reception":
+                # Return NULL percentile when catches = 0 (stat shows "-")
+                expr = f"""CASE WHEN {field} IS NULL THEN NULL
+                    ELSE ROUND(CAST(CUME_DIST() OVER (ORDER BY {field} NULLS FIRST) * 100 AS NUMERIC), 0)
+                END as {field}_percentile"""
+            else:
+                expr = f"ROUND(CAST(CUME_DIST() OVER (ORDER BY {field} NULLS FIRST) * 100 AS NUMERIC), 0) as {field}_percentile"
+            modified_expressions.append(expr)
+
+        return f"""
+        WITH global_stats AS (
+            SELECT
+                full_name,
+                {','.join(modified_expressions)}
+            FROM player_career_stats
+            WHERE games_played > 0
+        )
+        SELECT *
+        FROM global_stats
+        WHERE full_name IN ({names_str})
+        """
+
+    # For career mode with team filter, we need to aggregate from season stats
+    # but group by player_id to match the main query behavior
     return f"""
-    WITH aggregated_career_stats AS (
+    WITH team_career_stats AS (
         SELECT
-            p.full_name,
+            pss.player_id,
             SUM(pss.total_goals) as total_goals,
             SUM(pss.total_assists) as total_assists,
             SUM(pss.total_hockey_assists) as total_hockey_assists,
@@ -169,17 +256,11 @@ def _build_career_percentiles_query(
             SUM(pss.total_o_opportunities) as total_o_opportunities,
             SUM(pss.total_d_opportunities) as total_d_opportunities,
             SUM(pss.total_o_opportunity_scores) as total_o_opportunity_scores,
-            COUNT(DISTINCT CASE
-                WHEN (pgs.o_points_played > 0 OR pgs.d_points_played > 0
-                      OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0)
-                THEN pgs.game_id
-                ELSE NULL
-            END) as games_played,
             SUM(pss.total_o_opportunities) as possessions,
             (SUM(pss.total_goals) + SUM(pss.total_assists)) as score_total,
             (SUM(pss.total_o_points_played) + SUM(pss.total_d_points_played)) as total_points_played,
             (SUM(pss.total_yards_thrown) + SUM(pss.total_yards_received)) as total_yards,
-            SUM(pss.total_seconds_played) / 60.0 as minutes_played,
+            ROUND(SUM(pss.total_seconds_played) / 60.0, 0) as minutes_played,
             CASE WHEN SUM(pss.total_hucks_attempted) > 0
                 THEN SUM(pss.total_hucks_completed) * 100.0 / SUM(pss.total_hucks_attempted)
                 ELSE 0 END as huck_percentage,
@@ -211,16 +292,76 @@ def _build_career_percentiles_query(
                 ELSE NULL
             END as assists_per_turnover
         FROM player_season_stats pss
-        JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
-        LEFT JOIN player_game_stats pgs ON pss.player_id = pgs.player_id AND pss.team_id = pgs.team_id AND pss.year = pgs.year
         WHERE 1=1{team_where}
-        GROUP BY p.full_name
+        GROUP BY pss.player_id
+    ),
+    games_count AS (
+        SELECT
+            pgs.player_id,
+            COUNT(DISTINCT pgs.game_id) as games_played
+        FROM player_game_stats pgs
+        WHERE (pgs.o_points_played > 0 OR pgs.d_points_played > 0
+               OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0)
+              {team_where.replace("pss.", "pgs.")}
+        GROUP BY pgs.player_id
+    ),
+    player_info AS (
+        SELECT DISTINCT ON (pss.player_id)
+            pss.player_id,
+            p.full_name
+        FROM player_season_stats pss
+        JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
+        WHERE 1=1{team_where}
+        ORDER BY pss.player_id, pss.year DESC
+    ),
+    career_with_names AS (
+        SELECT
+            pi.full_name,
+            tcs.total_goals,
+            tcs.total_assists,
+            tcs.total_hockey_assists,
+            tcs.total_blocks,
+            tcs.calculated_plus_minus,
+            tcs.total_completions,
+            tcs.completion_percentage,
+            tcs.total_yards_thrown,
+            tcs.total_yards_received,
+            tcs.total_throwaways,
+            tcs.total_stalls,
+            tcs.total_drops,
+            tcs.total_callahans,
+            tcs.total_hucks_completed,
+            tcs.total_hucks_attempted,
+            tcs.total_hucks_received,
+            tcs.total_pulls,
+            tcs.total_o_points_played,
+            tcs.total_d_points_played,
+            tcs.total_seconds_played,
+            tcs.total_o_opportunities,
+            tcs.total_d_opportunities,
+            tcs.total_o_opportunity_scores,
+            COALESCE(gc.games_played, 0) as games_played,
+            tcs.possessions,
+            tcs.score_total,
+            tcs.total_points_played,
+            tcs.total_yards,
+            tcs.minutes_played,
+            tcs.huck_percentage,
+            tcs.offensive_efficiency,
+            tcs.yards_per_turn,
+            tcs.yards_per_completion,
+            tcs.yards_per_reception,
+            tcs.assists_per_turnover
+        FROM team_career_stats tcs
+        JOIN player_info pi ON tcs.player_id = pi.player_id
+        LEFT JOIN games_count gc ON tcs.player_id = gc.player_id
+        WHERE COALESCE(gc.games_played, 0) > 0
     ),
     global_stats AS (
         SELECT
             full_name,
             {','.join(percentile_expressions)}
-        FROM aggregated_career_stats
+        FROM career_with_names
     )
     SELECT *
     FROM global_stats
@@ -232,13 +373,33 @@ def _build_season_percentiles_query(
     percentile_expressions: list[str],
     season_where: str,
     team_where: str,
-    names_str: str
+    names_str: str,
 ) -> str:
-    """Build SQL query for season-specific percentiles."""
+    """Build SQL query for season-specific percentiles.
+
+    Groups by player_id to match the main query behavior, then joins to get full_name.
+    """
+    # Build filters for games_count CTE (replace pss. with pgs.)
+    games_season_where = season_where.replace("pss.", "pgs.")
+    games_team_where = team_where.replace("pss.", "pgs.")
+
     return f"""
-    WITH season_stats AS (
+    WITH games_count AS (
         SELECT
-            p.full_name,
+            pgs.player_id,
+            pgs.year,
+            COUNT(DISTINCT pgs.game_id) as games_played
+        FROM player_game_stats pgs
+        WHERE (pgs.o_points_played > 0 OR pgs.d_points_played > 0
+               OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0)
+              {games_season_where}{games_team_where}
+        GROUP BY pgs.player_id, pgs.year
+    ),
+    season_stats_by_player AS (
+        SELECT
+            pss.player_id,
+            pss.year,
+            pss.team_id,
             SUM(pss.total_goals) as total_goals,
             SUM(pss.total_assists) as total_assists,
             SUM(pss.total_hockey_assists) as total_hockey_assists,
@@ -267,12 +428,6 @@ def _build_season_percentiles_query(
             SUM(pss.total_o_opportunities) as total_o_opportunities,
             SUM(pss.total_d_opportunities) as total_d_opportunities,
             SUM(pss.total_o_opportunity_scores) as total_o_opportunity_scores,
-            COUNT(DISTINCT CASE
-                WHEN (pgs.o_points_played > 0 OR pgs.d_points_played > 0
-                      OR pgs.seconds_played > 0 OR pgs.goals > 0 OR pgs.assists > 0)
-                THEN pgs.game_id
-                ELSE NULL
-            END) as games_played,
             SUM(pss.total_o_opportunities) as possessions,
             (SUM(pss.total_goals) + SUM(pss.total_assists)) as score_total,
             (SUM(pss.total_o_points_played) + SUM(pss.total_d_points_played)) as total_points_played,
@@ -309,10 +464,51 @@ def _build_season_percentiles_query(
                 ELSE NULL
             END as assists_per_turnover
         FROM player_season_stats pss
-        JOIN players p ON pss.player_id = p.player_id AND pss.year = p.year
-        LEFT JOIN player_game_stats pgs ON pss.player_id = pgs.player_id AND pss.team_id = pgs.team_id AND pss.year = pgs.year
         WHERE 1=1{season_where}{team_where}
-        GROUP BY p.full_name
+        GROUP BY pss.player_id, pss.year, pss.team_id
+    ),
+    season_stats AS (
+        SELECT
+            p.full_name,
+            ss.total_goals,
+            ss.total_assists,
+            ss.total_hockey_assists,
+            ss.total_blocks,
+            ss.calculated_plus_minus,
+            ss.total_completions,
+            ss.completion_percentage,
+            ss.total_yards_thrown,
+            ss.total_yards_received,
+            ss.total_throwaways,
+            ss.total_stalls,
+            ss.total_drops,
+            ss.total_callahans,
+            ss.total_hucks_completed,
+            ss.total_hucks_attempted,
+            ss.total_hucks_received,
+            ss.total_pulls,
+            ss.total_o_points_played,
+            ss.total_d_points_played,
+            ss.total_seconds_played,
+            ss.total_o_opportunities,
+            ss.total_d_opportunities,
+            ss.total_o_opportunity_scores,
+            COALESCE(gc.games_played, 0) as games_played,
+            ss.possessions,
+            ss.score_total,
+            ss.total_points_played,
+            ss.total_yards,
+            ss.minutes_played,
+            ss.huck_percentage,
+            ss.offensive_efficiency,
+            ss.yards_per_turn,
+            ss.yards_per_completion,
+            ss.yards_per_reception,
+            ss.assists_per_turnover
+        FROM season_stats_by_player ss
+        JOIN players p ON ss.player_id = p.player_id AND ss.year = p.year
+        LEFT JOIN games_count gc ON ss.player_id = gc.player_id AND ss.year = gc.year
+        WHERE COALESCE(gc.games_played, 0) > 0
     ),
     global_stats AS (
         SELECT
