@@ -36,6 +36,11 @@ class GameImporter(BaseImporter):
                 skipped_allstar += 1
                 continue
 
+            # Skip preseason games (empty week field)
+            week = game.get("week")
+            if not week:
+                continue
+
             game_data = {
                 "game_id": game_id,
                 "away_team_id": away_team_id,
