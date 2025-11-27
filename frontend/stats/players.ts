@@ -1180,7 +1180,11 @@ class PlayerStats {
                         displayValue = compPct ? compPct.toFixed(1) : '-';
                         return `<td class="numeric">${this.formatCellWithPercentile(displayValue, playerName, col.key)}</td>`;
                     case 'huck_percentage':
-                        // Backend calculates this, but we may need to calculate for older data
+                        // Require minimum 10 huck attempts to display H%
+                        const huckAttempts = (player as any).total_hucks_attempted || 0;
+                        if (huckAttempts < 10) {
+                            return `<td class="numeric">-</td>`;
+                        }
                         const huckPct = player.huck_percentage || this.calculateHuckPercentage(player);
                         displayValue = huckPct ? huckPct.toFixed(1) : '-';
                         return `<td class="numeric">${this.formatCellWithPercentile(displayValue, playerName, col.key)}</td>`;
