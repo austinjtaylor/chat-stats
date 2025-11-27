@@ -84,7 +84,9 @@ class PlayerEnrichment:
         }
 
     @staticmethod
-    def enrich_events(events: list[dict], player_lookup: dict[str, dict[str, str]]) -> None:
+    def enrich_events(
+        events: list[dict], player_lookup: dict[str, dict[str, str]]
+    ) -> None:
         """
         Enrich events with player names from lookup.
 

@@ -227,7 +227,9 @@ class TeamStatsService:
             WHERE tss.year = :season
             """
 
-    def _apply_per_game_calculations(self, teams: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _apply_per_game_calculations(
+        self, teams: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """
         Apply per-game calculations to team stats.
 

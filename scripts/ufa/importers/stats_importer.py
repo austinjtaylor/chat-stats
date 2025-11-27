@@ -92,7 +92,9 @@ class StatsImporter(BaseImporter):
         )
 
     def import_player_season_stats(
-        self, season_stats_data: list[dict[str, Any]], players_data: list[dict[str, Any]]
+        self,
+        season_stats_data: list[dict[str, Any]],
+        players_data: list[dict[str, Any]],
     ) -> int:
         """
         Import player season statistics
@@ -156,10 +158,9 @@ class StatsImporter(BaseImporter):
 
                 # Find team_id for this player/year combination from players data
                 for player in players_data:
-                    if (
-                        player.get("playerID") == stat["player"]["playerID"]
-                        and player.get("year") == stat.get("year")
-                    ):
+                    if player.get("playerID") == stat["player"][
+                        "playerID"
+                    ] and player.get("year") == stat.get("year"):
                         player_season_stat["team_id"] = player.get("teamID", "")
                         break
 

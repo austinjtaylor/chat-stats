@@ -86,7 +86,7 @@ def create_basic_routes(stats_system):
                     "status": "active",
                     "queries_this_month": 0,
                     "query_limit": 5,
-                    "at_query_limit": False
+                    "at_query_limit": False,
                 }
 
             return {
@@ -94,9 +94,13 @@ def create_basic_routes(stats_system):
                 "status": subscription.status,
                 "queries_this_month": subscription.queries_this_month,
                 "query_limit": subscription.query_limit,
-                "current_period_end": subscription.current_period_end.isoformat() if subscription.current_period_end else None,
+                "current_period_end": (
+                    subscription.current_period_end.isoformat()
+                    if subscription.current_period_end
+                    else None
+                ),
                 "cancel_at_period_end": subscription.cancel_at_period_end,
-                "at_query_limit": subscription.at_query_limit
+                "at_query_limit": subscription.at_query_limit,
             }
         except HTTPException:
             raise
@@ -123,7 +127,7 @@ def create_basic_routes(stats_system):
                     "default_season": None,
                     "notifications_enabled": True,
                     "email_digest_frequency": "weekly",
-                    "favorite_stat_categories": []
+                    "favorite_stat_categories": [],
                 }
 
             return preferences.dict()
@@ -134,8 +138,7 @@ def create_basic_routes(stats_system):
 
     @router.patch("/api/user/profile")
     async def update_user_profile(
-        updates: UpdateUserPreferences,
-        user: dict = Depends(get_current_user)
+        updates: UpdateUserPreferences, user: dict = Depends(get_current_user)
     ):
         """
         Update current user's profile preferences.
@@ -145,7 +148,9 @@ def create_basic_routes(stats_system):
         try:
             user_id = user["user_id"]
             profile_service = get_user_profile_service(stats_system.db)
-            updated_preferences = profile_service.update_user_preferences(user_id, updates)
+            updated_preferences = profile_service.update_user_preferences(
+                user_id, updates
+            )
             return updated_preferences.dict()
         except HTTPException:
             raise
@@ -181,7 +186,9 @@ def create_basic_routes(stats_system):
                 try:
                     stripe_service = get_stripe_service(stats_system.db)
                     # Cancel subscription immediately (not at period end)
-                    stripe_service.cancel_subscription_immediately(subscription.stripe_customer_id)
+                    stripe_service.cancel_subscription_immediately(
+                        subscription.stripe_customer_id
+                    )
                     logger.info(f"Canceled Stripe subscription for user {user_id}")
                 except Exception as e:
                     logger.error(f"Failed to cancel Stripe subscription: {e}")
@@ -194,8 +201,7 @@ def create_basic_routes(stats_system):
             except Exception as e:
                 logger.error(f"Failed to delete user from Supabase: {e}")
                 raise HTTPException(
-                    status_code=500,
-                    detail=f"Failed to delete user account: {str(e)}"
+                    status_code=500, detail=f"Failed to delete user account: {str(e)}"
                 )
 
             return {"message": "Account successfully deleted"}
@@ -352,12 +358,12 @@ def create_basic_routes(stats_system):
             # Check cache first
             cache = get_cache()
             cache_key = cache_key_for_endpoint(
-                'team_stats',
+                "team_stats",
                 season=season,
                 view=view,
                 perspective=perspective,
                 sort=sort,
-                order=order
+                order=order,
             )
 
             cached_result = cache.get(cache_key)

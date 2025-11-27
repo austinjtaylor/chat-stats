@@ -191,7 +191,9 @@ def create_box_score_routes(stats_system):
             }
 
             # Cache the result (longer TTL for Final games since they never change)
-            ttl = 3600 if game["status"] == "Final" else 300  # 1 hour for final, 5 min for in-progress
+            ttl = (
+                3600 if game["status"] == "Final" else 300
+            )  # 1 hour for final, 5 min for in-progress
             cache.set(cache_key, result, ttl=ttl)
 
             return result

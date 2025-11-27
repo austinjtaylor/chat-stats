@@ -198,13 +198,13 @@ def format_game_details_response(answer: str, data: list[Any]) -> str:
     enhanced_stats.append(f"| **Game ID** | {game_info.get('game_id', 'N/A')} |")
 
     # Format date - handle both datetime objects and strings
-    start_timestamp = game_info.get('start_timestamp', 'N/A')
+    start_timestamp = game_info.get("start_timestamp", "N/A")
     if isinstance(start_timestamp, datetime):
-        date_str = start_timestamp.strftime('%Y-%m-%d')
-    elif isinstance(start_timestamp, str) and start_timestamp != 'N/A':
+        date_str = start_timestamp.strftime("%Y-%m-%d")
+    elif isinstance(start_timestamp, str) and start_timestamp != "N/A":
         date_str = start_timestamp[:10]
     else:
-        date_str = 'N/A'
+        date_str = "N/A"
     enhanced_stats.append(f"| **Date** | {date_str} |")
     enhanced_stats.append(
         f"| **Final Score** | **{game_info.get('away_team_name', 'Away')} {game_info.get('away_score', 0)}** - **{game_info.get('home_team_name', 'Home')} {game_info.get('home_score', 0)}** |"
@@ -226,48 +226,80 @@ def format_game_details_response(answer: str, data: list[Any]) -> str:
     enhanced_stats.append("|-----------|------------------|------------------|")
 
     # Completion %
-    away_comp = away_stats.get('completion_percentage_display', away_stats.get('completion_percentage', 0))
-    home_comp = home_stats.get('completion_percentage_display', home_stats.get('completion_percentage', 0))
+    away_comp = away_stats.get(
+        "completion_percentage_display", away_stats.get("completion_percentage", 0)
+    )
+    home_comp = home_stats.get(
+        "completion_percentage_display", home_stats.get("completion_percentage", 0)
+    )
     enhanced_stats.append(f"| **Completion %** | {away_comp} | {home_comp} |")
 
     # Huck %
-    away_huck = away_stats.get('huck_percentage_display', away_stats.get('huck_percentage', 0))
-    home_huck = home_stats.get('huck_percentage_display', home_stats.get('huck_percentage', 0))
+    away_huck = away_stats.get(
+        "huck_percentage_display", away_stats.get("huck_percentage", 0)
+    )
+    home_huck = home_stats.get(
+        "huck_percentage_display", home_stats.get("huck_percentage", 0)
+    )
     enhanced_stats.append(f"| **Huck %** | {away_huck} | {home_huck} |")
 
     # Hold %
-    away_hold = away_stats.get('hold_percentage_display', away_stats.get('hold_percentage', 0))
-    home_hold = home_stats.get('hold_percentage_display', home_stats.get('hold_percentage', 0))
+    away_hold = away_stats.get(
+        "hold_percentage_display", away_stats.get("hold_percentage", 0)
+    )
+    home_hold = home_stats.get(
+        "hold_percentage_display", home_stats.get("hold_percentage", 0)
+    )
     enhanced_stats.append(f"| **Hold %** | {away_hold} | {home_hold} |")
 
     # O-Line Conversion %
-    away_o = away_stats.get('o_conversion_display', away_stats.get('o_conversion', 0))
-    home_o = home_stats.get('o_conversion_display', home_stats.get('o_conversion', 0))
+    away_o = away_stats.get("o_conversion_display", away_stats.get("o_conversion", 0))
+    home_o = home_stats.get("o_conversion_display", home_stats.get("o_conversion", 0))
     enhanced_stats.append(f"| **O-Line Conversion %** | {away_o} | {home_o} |")
 
     # Break %
-    away_break = away_stats.get('break_percentage_display', away_stats.get('break_percentage', 0))
-    home_break = home_stats.get('break_percentage_display', home_stats.get('break_percentage', 0))
+    away_break = away_stats.get(
+        "break_percentage_display", away_stats.get("break_percentage", 0)
+    )
+    home_break = home_stats.get(
+        "break_percentage_display", home_stats.get("break_percentage", 0)
+    )
     enhanced_stats.append(f"| **Break %** | {away_break} | {home_break} |")
 
     # D-Line Conversion %
-    away_d = away_stats.get('d_conversion_display', away_stats.get('d_conversion', 0))
-    home_d = home_stats.get('d_conversion_display', home_stats.get('d_conversion', 0))
+    away_d = away_stats.get("d_conversion_display", away_stats.get("d_conversion", 0))
+    home_d = home_stats.get("d_conversion_display", home_stats.get("d_conversion", 0))
     enhanced_stats.append(f"| **D-Line Conversion %** | {away_d} | {home_d} |")
 
     # Red Zone Conversion %
-    away_redzone = away_stats.get("redzone_percentage_display", f"{away_stats.get('redzone_percentage', 0)}%" if away_stats.get('redzone_percentage') is not None else "N/A")
-    home_redzone = home_stats.get("redzone_percentage_display", f"{home_stats.get('redzone_percentage', 0)}%" if home_stats.get('redzone_percentage') is not None else "N/A")
-    enhanced_stats.append(f"| **Red Zone Conversion %** | {away_redzone} | {home_redzone} |")
+    away_redzone = away_stats.get(
+        "redzone_percentage_display",
+        (
+            f"{away_stats.get('redzone_percentage', 0)}%"
+            if away_stats.get("redzone_percentage") is not None
+            else "N/A"
+        ),
+    )
+    home_redzone = home_stats.get(
+        "redzone_percentage_display",
+        (
+            f"{home_stats.get('redzone_percentage', 0)}%"
+            if home_stats.get("redzone_percentage") is not None
+            else "N/A"
+        ),
+    )
+    enhanced_stats.append(
+        f"| **Red Zone Conversion %** | {away_redzone} | {home_redzone} |"
+    )
 
     # Blocks
-    away_blocks = away_stats.get('total_blocks', 0)
-    home_blocks = home_stats.get('total_blocks', 0)
+    away_blocks = away_stats.get("total_blocks", 0)
+    home_blocks = home_stats.get("total_blocks", 0)
     enhanced_stats.append(f"| **Blocks** | {away_blocks} | {home_blocks} |")
 
     # Turnovers
-    away_to = away_stats.get('total_turnovers', 0)
-    home_to = home_stats.get('total_turnovers', 0)
+    away_to = away_stats.get("total_turnovers", 0)
+    home_to = home_stats.get("total_turnovers", 0)
     enhanced_stats.append(f"| **Turnovers** | {away_to} | {home_to} |")
 
     # Add Individual Leaders section as a single consolidated table
@@ -290,7 +322,7 @@ def format_game_details_response(answer: str, data: list[Any]) -> str:
             ("blocks", "Blocks"),
             ("completions", "Completions"),
             ("points_played", "Points Played"),
-            ("plus_minus", "Plus/Minus")
+            ("plus_minus", "Plus/Minus"),
         ]
 
         # Add one row per category with both teams' leaders
@@ -338,7 +370,7 @@ def format_game_details_response(answer: str, data: list[Any]) -> str:
     # Look for common patterns that indicate the start of game details/stats
     patterns_to_find = [
         r"(Game Information:)",  # Bullet-point style
-        r"(Game Details:)",      # Colon heading
+        r"(Game Details:)",  # Colon heading
         r"(##?\s*Game Details)",  # Markdown heading
         r"(\*\*Game Details\*\*)",  # Bold heading
         r"(Team Statistics:.*?(?=\n\n|\Z))",  # Team stats section
@@ -369,7 +401,11 @@ def format_game_details_response(answer: str, data: list[Any]) -> str:
         if any(indicator in answer for indicator in stat_indicators):
             # Stats already present in some form - replace everything after intro
             # Try to find where the detailed stats start
-            intro_match = re.search(r"^(.*?(?:game details?|game information).*?are:?)\s*", answer, re.DOTALL | re.IGNORECASE)
+            intro_match = re.search(
+                r"^(.*?(?:game details?|game information).*?are:?)\s*",
+                answer,
+                re.DOTALL | re.IGNORECASE,
+            )
             if intro_match:
                 intro = intro_match.group(1).rstrip()
                 enhanced_answer = intro + "\n\n" + enhanced_section

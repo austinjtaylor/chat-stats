@@ -95,7 +95,9 @@ def validate_config():
     if not config.SUPABASE_URL:
         print("⚠️  WARNING: SUPABASE_URL is not set (required for authentication)")
     if not config.SUPABASE_SERVICE_KEY:
-        print("⚠️  WARNING: SUPABASE_SERVICE_KEY is not set (required for authentication)")
+        print(
+            "⚠️  WARNING: SUPABASE_SERVICE_KEY is not set (required for authentication)"
+        )
 
 
 # Run validation on import

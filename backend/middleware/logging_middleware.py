@@ -47,9 +47,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.log_format = log_format
 
-    async def dispatch(
-        self, request: Request, call_next: Callable
-    ) -> Response:
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """Log request and response details."""
         start_time = time.time()
 
@@ -116,9 +114,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             logger.info(json.dumps(log_data))
         else:
             # Human-readable format (development)
-            log_message = (
-                f"{method} {path} - {status_code} - {duration_ms:.2f}ms"
-            )
+            log_message = f"{method} {path} - {status_code} - {duration_ms:.2f}ms"
             if user_id:
                 log_message += f" - user:{user_id}"
             if error:
@@ -133,9 +129,7 @@ class AuthFailureLoggingMiddleware(BaseHTTPMiddleware):
     Logs 401 and 403 responses with client IP for potential security analysis.
     """
 
-    async def dispatch(
-        self, request: Request, call_next: Callable
-    ) -> Response:
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """Log authentication failures."""
         response: Response = await call_next(request)
 
@@ -164,9 +158,7 @@ class QuotaLimitLoggingMiddleware(BaseHTTPMiddleware):
     Helps track user behavior and upgrade conversion opportunities.
     """
 
-    async def dispatch(
-        self, request: Request, call_next: Callable
-    ) -> Response:
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """Log quota limit hits."""
         response: Response = await call_next(request)
 

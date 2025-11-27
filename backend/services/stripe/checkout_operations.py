@@ -11,7 +11,11 @@ class CheckoutOperations:
 
     @staticmethod
     def create_checkout_session(
-        price_id: str, customer_email: str, user_id: str, success_url: str, cancel_url: str
+        price_id: str,
+        customer_email: str,
+        user_id: str,
+        success_url: str,
+        cancel_url: str,
     ) -> dict[str, str]:
         """
         Create a Stripe Checkout session for subscription payment.

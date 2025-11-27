@@ -37,13 +37,18 @@ def populate_hucks_received(engine):
         print(f"  📊 Pass/Goal events to analyze: {events_count:,}")
 
         if events_count == 0:
-            print("  ❌ No pass/goal events found - hucks_received cannot be calculated")
+            print(
+                "  ❌ No pass/goal events found - hucks_received cannot be calculated"
+            )
             return
 
         # Check current state
-        current_hucks = conn.execute(
-            text("SELECT SUM(hucks_received) FROM player_game_stats")
-        ).fetchone()[0] or 0
+        current_hucks = (
+            conn.execute(
+                text("SELECT SUM(hucks_received) FROM player_game_stats")
+            ).fetchone()[0]
+            or 0
+        )
         print(f"  📈 Current total hucks_received: {current_hucks:,}")
 
         # Reset hucks_received to 0 before recalculating
@@ -83,9 +88,12 @@ def populate_hucks_received(engine):
             print(f"  ✅ Updated {rows_updated:,} player-game records")
 
             # Verify the update
-            new_total = conn.execute(
-                text("SELECT SUM(hucks_received) FROM player_game_stats")
-            ).fetchone()[0] or 0
+            new_total = (
+                conn.execute(
+                    text("SELECT SUM(hucks_received) FROM player_game_stats")
+                ).fetchone()[0]
+                or 0
+            )
             print(f"  ✅ New total hucks_received: {new_total:,}")
 
             # Show some sample data

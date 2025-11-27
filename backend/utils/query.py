@@ -184,18 +184,25 @@ def convert_to_per_game_stats(players: list[dict[str, Any]]) -> list[dict[str, A
                     player[stat] = float(format(value, ".1f"))
 
             # Plus/minus also needs to be averaged
-            if "calculated_plus_minus" in player and player["calculated_plus_minus"] is not None:
+            if (
+                "calculated_plus_minus" in player
+                and player["calculated_plus_minus"] is not None
+            ):
                 value = player["calculated_plus_minus"] / games
                 player["calculated_plus_minus"] = float(format(value, ".1f"))
 
     return players
 
 
-def convert_to_per_possession_stats(players: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def convert_to_per_possession_stats(
+    players: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     """Convert player statistics to per-100-possession rates."""
     for player in players:
         # Use offensive possessions (total_o_opportunities) as the denominator
-        possessions = player.get("total_o_opportunities") or player.get("possessions") or 0
+        possessions = (
+            player.get("total_o_opportunities") or player.get("possessions") or 0
+        )
         if possessions > 0:
             # Convert counting stats to per-100-possession rates
             per_possession_stats = [
@@ -225,7 +232,10 @@ def convert_to_per_possession_stats(players: list[dict[str, Any]]) -> list[dict[
                     player[stat] = float(format(value, ".1f"))
 
             # Plus/minus also needs to be converted
-            if "calculated_plus_minus" in player and player["calculated_plus_minus"] is not None:
+            if (
+                "calculated_plus_minus" in player
+                and player["calculated_plus_minus"] is not None
+            ):
                 value = (player["calculated_plus_minus"] / possessions) * 100
                 player["calculated_plus_minus"] = float(format(value, ".1f"))
 

@@ -31,7 +31,9 @@ class SubscriptionOperations:
 
     @staticmethod
     def cancel_subscription(
-        subscription_id: str, cancellation_reason: str = "", cancellation_feedback: str = ""
+        subscription_id: str,
+        cancellation_reason: str = "",
+        cancellation_feedback: str = "",
     ) -> Any:
         """
         Cancel a subscription (at period end).
@@ -105,7 +107,9 @@ class SubscriptionOperations:
             Updated Stripe Subscription object
         """
         try:
-            return stripe.Subscription.modify(subscription_id, cancel_at_period_end=False)
+            return stripe.Subscription.modify(
+                subscription_id, cancel_at_period_end=False
+            )
         except Exception as e:
             raise HTTPException(
                 status_code=400, detail=f"Failed to reactivate subscription: {str(e)}"

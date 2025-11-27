@@ -130,9 +130,7 @@ class SeasonStatsCalculator:
             GROUP BY t.id
             """
 
-            team_results = self.db.execute_query(
-                team_stats_query, {"year": year_param}
-            )
+            team_results = self.db.execute_query(team_stats_query, {"year": year_param})
 
             # Clear existing team season stats first
             self.db.execute_query(
@@ -144,9 +142,7 @@ class SeasonStatsCalculator:
                 try:
                     # Calculate derived stats
                     if row.get("games_played") and row["games_played"] > 0:
-                        row["avg_points_for"] = (
-                            row["points_for"] / row["games_played"]
-                        )
+                        row["avg_points_for"] = row["points_for"] / row["games_played"]
                         row["avg_points_against"] = (
                             row["points_against"] / row["games_played"]
                         )

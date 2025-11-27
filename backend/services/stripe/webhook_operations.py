@@ -33,9 +33,7 @@ class WebhookOperations:
             HTTPException: If signature verification fails
         """
         if not STRIPE_WEBHOOK_SECRET:
-            raise HTTPException(
-                status_code=500, detail="Webhook secret not configured"
-            )
+            raise HTTPException(status_code=500, detail="Webhook secret not configured")
 
         try:
             event = stripe.Webhook.construct_event(

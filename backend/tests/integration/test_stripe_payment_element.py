@@ -31,12 +31,7 @@ def mock_stripe_service():
     mock.get_payment_methods.return_value = {
         "id": "pm_1Test123",
         "type": "card",
-        "card": {
-            "brand": "visa",
-            "last4": "4242",
-            "exp_month": 12,
-            "exp_year": 2025
-        }
+        "card": {"brand": "visa", "last4": "4242", "exp_month": 12, "exp_year": 2025},
     }
 
     # update_payment_method
@@ -52,10 +47,7 @@ def mock_db():
 
     # Default: User has Stripe customer ID
     mock.execute_query.return_value = [
-        {
-            "stripe_customer_id": "cus_test123",
-            "stripe_subscription_id": "sub_test123"
-        }
+        {"stripe_customer_id": "cus_test123", "stripe_subscription_id": "sub_test123"}
     ]
 
     return mock
@@ -65,29 +57,32 @@ def mock_db():
 def mock_subscription_service():
     """Mock subscription service"""
     mock = Mock()
-    mock.get_user_subscription.return_value = {
-        "tier": "pro",
-        "status": "active"
-    }
+    mock.get_user_subscription.return_value = {"tier": "pro", "status": "active"}
     return mock
 
 
 @pytest.fixture
 def mock_get_current_user():
     """Mock the get_current_user dependency"""
+
     def _mock_user():
-        return {
-            "user_id": "test-user-123",
-            "email": "test@example.com"
-        }
+        return {"user_id": "test-user-123", "email": "test@example.com"}
+
     return _mock_user
 
 
 @pytest.fixture
-def test_client_stripe(mock_stripe_service, mock_db, mock_subscription_service, mock_get_current_user):
+def test_client_stripe(
+    mock_stripe_service, mock_db, mock_subscription_service, mock_get_current_user
+):
     """Create test client with mocked Stripe services"""
-    with patch("services.stripe_service.get_stripe_service", return_value=mock_stripe_service):
-        with patch("api.stripe_routes.get_subscription_service", return_value=mock_subscription_service):
+    with patch(
+        "services.stripe_service.get_stripe_service", return_value=mock_stripe_service
+    ):
+        with patch(
+            "api.stripe_routes.get_subscription_service",
+            return_value=mock_subscription_service,
+        ):
             with patch("auth.get_current_user", return_value=mock_get_current_user):
                 # Create a mock stats_system with the mocked database
                 mock_stats_system = Mock()
@@ -95,6 +90,7 @@ def test_client_stripe(mock_stripe_service, mock_db, mock_subscription_service, 
 
                 with patch("api.stripe_routes.stats_system", mock_stats_system):
                     from app import app
+
                     client = TestClient(app)
                     client.mock_stripe_service = mock_stripe_service
                     client.mock_db = mock_db
@@ -112,7 +108,7 @@ class TestCreateSetupIntent:
         """Test successful SetupIntent creation"""
         response = test_client_stripe.post(
             "/api/stripe/create-setup-intent",
-            headers={"Authorization": "Bearer test-token"}
+            headers={"Authorization": "Bearer test-token"},
         )
 
         assert response.status_code == 200
@@ -123,7 +119,9 @@ class TestCreateSetupIntent:
         assert data["client_secret"].startswith("seti_")
 
         # Verify Stripe service was called
-        test_client_stripe.mock_stripe_service.create_setup_intent.assert_called_once_with("cus_test123")
+        test_client_stripe.mock_stripe_service.create_setup_intent.assert_called_once_with(
+            "cus_test123"
+        )
 
     def test_create_setup_intent_no_auth(self, test_client_stripe):
         """Test SetupIntent creation without authentication"""
@@ -139,7 +137,7 @@ class TestCreateSetupIntent:
 
         response = test_client_stripe.post(
             "/api/stripe/create-setup-intent",
-            headers={"Authorization": "Bearer test-token"}
+            headers={"Authorization": "Bearer test-token"},
         )
 
         assert response.status_code == 400
@@ -152,14 +150,13 @@ class TestCreateSetupIntent:
         from fastapi import HTTPException
 
         # Mock Stripe service to raise an error
-        test_client_stripe.mock_stripe_service.create_setup_intent.side_effect = HTTPException(
-            status_code=400,
-            detail="Stripe error: Invalid customer"
+        test_client_stripe.mock_stripe_service.create_setup_intent.side_effect = (
+            HTTPException(status_code=400, detail="Stripe error: Invalid customer")
         )
 
         response = test_client_stripe.post(
             "/api/stripe/create-setup-intent",
-            headers={"Authorization": "Bearer test-token"}
+            headers={"Authorization": "Bearer test-token"},
         )
 
         assert response.status_code == 400
@@ -175,7 +172,7 @@ class TestUpdatePaymentMethod:
         response = test_client_stripe.post(
             "/api/stripe/update-payment-method",
             headers={"Authorization": "Bearer test-token"},
-            json={"payment_method_id": "pm_test123"}
+            json={"payment_method_id": "pm_test123"},
         )
 
         assert response.status_code == 200
@@ -186,8 +183,7 @@ class TestUpdatePaymentMethod:
 
         # Verify Stripe service was called with correct params
         test_client_stripe.mock_stripe_service.update_payment_method.assert_called_once_with(
-            "cus_test123",
-            "pm_test123"
+            "cus_test123", "pm_test123"
         )
 
     def test_update_payment_method_missing_id(self, test_client_stripe):
@@ -195,7 +191,7 @@ class TestUpdatePaymentMethod:
         response = test_client_stripe.post(
             "/api/stripe/update-payment-method",
             headers={"Authorization": "Bearer test-token"},
-            json={}
+            json={},
         )
 
         assert response.status_code == 400
@@ -209,7 +205,7 @@ class TestUpdatePaymentMethod:
         response = test_client_stripe.post(
             "/api/stripe/update-payment-method",
             headers={"Authorization": "Bearer test-token"},
-            json={"payment_method_id": "pm_test123"}
+            json={"payment_method_id": "pm_test123"},
         )
 
         assert response.status_code == 400
@@ -220,15 +216,17 @@ class TestUpdatePaymentMethod:
         """Test update with invalid payment method ID"""
         from fastapi import HTTPException
 
-        test_client_stripe.mock_stripe_service.update_payment_method.side_effect = HTTPException(
-            status_code=400,
-            detail="Failed to update payment method: No such payment method"
+        test_client_stripe.mock_stripe_service.update_payment_method.side_effect = (
+            HTTPException(
+                status_code=400,
+                detail="Failed to update payment method: No such payment method",
+            )
         )
 
         response = test_client_stripe.post(
             "/api/stripe/update-payment-method",
             headers={"Authorization": "Bearer test-token"},
-            json={"payment_method_id": "pm_invalid"}
+            json={"payment_method_id": "pm_invalid"},
         )
 
         assert response.status_code == 400
@@ -241,7 +239,7 @@ class TestGetPaymentMethods:
         """Test successful retrieval of payment methods"""
         response = test_client_stripe.get(
             "/api/stripe/payment-methods",
-            headers={"Authorization": "Bearer test-token"}
+            headers={"Authorization": "Bearer test-token"},
         )
 
         assert response.status_code == 200
@@ -259,8 +257,7 @@ class TestGetPaymentMethods:
 
         # Verify service was called with subscription ID for fallback
         test_client_stripe.mock_stripe_service.get_payment_methods.assert_called_once_with(
-            "cus_test123",
-            stripe_subscription_id="sub_test123"
+            "cus_test123", stripe_subscription_id="sub_test123"
         )
 
     def test_get_payment_methods_none(self, test_client_stripe):
@@ -269,7 +266,7 @@ class TestGetPaymentMethods:
 
         response = test_client_stripe.get(
             "/api/stripe/payment-methods",
-            headers={"Authorization": "Bearer test-token"}
+            headers={"Authorization": "Bearer test-token"},
         )
 
         assert response.status_code == 200
@@ -282,7 +279,7 @@ class TestGetPaymentMethods:
 
         response = test_client_stripe.get(
             "/api/stripe/payment-methods",
-            headers={"Authorization": "Bearer test-token"}
+            headers={"Authorization": "Bearer test-token"},
         )
 
         assert response.status_code == 200
@@ -298,7 +295,7 @@ class TestPaymentMethodIntegration:
         # Step 1: Create SetupIntent
         setup_response = test_client_stripe.post(
             "/api/stripe/create-setup-intent",
-            headers={"Authorization": "Bearer test-token"}
+            headers={"Authorization": "Bearer test-token"},
         )
         assert setup_response.status_code == 200
         client_secret = setup_response.json()["client_secret"]
@@ -311,7 +308,7 @@ class TestPaymentMethodIntegration:
         update_response = test_client_stripe.post(
             "/api/stripe/update-payment-method",
             headers={"Authorization": "Bearer test-token"},
-            json={"payment_method_id": "pm_new123"}
+            json={"payment_method_id": "pm_new123"},
         )
         assert update_response.status_code == 200
         assert update_response.json()["status"] == "success"
@@ -319,7 +316,7 @@ class TestPaymentMethodIntegration:
         # Step 4: Verify payment method is set
         get_response = test_client_stripe.get(
             "/api/stripe/payment-methods",
-            headers={"Authorization": "Bearer test-token"}
+            headers={"Authorization": "Bearer test-token"},
         )
         assert get_response.status_code == 200
         assert get_response.json()["payment_method"] is not None
@@ -329,7 +326,7 @@ class TestPaymentMethodIntegration:
         # User already has payment method
         get_response = test_client_stripe.get(
             "/api/stripe/payment-methods",
-            headers={"Authorization": "Bearer test-token"}
+            headers={"Authorization": "Bearer test-token"},
         )
         assert get_response.json()["payment_method"]["card"]["last4"] == "4242"
 
@@ -341,21 +338,21 @@ class TestPaymentMethodIntegration:
                 "brand": "mastercard",
                 "last4": "4444",
                 "exp_month": 1,
-                "exp_year": 2026
-            }
+                "exp_year": 2026,
+            },
         }
 
         update_response = test_client_stripe.post(
             "/api/stripe/update-payment-method",
             headers={"Authorization": "Bearer test-token"},
-            json={"payment_method_id": "pm_new456"}
+            json={"payment_method_id": "pm_new456"},
         )
         assert update_response.status_code == 200
 
         # Verify new payment method
         get_response = test_client_stripe.get(
             "/api/stripe/payment-methods",
-            headers={"Authorization": "Bearer test-token"}
+            headers={"Authorization": "Bearer test-token"},
         )
         assert get_response.json()["payment_method"]["card"]["last4"] == "4444"
         assert get_response.json()["payment_method"]["card"]["brand"] == "mastercard"
@@ -368,18 +365,30 @@ class TestPaymentMethodSecurity:
         """Test that all endpoints require authentication"""
         endpoints = [
             ("/api/stripe/create-setup-intent", "POST", None),
-            ("/api/stripe/update-payment-method", "POST", {"payment_method_id": "pm_test"}),
+            (
+                "/api/stripe/update-payment-method",
+                "POST",
+                {"payment_method_id": "pm_test"},
+            ),
             ("/api/stripe/payment-methods", "GET", None),
         ]
 
         for endpoint, method, data in endpoints:
             if method == "POST":
-                response = test_client_stripe.post(endpoint, json=data) if data else test_client_stripe.post(endpoint)
+                response = (
+                    test_client_stripe.post(endpoint, json=data)
+                    if data
+                    else test_client_stripe.post(endpoint)
+                )
             else:
                 response = test_client_stripe.get(endpoint)
 
             # Should be rejected by auth middleware
-            assert response.status_code in [401, 403, 422], f"{endpoint} should require auth"
+            assert response.status_code in [
+                401,
+                403,
+                422,
+            ], f"{endpoint} should require auth"
 
     def test_user_isolation(self, test_client_stripe):
         """Test that users can only access their own payment methods"""
@@ -388,7 +397,7 @@ class TestPaymentMethodSecurity:
 
         response = test_client_stripe.get(
             "/api/stripe/payment-methods",
-            headers={"Authorization": "Bearer test-token"}
+            headers={"Authorization": "Bearer test-token"},
         )
 
         assert response.status_code == 200
@@ -404,11 +413,13 @@ class TestPaymentMethodErrorHandling:
 
     def test_database_error_handling(self, test_client_stripe):
         """Test graceful handling of database errors"""
-        test_client_stripe.mock_db.execute_query.side_effect = Exception("Database connection failed")
+        test_client_stripe.mock_db.execute_query.side_effect = Exception(
+            "Database connection failed"
+        )
 
         response = test_client_stripe.get(
             "/api/stripe/payment-methods",
-            headers={"Authorization": "Bearer test-token"}
+            headers={"Authorization": "Bearer test-token"},
         )
 
         # Should handle error gracefully (exact behavior depends on implementation)
@@ -418,14 +429,13 @@ class TestPaymentMethodErrorHandling:
         """Test handling of Stripe API timeouts"""
         from fastapi import HTTPException
 
-        test_client_stripe.mock_stripe_service.create_setup_intent.side_effect = HTTPException(
-            status_code=400,
-            detail="Stripe error: Request timeout"
+        test_client_stripe.mock_stripe_service.create_setup_intent.side_effect = (
+            HTTPException(status_code=400, detail="Stripe error: Request timeout")
         )
 
         response = test_client_stripe.post(
             "/api/stripe/create-setup-intent",
-            headers={"Authorization": "Bearer test-token"}
+            headers={"Authorization": "Bearer test-token"},
         )
 
         assert response.status_code == 400
@@ -444,7 +454,7 @@ class TestPaymentMethodErrorHandling:
             response = test_client_stripe.post(
                 "/api/stripe/update-payment-method",
                 headers={"Authorization": "Bearer test-token"},
-                json={"payment_method_id": invalid_id}
+                json={"payment_method_id": invalid_id},
             )
 
             # Should either validate format or get error from Stripe
@@ -461,13 +471,13 @@ class TestPaymentMethodEdgeCases:
         test_client_stripe.mock_db.execute_query.return_value = [
             {
                 "stripe_customer_id": "cus_test123",
-                "stripe_subscription_id": "sub_test123"
+                "stripe_subscription_id": "sub_test123",
             }
         ]
 
         response = test_client_stripe.post(
             "/api/stripe/create-setup-intent",
-            headers={"Authorization": "Bearer test-token"}
+            headers={"Authorization": "Bearer test-token"},
         )
 
         assert response.status_code == 200
@@ -475,22 +485,18 @@ class TestPaymentMethodEdgeCases:
     def test_payment_method_null_subscription(self, test_client_stripe):
         """Test getting payment methods when no subscription exists"""
         test_client_stripe.mock_db.execute_query.return_value = [
-            {
-                "stripe_customer_id": "cus_test123",
-                "stripe_subscription_id": None
-            }
+            {"stripe_customer_id": "cus_test123", "stripe_subscription_id": None}
         ]
 
         response = test_client_stripe.get(
             "/api/stripe/payment-methods",
-            headers={"Authorization": "Bearer test-token"}
+            headers={"Authorization": "Bearer test-token"},
         )
 
         assert response.status_code == 200
         # Service should be called with None for subscription ID
         test_client_stripe.mock_stripe_service.get_payment_methods.assert_called_once_with(
-            "cus_test123",
-            stripe_subscription_id=None
+            "cus_test123", stripe_subscription_id=None
         )
 
     def test_concurrent_payment_method_updates(self, test_client_stripe):
@@ -501,7 +507,7 @@ class TestPaymentMethodEdgeCases:
             response = test_client_stripe.post(
                 "/api/stripe/update-payment-method",
                 headers={"Authorization": "Bearer test-token"},
-                json={"payment_method_id": f"pm_test{i}"}
+                json={"payment_method_id": f"pm_test{i}"},
             )
             responses.append(response)
 
@@ -510,7 +516,9 @@ class TestPaymentMethodEdgeCases:
             assert response.status_code == 200
 
         # Stripe service should have been called 3 times
-        assert test_client_stripe.mock_stripe_service.update_payment_method.call_count == 3
+        assert (
+            test_client_stripe.mock_stripe_service.update_payment_method.call_count == 3
+        )
 
 
 # ===== TEST UTILITIES =====
@@ -532,7 +540,7 @@ def stripe_test_cards():
             "generic": "4000000000000002",
             "insufficient_funds": "4000000000009995",
             "lost_card": "4000000000009987",
-        }
+        },
     }
 
 

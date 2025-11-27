@@ -158,9 +158,7 @@ class PointBuilder:
 
         return scoring_team
 
-    def finalize_point(
-        self, current_point: dict, end_time: int | None = None
-    ) -> None:
+    def finalize_point(self, current_point: dict, end_time: int | None = None) -> None:
         """
         Finalize a point with end time and duration.
 

@@ -20,43 +20,22 @@ def add_indexes():
     # Dictionary of index name -> CREATE INDEX statement
     indexes = {
         # Player season stats indexes for common queries
-        "idx_pss_calculated_plus_minus":
-            "CREATE INDEX IF NOT EXISTS idx_pss_calculated_plus_minus ON player_season_stats(calculated_plus_minus DESC)",
-
-        "idx_pss_year_team":
-            "CREATE INDEX IF NOT EXISTS idx_pss_year_team ON player_season_stats(year, team_id)",
-
-        "idx_pss_team_year":
-            "CREATE INDEX IF NOT EXISTS idx_pss_team_year ON player_season_stats(team_id, year)",
-
+        "idx_pss_calculated_plus_minus": "CREATE INDEX IF NOT EXISTS idx_pss_calculated_plus_minus ON player_season_stats(calculated_plus_minus DESC)",
+        "idx_pss_year_team": "CREATE INDEX IF NOT EXISTS idx_pss_year_team ON player_season_stats(year, team_id)",
+        "idx_pss_team_year": "CREATE INDEX IF NOT EXISTS idx_pss_team_year ON player_season_stats(team_id, year)",
         # Common sort columns
-        "idx_pss_total_goals":
-            "CREATE INDEX IF NOT EXISTS idx_pss_total_goals ON player_season_stats(total_goals DESC)",
-
-        "idx_pss_total_assists":
-            "CREATE INDEX IF NOT EXISTS idx_pss_total_assists ON player_season_stats(total_assists DESC)",
-
-        "idx_pss_score_total":
-            "CREATE INDEX IF NOT EXISTS idx_pss_score_total ON player_season_stats((total_goals + total_assists) DESC)",
-
+        "idx_pss_total_goals": "CREATE INDEX IF NOT EXISTS idx_pss_total_goals ON player_season_stats(total_goals DESC)",
+        "idx_pss_total_assists": "CREATE INDEX IF NOT EXISTS idx_pss_total_assists ON player_season_stats(total_assists DESC)",
+        "idx_pss_score_total": "CREATE INDEX IF NOT EXISTS idx_pss_score_total ON player_season_stats((total_goals + total_assists) DESC)",
         # Player game stats indexes
-        "idx_pgs_player_year_team":
-            "CREATE INDEX IF NOT EXISTS idx_pgs_player_year_team ON player_game_stats(player_id, year, team_id)",
-
-        "idx_pgs_game_player":
-            "CREATE INDEX IF NOT EXISTS idx_pgs_game_player ON player_game_stats(game_id, player_id)",
-
+        "idx_pgs_player_year_team": "CREATE INDEX IF NOT EXISTS idx_pgs_player_year_team ON player_game_stats(player_id, year, team_id)",
+        "idx_pgs_game_player": "CREATE INDEX IF NOT EXISTS idx_pgs_game_player ON player_game_stats(game_id, player_id)",
         # Games indexes
-        "idx_games_year":
-            "CREATE INDEX IF NOT EXISTS idx_games_year ON games(year)",
-
+        "idx_games_year": "CREATE INDEX IF NOT EXISTS idx_games_year ON games(year)",
         # Players indexes
-        "idx_players_year":
-            "CREATE INDEX IF NOT EXISTS idx_players_year ON players(year)",
-
+        "idx_players_year": "CREATE INDEX IF NOT EXISTS idx_players_year ON players(year)",
         # Teams indexes
-        "idx_teams_year":
-            "CREATE INDEX IF NOT EXISTS idx_teams_year ON teams(year)",
+        "idx_teams_year": "CREATE INDEX IF NOT EXISTS idx_teams_year ON teams(year)",
     }
 
     print(f"\nAdding {len(indexes)} performance indexes...")
@@ -81,7 +60,9 @@ def add_indexes():
 
     # Show current indexes
     print("\nCurrent indexes on player_season_stats:")
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='player_season_stats'")
+    cursor.execute(
+        "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='player_season_stats'"
+    )
     for row in cursor.fetchall():
         print(f"  - {row[0]}")
 

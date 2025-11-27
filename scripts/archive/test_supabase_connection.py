@@ -34,8 +34,12 @@ def test_supabase_connection():
         print(f"✅ Configuration valid")
         print(f"   URL: {config['url']}")
         print(f"   Anon key: {'present' if config['has_anon_key'] else 'missing'}")
-        print(f"   Service key: {'present' if config['has_service_key'] else 'missing'}")
-        print(f"   Database URL: {'present' if config['has_database_url'] else 'missing'}")
+        print(
+            f"   Service key: {'present' if config['has_service_key'] else 'missing'}"
+        )
+        print(
+            f"   Database URL: {'present' if config['has_database_url'] else 'missing'}"
+        )
     except Exception as e:
         print(f"❌ Configuration error: {e}")
         return False
@@ -141,17 +145,14 @@ def test_supabase_connection():
                 "sub": "test-user-id",
                 "email": "test@example.com",
                 "role": "authenticated",
-                "aud": "authenticated"
+                "aud": "authenticated",
             }
 
             token = jwt.encode(test_payload, service_key, algorithm="HS256")
 
             # Try to decode it
             decoded = jwt.decode(
-                token,
-                service_key,
-                algorithms=["HS256"],
-                audience="authenticated"
+                token, service_key, algorithms=["HS256"], audience="authenticated"
             )
 
             if decoded["sub"] == "test-user-id":
@@ -193,5 +194,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n\n❌ Test failed: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

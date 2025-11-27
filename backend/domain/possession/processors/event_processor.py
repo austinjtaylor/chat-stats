@@ -159,9 +159,7 @@ class PossessionEventProcessor:
                 state.current_point.opponent_possessions += 1
             state.current_possession = new_possession
 
-    def _calculate_stats_from_points(
-        self, points: List[Point]
-    ) -> PossessionStats:
+    def _calculate_stats_from_points(self, points: List[Point]) -> PossessionStats:
         """
         Calculate statistics from processed points.
 

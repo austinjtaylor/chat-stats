@@ -16,6 +16,7 @@ from pathlib import Path
 
 # Load environment variables first
 from dotenv import load_dotenv
+
 project_root = Path(__file__).parent.parent
 load_dotenv(dotenv_path=project_root / ".env")
 
@@ -83,7 +84,9 @@ def remove_allstars_data():
             # Delete in order to respect foreign key constraints
 
             # 1. Delete game events for All Star games
-            result = conn.execute(text("""
+            result = conn.execute(
+                text(
+                    """
                 DELETE FROM game_events
                 WHERE game_id IN (
                     SELECT game_id FROM games
@@ -92,11 +95,15 @@ def remove_allstars_data():
                        OR LOWER(home_team_id) LIKE '%allstar%'
                        OR LOWER(away_team_id) LIKE '%allstar%'
                 )
-            """))
+            """
+                )
+            )
             print(f"   ✓ Deleted {result.rowcount} game events")
 
             # 2. Delete player game stats for All Star games
-            result = conn.execute(text("""
+            result = conn.execute(
+                text(
+                    """
                 DELETE FROM player_game_stats
                 WHERE game_id IN (
                     SELECT game_id FROM games
@@ -105,47 +112,65 @@ def remove_allstars_data():
                        OR LOWER(home_team_id) LIKE '%allstar%'
                        OR LOWER(away_team_id) LIKE '%allstar%'
                 )
-            """))
+            """
+                )
+            )
             print(f"   ✓ Deleted {result.rowcount} player game stats records")
 
             # 3. Delete All Star games
-            result = conn.execute(text("""
+            result = conn.execute(
+                text(
+                    """
                 DELETE FROM games
                 WHERE game_type = 'allstar'
                    OR LOWER(game_id) LIKE '%allstar%'
                    OR LOWER(home_team_id) LIKE '%allstar%'
                    OR LOWER(away_team_id) LIKE '%allstar%'
-            """))
+            """
+                )
+            )
             print(f"   ✓ Deleted {result.rowcount} All Star games")
 
             # 4. Delete player season stats for All Star teams
-            result = conn.execute(text("""
+            result = conn.execute(
+                text(
+                    """
                 DELETE FROM player_season_stats
                 WHERE team_id IN (
                     SELECT team_id FROM teams
                     WHERE LOWER(team_id) LIKE '%allstar%'
                        OR LOWER(name) LIKE '%all%star%'
                 )
-            """))
+            """
+                )
+            )
             print(f"   ✓ Deleted {result.rowcount} player season stats records")
 
             # 5. Delete team season stats for All Star teams
-            result = conn.execute(text("""
+            result = conn.execute(
+                text(
+                    """
                 DELETE FROM team_season_stats
                 WHERE team_id IN (
                     SELECT team_id FROM teams
                     WHERE LOWER(team_id) LIKE '%allstar%'
                        OR LOWER(name) LIKE '%all%star%'
                 )
-            """))
+            """
+                )
+            )
             print(f"   ✓ Deleted {result.rowcount} team season stats records")
 
             # 6. Delete All Star teams
-            result = conn.execute(text("""
+            result = conn.execute(
+                text(
+                    """
                 DELETE FROM teams
                 WHERE LOWER(team_id) LIKE '%allstar%'
                    OR LOWER(name) LIKE '%all%star%'
-            """))
+            """
+                )
+            )
             print(f"   ✓ Deleted {result.rowcount} All Star teams")
 
         print("\n✅ All Stars data removed successfully!")

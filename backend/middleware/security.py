@@ -39,9 +39,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Strict-Transport-Security (HSTS)
         # Only enable when explicitly requested (caller should ensure HTTPS is available)
         if self.enable_hsts:
-            response.headers[
-                "Strict-Transport-Security"
-            ] = "max-age=31536000; includeSubDomains"
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=31536000; includeSubDomains"
+            )
 
         # Content-Security-Policy (CSP)
         # Restricts resource loading to prevent XSS

@@ -293,7 +293,9 @@ class EventHandlers:
         return {"type": "stall", "description": "Stall", "yard_line": yard_line}
 
     @staticmethod
-    def handle_opponent_turnover_event(event: dict, turnover_type: str) -> dict[str, Any]:
+    def handle_opponent_turnover_event(
+        event: dict, turnover_type: str
+    ) -> dict[str, Any]:
         """
         Handle opponent turnover event (throwaway or stall).
 

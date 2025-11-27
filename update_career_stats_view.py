@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+
 def update_career_stats_view():
     """Drop and recreate the player_career_stats materialized view."""
 
@@ -31,14 +32,16 @@ def update_career_stats_view():
         print(f"❌ SQL file not found: {sql_file}")
         sys.exit(1)
 
-    with open(sql_file, 'r') as f:
+    with open(sql_file, "r") as f:
         sql_script = f.read()
 
     try:
         with engine.connect() as conn:
             # Drop existing view
             print("🗑️  Dropping existing materialized view...")
-            conn.execute(text("DROP MATERIALIZED VIEW IF EXISTS player_career_stats CASCADE"))
+            conn.execute(
+                text("DROP MATERIALIZED VIEW IF EXISTS player_career_stats CASCADE")
+            )
             conn.commit()
 
             # Create new view with updated schema
@@ -55,6 +58,7 @@ def update_career_stats_view():
     except Exception as e:
         print(f"❌ Error updating materialized view: {e}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     update_career_stats_view()

@@ -24,7 +24,11 @@ from services.stripe_webhook import (
     map_price_to_tier,
 )
 from utils.security_logger import log_webhook_event, log_payment_attempt
-from utils.validators import validate_price_id, validate_redirect_url, validate_customer_email
+from utils.validators import (
+    validate_price_id,
+    validate_redirect_url,
+    validate_customer_email,
+)
 
 
 def create_stripe_routes(stats_system):
@@ -67,7 +71,9 @@ def create_stripe_routes(stats_system):
             checkout_url=result["checkout_url"], session_id=result["session_id"]
         )
 
-    @router.post("/create-billing-portal-session", response_model=StripeBillingPortalResponse)
+    @router.post(
+        "/create-billing-portal-session", response_model=StripeBillingPortalResponse
+    )
     @auth_limit
     async def create_billing_portal_session(
         request: Request,
@@ -98,7 +104,8 @@ def create_stripe_routes(stats_system):
 
         if not result or not result[0].get("stripe_customer_id"):
             raise HTTPException(
-                status_code=400, detail="No Stripe customer found. Please subscribe first."
+                status_code=400,
+                detail="No Stripe customer found. Please subscribe first.",
             )
 
         stripe_customer_id = result[0]["stripe_customer_id"]
@@ -107,15 +114,19 @@ def create_stripe_routes(stats_system):
         # Note: This may fail if switching from test to live keys
         try:
             portal = stripe_service.create_billing_portal_session(
-                stripe_customer_id=stripe_customer_id, return_url=portal_request.return_url
+                stripe_customer_id=stripe_customer_id,
+                return_url=portal_request.return_url,
             )
             return StripeBillingPortalResponse(portal_url=portal["portal_url"])
         except HTTPException as e:
             # If customer not found in Stripe (e.g., test customer with live keys)
-            if "customer" in str(e.detail).lower() or "not found" in str(e.detail).lower():
+            if (
+                "customer" in str(e.detail).lower()
+                or "not found" in str(e.detail).lower()
+            ):
                 raise HTTPException(
                     status_code=400,
-                    detail="Unable to access billing portal. Please cancel your current subscription and subscribe again with live payment information."
+                    detail="Unable to access billing portal. Please cancel your current subscription and subscribe again with live payment information.",
                 )
             raise
 
@@ -136,7 +147,7 @@ def create_stripe_routes(stats_system):
                 event_type="unknown",
                 verified=False,
                 ip_address=ip_address,
-                details={"error": "Missing Stripe signature"}
+                details={"error": "Missing Stripe signature"},
             )
             raise HTTPException(status_code=400, detail="Missing Stripe signature")
 
@@ -151,7 +162,7 @@ def create_stripe_routes(stats_system):
                 event_type="unknown",
                 verified=False,
                 ip_address=ip_address,
-                details={"error": str(e.detail)}
+                details={"error": str(e.detail)},
             )
             raise
 
@@ -160,7 +171,7 @@ def create_stripe_routes(stats_system):
             event_type=event.type,
             verified=True,
             ip_address=ip_address,
-            details={"event_id": event.id}
+            details={"event_id": event.id},
         )
 
         subscription_service = get_subscription_service(stats_system.db)
@@ -193,7 +204,9 @@ def create_stripe_routes(stats_system):
 
     @router.get("/payment-methods")
     @auth_limit
-    async def get_payment_methods(request: Request, user: dict = Depends(get_current_user)):
+    async def get_payment_methods(
+        request: Request, user: dict = Depends(get_current_user)
+    ):
         """
         Get the user's default payment method from Stripe.
 
@@ -217,8 +230,7 @@ def create_stripe_routes(stats_system):
 
         # Get payment method from Stripe (pass subscription ID for fallback)
         payment_method = stripe_service.get_payment_methods(
-            stripe_customer_id,
-            stripe_subscription_id=stripe_subscription_id
+            stripe_customer_id, stripe_subscription_id=stripe_subscription_id
         )
 
         return {"payment_method": payment_method}
@@ -253,7 +265,9 @@ def create_stripe_routes(stats_system):
 
     @router.post("/cancel-subscription")
     @auth_limit
-    async def cancel_subscription_endpoint(request: Request, user: dict = Depends(get_current_user)):
+    async def cancel_subscription_endpoint(
+        request: Request, user: dict = Depends(get_current_user)
+    ):
         """
         Cancel the user's subscription (at period end).
 
@@ -283,9 +297,7 @@ def create_stripe_routes(stats_system):
         result = stats_system.db.execute_query(query, {"user_id": user_id})
 
         if not result or not result[0].get("stripe_subscription_id"):
-            raise HTTPException(
-                status_code=400, detail="No active subscription found"
-            )
+            raise HTTPException(status_code=400, detail="No active subscription found")
 
         stripe_subscription_id = result[0]["stripe_subscription_id"]
 
@@ -295,17 +307,26 @@ def create_stripe_routes(stats_system):
             stripe_service.cancel_subscription(
                 stripe_subscription_id,
                 cancellation_reason=cancellation_reason,
-                cancellation_feedback=cancellation_feedback
+                cancellation_feedback=cancellation_feedback,
             )
             # Update local database to mark as canceling at period end
             subscription_service.cancel_subscription(user_id, cancel_at_period_end=True)
-            return {"status": "success", "message": "Subscription will be canceled at period end"}
+            return {
+                "status": "success",
+                "message": "Subscription will be canceled at period end",
+            }
         except HTTPException as e:
             # If subscription not found in Stripe (e.g., test subscription with live keys),
             # downgrade to free tier to fully clear the orphaned subscription
-            if "subscription" in str(e.detail).lower() or "not found" in str(e.detail).lower():
+            if (
+                "subscription" in str(e.detail).lower()
+                or "not found" in str(e.detail).lower()
+            ):
                 subscription_service.downgrade_to_free(user_id)
-                return {"status": "success", "message": "Old subscription cleared. You have been moved to the free tier."}
+                return {
+                    "status": "success",
+                    "message": "Old subscription cleared. You have been moved to the free tier.",
+                }
             raise
 
     @router.post("/update-payment-method")
@@ -325,7 +346,9 @@ def create_stripe_routes(stats_system):
         body = await request.json()
         payment_method_id = body.get("payment_method_id")
 
-        print(f"Update payment method called - User: {user_id}, Payment Method: {payment_method_id}")
+        print(
+            f"Update payment method called - User: {user_id}, Payment Method: {payment_method_id}"
+        )
 
         if not payment_method_id:
             raise HTTPException(status_code=400, detail="payment_method_id is required")
@@ -340,7 +363,8 @@ def create_stripe_routes(stats_system):
 
         if not result or not result[0].get("stripe_customer_id"):
             raise HTTPException(
-                status_code=400, detail="No Stripe customer found. Please subscribe first."
+                status_code=400,
+                detail="No Stripe customer found. Please subscribe first.",
             )
 
         stripe_customer_id = result[0]["stripe_customer_id"]
@@ -350,8 +374,13 @@ def create_stripe_routes(stats_system):
         # Update payment method in Stripe
         try:
             stripe_service.update_payment_method(stripe_customer_id, payment_method_id)
-            print(f"Payment method updated successfully for customer: {stripe_customer_id}")
-            return {"status": "success", "message": "Payment method updated successfully"}
+            print(
+                f"Payment method updated successfully for customer: {stripe_customer_id}"
+            )
+            return {
+                "status": "success",
+                "message": "Payment method updated successfully",
+            }
         except HTTPException as e:
             print(f"Error updating payment method: {e.detail}")
             raise
@@ -386,14 +415,17 @@ def create_stripe_routes(stats_system):
 
         if not result or not result[0].get("stripe_customer_id"):
             raise HTTPException(
-                status_code=400, detail="No Stripe customer found. Please subscribe first."
+                status_code=400,
+                detail="No Stripe customer found. Please subscribe first.",
             )
 
         stripe_customer_id = result[0]["stripe_customer_id"]
 
         # Remove payment method in Stripe
         try:
-            response = stripe_service.remove_payment_method(stripe_customer_id, payment_method_id)
+            response = stripe_service.remove_payment_method(
+                stripe_customer_id, payment_method_id
+            )
             return {"status": "success", **response}
         except HTTPException as e:
             raise
@@ -421,7 +453,8 @@ def create_stripe_routes(stats_system):
 
         if not result or not result[0].get("stripe_customer_id"):
             raise HTTPException(
-                status_code=400, detail="No Stripe customer found. Please subscribe first."
+                status_code=400,
+                detail="No Stripe customer found. Please subscribe first.",
             )
 
         stripe_customer_id = result[0]["stripe_customer_id"]

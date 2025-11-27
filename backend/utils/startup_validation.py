@@ -58,7 +58,9 @@ def validate_required_env_vars() -> None:
         error_message = "Missing required environment variables:\n\n"
         for var_name, description in missing:
             error_message += f"  • {var_name}: {description}\n"
-        error_message += "\nPlease check your .env file and ensure all required variables are set."
+        error_message += (
+            "\nPlease check your .env file and ensure all required variables are set."
+        )
         raise ValidationError(error_message)
 
 
@@ -120,7 +122,9 @@ def validate_database_connection() -> None:
     required_parts = ["@", "/"]
     for part in required_parts:
         if part not in db_url:
-            raise ValidationError(f"DATABASE_URL appears to be malformed (missing '{part}')")
+            raise ValidationError(
+                f"DATABASE_URL appears to be malformed (missing '{part}')"
+            )
 
 
 def validate_supabase_configuration() -> None:
@@ -139,14 +143,20 @@ def validate_supabase_configuration() -> None:
         raise ValidationError("SUPABASE_URL must start with https://")
 
     if url and not url.endswith(".supabase.co"):
-        raise ValidationError("SUPABASE_URL must be a valid Supabase URL (ends with .supabase.co)")
+        raise ValidationError(
+            "SUPABASE_URL must be a valid Supabase URL (ends with .supabase.co)"
+        )
 
     # Validate key formats (JWT tokens start with eyJ)
     if anon_key and not anon_key.startswith("eyJ"):
-        raise ValidationError("SUPABASE_ANON_KEY appears to be invalid (should be a JWT token)")
+        raise ValidationError(
+            "SUPABASE_ANON_KEY appears to be invalid (should be a JWT token)"
+        )
 
     if service_key and not service_key.startswith("eyJ"):
-        raise ValidationError("SUPABASE_SERVICE_KEY appears to be invalid (should be a JWT token)")
+        raise ValidationError(
+            "SUPABASE_SERVICE_KEY appears to be invalid (should be a JWT token)"
+        )
 
 
 def run_startup_validation() -> None:
@@ -176,5 +186,7 @@ def run_startup_validation() -> None:
     except ValidationError as e:
         print(f"\n❌ STARTUP VALIDATION FAILED:\n")
         print(str(e))
-        print("\nApplication cannot start. Please fix the configuration errors and try again.\n")
+        print(
+            "\nApplication cannot start. Please fix the configuration errors and try again.\n"
+        )
         sys.exit(1)

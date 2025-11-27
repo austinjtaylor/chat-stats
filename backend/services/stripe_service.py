@@ -51,7 +51,12 @@ class StripeService:
         self.webhooks = WebhookOperations()
 
     def create_checkout_session(
-        self, price_id: str, customer_email: str, user_id: str, success_url: str, cancel_url: str
+        self,
+        price_id: str,
+        customer_email: str,
+        user_id: str,
+        success_url: str,
+        cancel_url: str,
     ) -> dict[str, str]:
         """
         Create a Stripe Checkout session - delegated to CheckoutOperations.
@@ -83,7 +88,9 @@ class StripeService:
         Returns:
             Dictionary with portal_url
         """
-        return self.checkout.create_billing_portal_session(stripe_customer_id, return_url)
+        return self.checkout.create_billing_portal_session(
+            stripe_customer_id, return_url
+        )
 
     def construct_webhook_event(self, payload: bytes, sig_header: str) -> Any:
         """
@@ -114,7 +121,7 @@ class StripeService:
         self,
         subscription_id: str,
         cancellation_reason: str = "",
-        cancellation_feedback: str = ""
+        cancellation_feedback: str = "",
     ) -> Any:
         """
         Cancel a subscription (at period end).
@@ -154,21 +161,35 @@ class StripeService:
         """Reactivate a subscription - delegated to SubscriptionOperations."""
         return self.subscriptions.reactivate_subscription(subscription_id)
 
-    def get_payment_methods(self, stripe_customer_id: str, stripe_subscription_id: str = None) -> dict[str, Any]:
+    def get_payment_methods(
+        self, stripe_customer_id: str, stripe_subscription_id: str = None
+    ) -> dict[str, Any]:
         """Get payment methods - delegated to PaymentMethodOperations."""
-        return self.payment_methods.get_payment_methods(stripe_customer_id, stripe_subscription_id)
+        return self.payment_methods.get_payment_methods(
+            stripe_customer_id, stripe_subscription_id
+        )
 
-    def get_invoices(self, stripe_customer_id: str, limit: int = 10) -> list[dict[str, Any]]:
+    def get_invoices(
+        self, stripe_customer_id: str, limit: int = 10
+    ) -> list[dict[str, Any]]:
         """Get invoices - delegated to InvoiceOperations."""
         return self.invoices.get_invoices(stripe_customer_id, limit)
 
-    def update_payment_method(self, stripe_customer_id: str, payment_method_id: str) -> Any:
+    def update_payment_method(
+        self, stripe_customer_id: str, payment_method_id: str
+    ) -> Any:
         """Update payment method - delegated to PaymentMethodOperations."""
-        return self.payment_methods.update_payment_method(stripe_customer_id, payment_method_id)
+        return self.payment_methods.update_payment_method(
+            stripe_customer_id, payment_method_id
+        )
 
-    def remove_payment_method(self, stripe_customer_id: str, payment_method_id: str) -> dict[str, str]:
+    def remove_payment_method(
+        self, stripe_customer_id: str, payment_method_id: str
+    ) -> dict[str, str]:
         """Remove payment method - delegated to PaymentMethodOperations."""
-        return self.payment_methods.remove_payment_method(stripe_customer_id, payment_method_id)
+        return self.payment_methods.remove_payment_method(
+            stripe_customer_id, payment_method_id
+        )
 
     def create_setup_intent(self, stripe_customer_id: str) -> dict[str, str]:
         """Create setup intent - delegated to PaymentMethodOperations."""
@@ -185,4 +206,3 @@ def get_stripe_service() -> StripeService:
     if _stripe_service is None:
         _stripe_service = StripeService()
     return _stripe_service
-

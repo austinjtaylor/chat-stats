@@ -50,7 +50,7 @@ def decode_jwt_token(token: str, ip_address: Optional[str] = None) -> dict:
         log_auth_failure(
             reason="expired_token",
             ip_address=ip_address,
-            details={"error": "Token has expired"}
+            details={"error": "Token has expired"},
         )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -59,9 +59,7 @@ def decode_jwt_token(token: str, ip_address: Optional[str] = None) -> dict:
         )
     except jwt.InvalidTokenError as e:
         log_auth_failure(
-            reason="invalid_token",
-            ip_address=ip_address,
-            details={"error": str(e)}
+            reason="invalid_token", ip_address=ip_address, details={"error": str(e)}
         )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -171,7 +169,8 @@ def verify_user_owns_resource(user_id: str, resource_user_id: str) -> bool:
     """
     if user_id != resource_user_id:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to this resource"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to this resource",
         )
     return True
 

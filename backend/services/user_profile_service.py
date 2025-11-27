@@ -51,7 +51,11 @@ class UserProfileService:
             full_name=prefs.get("full_name"),
             theme=prefs.get("theme") or "light",
             default_season=prefs.get("default_season"),
-            notifications_enabled=prefs.get("notifications_enabled") if prefs.get("notifications_enabled") is not None else True,
+            notifications_enabled=(
+                prefs.get("notifications_enabled")
+                if prefs.get("notifications_enabled") is not None
+                else True
+            ),
             email_digest_frequency=prefs.get("email_digest_frequency") or "weekly",
             favorite_stat_categories=prefs.get("favorite_stat_categories") or [],
         )
@@ -104,7 +108,9 @@ class UserProfileService:
             # No fields to update, just return current preferences
             prefs = self.get_user_preferences(user_id)
             if not prefs:
-                raise HTTPException(status_code=404, detail="User preferences not found")
+                raise HTTPException(
+                    status_code=404, detail="User preferences not found"
+                )
             return prefs
 
         # Execute update

@@ -2,7 +2,11 @@
 SQL query construction for player statistics endpoint.
 """
 
-from .filters import get_team_career_sort_column, build_having_clause, SEASON_STATS_ALIAS_MAPPING
+from .filters import (
+    get_team_career_sort_column,
+    build_having_clause,
+    SEASON_STATS_ALIAS_MAPPING,
+)
 from utils.query import get_sort_column
 
 
@@ -20,7 +24,7 @@ class PlayerStatsQueryBuilder:
         sort: str,
         order: str,
         page: int,
-        per_page: int
+        per_page: int,
     ):
         self.seasons = seasons
         self.teams = teams
@@ -164,13 +168,15 @@ class PlayerStatsQueryBuilder:
 
     def _build_team_career_query(self) -> str:
         """Build query for career stats filtered by specific team(s)."""
-        team_filter_for_query = self.team_filter.replace(" AND ", "")  # Remove leading " AND "
+        team_filter_for_query = self.team_filter.replace(
+            " AND ", ""
+        )  # Remove leading " AND "
 
         having_clause = build_having_clause(
             self.filters_list,
             per_game=self.per_game_mode,
             per_possession=self.per_possession_mode,
-            table_prefix="tcs."
+            table_prefix="tcs.",
         )
 
         return f"""
@@ -335,7 +341,7 @@ class PlayerStatsQueryBuilder:
             self.filters_list,
             per_game=self.per_game_mode,
             per_possession=self.per_possession_mode,
-            table_prefix=""
+            table_prefix="",
         )
 
         # When in per_possession mode, we need to filter by year >= 2014
@@ -345,7 +351,7 @@ class PlayerStatsQueryBuilder:
                 self.filters_list,
                 per_game=self.per_game_mode,
                 per_possession=self.per_possession_mode,
-                table_prefix="cs."
+                table_prefix="cs.",
             )
 
             return f"""
@@ -558,7 +564,7 @@ class PlayerStatsQueryBuilder:
             per_game=self.per_game_mode,
             per_possession=self.per_possession_mode,
             table_prefix="",
-            alias_mapping=SEASON_STATS_ALIAS_MAPPING
+            alias_mapping=SEASON_STATS_ALIAS_MAPPING,
         )
 
         return f"""
@@ -682,7 +688,7 @@ class PlayerStatsQueryBuilder:
             self.filters_list,
             per_game=self.per_game_mode,
             per_possession=self.per_possession_mode,
-            table_prefix="tcs."
+            table_prefix="tcs.",
         )
 
         return f"""

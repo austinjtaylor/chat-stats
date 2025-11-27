@@ -76,9 +76,7 @@ class SubscriptionService:
         subscription = self.get_user_subscription(user_id)
 
         if not subscription:
-            raise HTTPException(
-                status_code=404, detail="Subscription not found"
-            )
+            raise HTTPException(status_code=404, detail="Subscription not found")
 
         if subscription.at_query_limit:
             # Format reset date for display
@@ -200,7 +198,9 @@ class SubscriptionService:
             },
         )
 
-    def cancel_subscription(self, user_id: str, cancel_at_period_end: bool = True) -> None:
+    def cancel_subscription(
+        self, user_id: str, cancel_at_period_end: bool = True
+    ) -> None:
         """
         Mark subscription as canceled.
 

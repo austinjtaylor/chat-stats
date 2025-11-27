@@ -280,7 +280,12 @@ class TestPlayerQueries:
                 f"{game['away_team']} played against {game['home_team']}",
                 f"Final score: {game['away_team']} {game['away_score']}, {game['home_team']} {game['home_score']}",
             ],
-            expected_keywords=[game["away_team"], game["home_team"], "goals", "assists"],
+            expected_keywords=[
+                game["away_team"],
+                game["home_team"],
+                "goals",
+                "assists",
+            ],
         )
 
         relevancy_metric = AnswerRelevancyMetric(threshold=0.7, model=claude_model)
@@ -335,7 +340,9 @@ class TestTeamQueries:
     def test_team_season_stats(self, chat_helper, claude_model):
         """Test query about team performance."""
         # Glory is in top_teams_2025 with 12 wins, 3 losses
-        glory_data = next(t for t in EXPECTED_DATA["top_teams_2025"] if t["name"] == "Glory")
+        glory_data = next(
+            t for t in EXPECTED_DATA["top_teams_2025"] if t["name"] == "Glory"
+        )
 
         test_case, response = chat_helper.create_test_case(
             input_query="How is Glory performing this season?",
@@ -614,9 +621,7 @@ def test_run_all_regression_tests():
         {
             "query": "What are the current standings?",
             "expected_values": [top_team["name"], str(top_team["wins"])],
-            "retrieval_context": [
-                f"{top_team['name']} has {top_team['wins']} wins"
-            ],
+            "retrieval_context": [f"{top_team['name']} has {top_team['wins']} wins"],
         },
         {
             "query": f"Show me details about the recent {recent_game['away_team']} vs {recent_game['home_team']} game",
@@ -639,9 +644,7 @@ def test_run_all_regression_tests():
         {
             "query": "Which team has the best record?",
             "expected_values": [top_team["name"]],
-            "retrieval_context": [
-                f"{top_team['name']} has one of the best records"
-            ],
+            "retrieval_context": [f"{top_team['name']} has one of the best records"],
         },
     ]
 
@@ -650,7 +653,9 @@ def test_run_all_regression_tests():
             test["query"],
             expected_values=test["expected_values"],
             retrieval_context=test["retrieval_context"],
-        )[0]  # Extract just the test case from the tuple
+        )[
+            0
+        ]  # Extract just the test case from the tuple
         for test in critical_test_data
     ]
 

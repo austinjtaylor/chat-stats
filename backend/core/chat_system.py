@@ -198,7 +198,9 @@ class StatsChatSystem:
         order: str = "desc",
     ) -> list[dict[str, Any]]:
         """Get comprehensive team statistics - delegated to TeamStatsService."""
-        return self.team_stats.get_comprehensive_team_stats(season, view, perspective, sort, order)
+        return self.team_stats.get_comprehensive_team_stats(
+            season, view, perspective, sort, order
+        )
 
     def close(self):
         """Close database connections and cleanup."""

@@ -43,7 +43,9 @@ def get_supabase_client() -> Client:
     supabase_key = config.SUPABASE_SERVICE_KEY
 
     if not supabase_url or not supabase_key:
-        raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_KEY must be set in environment")
+        raise ValueError(
+            "SUPABASE_URL and SUPABASE_SERVICE_KEY must be set in environment"
+        )
 
     return create_client(supabase_url, supabase_key)
 
@@ -63,8 +65,8 @@ def create_bucket_if_not_exists(supabase: Client):
             options={
                 "public": True,  # Make bucket publicly accessible
                 "file_size_limit": 5242880,  # 5MB limit
-                "allowed_mime_types": ["image/png", "image/jpeg", "image/jpg"]
-            }
+                "allowed_mime_types": ["image/png", "image/jpeg", "image/jpg"],
+            },
         )
         print(f"✓ Created bucket '{BUCKET_NAME}'")
         return bucket
@@ -80,7 +82,7 @@ def upload_logo(supabase: Client, file_path: Path) -> str:
     filename = file_path.name
 
     # Read file contents
-    with open(file_path, 'rb') as f:
+    with open(file_path, "rb") as f:
         file_contents = f.read()
 
     # Upload to Supabase Storage
@@ -95,7 +97,7 @@ def upload_logo(supabase: Client, file_path: Path) -> str:
         result = supabase.storage.from_(BUCKET_NAME).upload(
             filename,
             file_contents,
-            file_options={"content-type": "image/png", "upsert": "true"}
+            file_options={"content-type": "image/png", "upsert": "true"},
         )
 
         # Get public URL
@@ -117,31 +119,31 @@ def parse_team_from_filename(filename: str) -> tuple[str, str]:
         'indianapolis_alley_cats.png' -> ('Indianapolis', 'Alleycats')
     """
     # Remove .png extension
-    name = filename.replace('.png', '')
+    name = filename.replace(".png", "")
 
     # Special case mappings (filename -> database values)
     city_mappings = {
-        'los_angeles': 'LA',
-        'las_angeles': 'LA',  # Handle both spellings
-        'salt_lake': 'Salt Lake',
-        'san_diego': 'San Diego',
-        'new_york': 'New York'
+        "los_angeles": "LA",
+        "las_angeles": "LA",  # Handle both spellings
+        "salt_lake": "Salt Lake",
+        "san_diego": "San Diego",
+        "new_york": "New York",
     }
 
     team_mappings = {
-        'alley_cats': 'alleycats',  # Database has 'Alleycats' not 'Alley Cats'
-        'wind_chill': 'wind chill'
+        "alley_cats": "alleycats",  # Database has 'Alleycats' not 'Alley Cats'
+        "wind_chill": "wind chill",
     }
 
-    parts = name.split('_')
+    parts = name.split("_")
 
     # Handle multi-word cities
-    if '_'.join(parts[:2]) in city_mappings:
-        city = city_mappings['_'.join(parts[:2])]
-        team = '_'.join(parts[2:])
+    if "_".join(parts[:2]) in city_mappings:
+        city = city_mappings["_".join(parts[:2])]
+        team = "_".join(parts[2:])
     else:
         city = parts[0]
-        team = '_'.join(parts[1:])
+        team = "_".join(parts[1:])
 
     # Apply team name mappings
     team = team_mappings.get(team, team)
@@ -153,7 +155,9 @@ def parse_team_from_filename(filename: str) -> tuple[str, str]:
     return city, team
 
 
-def update_team_logo_url(db: SQLDatabase, city: str, team_name: str, logo_url: str, year: int = 2025):
+def update_team_logo_url(
+    db: SQLDatabase, city: str, team_name: str, logo_url: str, year: int = 2025
+):
     """Update the teams table with the logo URL"""
     query = """
     UPDATE teams
@@ -164,14 +168,14 @@ def update_team_logo_url(db: SQLDatabase, city: str, team_name: str, logo_url: s
     """
 
     # Handle team names with underscores -> spaces
-    team_name_spaces = team_name.replace('_', ' ')
+    team_name_spaces = team_name.replace("_", " ")
 
     params = {
         "logo_url": logo_url,
         "city": city,
         "team_name": team_name,
         "team_name_spaces": team_name_spaces,
-        "year": year
+        "year": year,
     }
 
     result = db.execute_query(query, params)

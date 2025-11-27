@@ -133,7 +133,9 @@ class PaymentMethodOperations:
                             else getattr(payment_method.link, "email", None)
                         )
                     }
-                    print(f"Link email: {link_info.get('email') if link_info else 'N/A'}")
+                    print(
+                        f"Link email: {link_info.get('email') if link_info else 'N/A'}"
+                    )
             else:
                 print(
                     f"Warning: Payment method type '{payment_method.type}' has no card details"
@@ -183,9 +185,7 @@ class PaymentMethodOperations:
             )
 
     @staticmethod
-    def update_payment_method(
-        stripe_customer_id: str, payment_method_id: str
-    ) -> Any:
+    def update_payment_method(stripe_customer_id: str, payment_method_id: str) -> Any:
         """
         Update the default payment method for a customer.
 

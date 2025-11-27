@@ -188,4 +188,6 @@ class RedzoneCalculator:
                 ELSE 2
             END
         """
-        return self.db.execute_query(query, {"game_id": game_id, "team_type": team_type})
+        return self.db.execute_query(
+            query, {"game_id": game_id, "team_type": team_type}
+        )

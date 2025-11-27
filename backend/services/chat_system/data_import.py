@@ -59,7 +59,9 @@ class DataImportService:
             count = self.stats_processor.import_from_csv(data_source, "stats")
             return {"stats_imported": count}
         else:
-            raise ValueError(f"Could not determine data type from filename: {data_source}")
+            raise ValueError(
+                f"Could not determine data type from filename: {data_source}"
+            )
 
     def calculate_season_stats(self, season: str):
         """

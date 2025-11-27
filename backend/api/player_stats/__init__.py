@@ -15,8 +15,16 @@ All modules under 600 lines with clear separation of concerns.
 from .route import create_player_stats_route
 
 # Export utility functions for backward compatibility
-from .filters import build_having_clause, get_team_career_sort_column, SEASON_STATS_ALIAS_MAPPING
-from .percentile_calculator import calculate_global_percentiles, STAT_FIELDS, INVERT_STATS
+from .filters import (
+    build_having_clause,
+    get_team_career_sort_column,
+    SEASON_STATS_ALIAS_MAPPING,
+)
+from .percentile_calculator import (
+    calculate_global_percentiles,
+    STAT_FIELDS,
+    INVERT_STATS,
+)
 from .query_builder import PlayerStatsQueryBuilder
 
 __all__ = [

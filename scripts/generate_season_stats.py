@@ -339,8 +339,12 @@ def generate_team_season_stats(engine):
             ).fetchone()[0]
             print(f"  ✅ Team season stats records: {team_stats_count:,}")
 
-            print(f"  ⚠️  Note: Possession stats (hold%, O-line conv, etc.) are set to 0")
-            print(f"      These require game_events data and are calculated at query time")
+            print(
+                f"  ⚠️  Note: Possession stats (hold%, O-line conv, etc.) are set to 0"
+            )
+            print(
+                f"      These require game_events data and are calculated at query time"
+            )
 
         except Exception as e:
             print(f"  ❌ Error aggregating team stats: {str(e)}")
@@ -365,7 +369,9 @@ def populate_possession_stats_from_events(engine):
         print("  ℹ️  Run 'uv run python scripts/populate_possession_stats.py' manually")
     except Exception as e:
         print(f"  ❌ Error populating possession stats: {str(e)}")
-        print("  ℹ️  You can run 'uv run python scripts/populate_possession_stats.py' separately")
+        print(
+            "  ℹ️  You can run 'uv run python scripts/populate_possession_stats.py' separately"
+        )
 
 
 def main():

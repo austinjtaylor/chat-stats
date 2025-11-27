@@ -9,7 +9,9 @@ class SubscriptionHandler:
     """Handles Stripe subscription-related events."""
 
     @staticmethod
-    def handle_subscription_updated(event, subscription_service, db, map_price_to_tier_func):
+    def handle_subscription_updated(
+        event, subscription_service, db, map_price_to_tier_func
+    ):
         """
         Handle customer.subscription.updated event.
 

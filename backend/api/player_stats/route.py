@@ -41,15 +41,15 @@ def create_player_stats_route(stats_system):
             sorted_seasons = sorted(seasons)
             sorted_teams = sorted(teams)
             cache_key = cache_key_for_endpoint(
-                'player_stats',
-                season=','.join(str(s) for s in sorted_seasons),
-                team=','.join(sorted_teams),
+                "player_stats",
+                season=",".join(str(s) for s in sorted_seasons),
+                team=",".join(sorted_teams),
                 page=page,
                 per_page=per_page,
                 sort=sort,
                 order=order,
                 per=per,
-                custom_filters=custom_filters
+                custom_filters=custom_filters,
             )
 
             cached_result = cache.get(cache_key)
@@ -57,8 +57,8 @@ def create_player_stats_route(stats_system):
                 return cached_result
 
             # Build queries using query builder
-            per_game_mode = (per == "game")
-            per_possession_mode = (per == "possession")
+            per_game_mode = per == "game"
+            per_possession_mode = per == "possession"
             query_builder = PlayerStatsQueryBuilder(
                 seasons=seasons,
                 teams=teams,
@@ -69,7 +69,7 @@ def create_player_stats_route(stats_system):
                 sort=sort,
                 order=order,
                 page=page,
-                per_page=per_page
+                per_page=per_page,
             )
 
             main_query = query_builder.build_main_query()
@@ -99,7 +99,7 @@ def create_player_stats_route(stats_system):
                         conn,
                         players,
                         seasons=seasons if not is_career_mode else None,
-                        teams=teams if teams[0] != "all" else None
+                        teams=teams if teams[0] != "all" else None,
                     )
 
             total_pages = (total + per_page - 1) // per_page
@@ -140,7 +140,7 @@ def _parse_filters(season: str, team: str) -> tuple[list, list, bool]:
         seasons = ["career"]
     else:
         # Parse comma-separated seasons
-        seasons = [s.strip() for s in season.split(',') if s.strip()]
+        seasons = [s.strip() for s in season.split(",") if s.strip()]
         if not seasons:
             seasons = ["career"]
             is_career_mode = True
@@ -149,7 +149,7 @@ def _parse_filters(season: str, team: str) -> tuple[list, list, bool]:
     if team == "all":
         teams = ["all"]
     else:
-        teams = [t.strip() for t in team.split(',') if t.strip()]
+        teams = [t.strip() for t in team.split(",") if t.strip()]
         if not teams:
             teams = ["all"]
 

@@ -80,7 +80,9 @@ class BaseImporter:
 
         return conflict_clauses.get(table, "")
 
-    def is_allstar_game(self, game_id: str, away_team_id: str = "", home_team_id: str = "") -> bool:
+    def is_allstar_game(
+        self, game_id: str, away_team_id: str = "", home_team_id: str = ""
+    ) -> bool:
         """
         Check if a game is an all-star game
 

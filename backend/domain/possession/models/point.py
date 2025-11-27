@@ -14,6 +14,7 @@ class Point:
     A point runs from pull to goal, tracking which team pulls, receives,
     and scores, as well as possession changes during the point.
     """
+
     pulling_team: str  # 'home' or 'away'
     receiving_team: str  # 'home' or 'away'
     scoring_team: Optional[str] = None  # 'home', 'away', or None
@@ -41,6 +42,7 @@ class RedzonePossession:
     Tracks whether a team reached the redzone (80-100 yards) and scored
     during a possession.
     """
+
     point: int  # Point number
     reached_redzone: bool = False
     scored: bool = False
@@ -51,6 +53,7 @@ class PossessionStats:
     """
     Aggregated possession statistics for a team.
     """
+
     o_line_points: int = 0
     o_line_scores: int = 0
     o_line_possessions: int = 0
@@ -77,6 +80,7 @@ class RedzoneStats:
     """
     Aggregated redzone statistics for a team.
     """
+
     redzone_possessions: int = 0
     redzone_goals: int = 0
     redzone_attempts: int = 0  # Possessions that reached redzone
@@ -95,6 +99,7 @@ class EventProcessorState:
     """
     Tracks state during event processing.
     """
+
     # Possession tracking
     points: list[Point] = field(default_factory=list)
     current_point: Optional[Point] = None

@@ -10,7 +10,7 @@ def build_having_clause(
     per_game: bool = False,
     per_possession: bool = False,
     table_prefix: str = "",
-    alias_mapping: Optional[dict] = None
+    alias_mapping: Optional[dict] = None,
 ) -> str:
     """
     Build a HAVING clause from custom filters.
@@ -29,27 +29,33 @@ def build_having_clause(
         return ""
 
     # Valid operators for security
-    valid_operators = {'>', '<', '>=', '<=', '='}
+    valid_operators = {">", "<", ">=", "<=", "="}
 
     # Stats that should not be divided (already percentages/ratios or special fields)
     non_counting_stats = {
-        "completion_percentage", "huck_percentage", "offensive_efficiency",
-        "yards_per_turn", "yards_per_completion", "yards_per_reception",
-        "assists_per_turnover", "games_played", "full_name"
+        "completion_percentage",
+        "huck_percentage",
+        "offensive_efficiency",
+        "yards_per_turn",
+        "yards_per_completion",
+        "yards_per_reception",
+        "assists_per_turnover",
+        "games_played",
+        "full_name",
     }
 
     conditions = []
     for f in custom_filters:
-        field = f.get('field', '')
-        operator = f.get('operator', '')
-        value = f.get('value', 0)
+        field = f.get("field", "")
+        operator = f.get("operator", "")
+        value = f.get("value", 0)
 
         # Validate operator
         if operator not in valid_operators:
             continue
 
         # Validate field (basic SQL injection protection)
-        if not field or not field.replace('_', '').isalnum():
+        if not field or not field.replace("_", "").isalnum():
             continue
 
         # Build field reference
@@ -83,7 +89,9 @@ def build_having_clause(
     return " AND ".join(conditions) if conditions else ""
 
 
-def get_team_career_sort_column(sort_key: str, per_game: bool = False, per_possession: bool = False) -> str:
+def get_team_career_sort_column(
+    sort_key: str, per_game: bool = False, per_possession: bool = False
+) -> str:
     """
     Get the sort column for team career stats queries.
     Handles per-game sorting by dividing counting stats by games_played.

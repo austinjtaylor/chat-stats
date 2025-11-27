@@ -106,6 +106,7 @@ except ValueError as e:
 supabase_admin = None
 try:
     from supabase import create_client
+
     if SUPABASE_URL and SUPABASE_SERVICE_KEY:
         supabase_admin = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
         print("✅ Supabase admin client initialized")

@@ -47,9 +47,7 @@ class EventsImporter(BaseImporter):
 
         return count
 
-    def _import_team_events(
-        self, game_id: str, events: list[dict], team: str
-    ) -> int:
+    def _import_team_events(self, game_id: str, events: list[dict], team: str) -> int:
         """
         Import events for a single team in a game
 
