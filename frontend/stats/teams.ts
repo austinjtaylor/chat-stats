@@ -107,6 +107,8 @@ class TeamStats {
         const isOpponent = this.filters.perspective === 'opponent';
         const oppPrefix = isOpponent ? 'Opp\n' : '';
         const seasonNum = parseInt(String(season));
+        // For "All" mode (career), show all available columns
+        const effectiveSeason = isNaN(seasonNum) ? 9999 : seasonNum;
 
         // Core columns available for all years
         const coreColumns: TeamColumn[] = [
@@ -137,12 +139,12 @@ class TeamStats {
         const columns = [...coreColumns];
 
         // Add C, T, C% for 2013+
-        if (seasonNum >= 2013) {
+        if (effectiveSeason >= 2013) {
             columns.push(...completionColumns);
         }
 
         // Add H and H% after C% for 2020+
-        if (seasonNum >= 2020) {
+        if (effectiveSeason >= 2020) {
             columns.push(
                 { key: 'hucks_completed', label: `${oppPrefix}H`, sortable: true },
                 { key: 'huck_percentage', label: `${oppPrefix}H %`, sortable: true }
@@ -150,12 +152,12 @@ class TeamStats {
         }
 
         // Add possession stats for 2014+ (HLD%, OLC%, B, BRK%, DLC%)
-        if (seasonNum >= 2014) {
+        if (effectiveSeason >= 2014) {
             columns.push(...advancedColumns);
         }
 
         // Add RZC% at the end for 2020+
-        if (seasonNum >= 2020) {
+        if (effectiveSeason >= 2020) {
             columns.push({ key: 'red_zone_conversion', label: `${oppPrefix}RZC %`, sortable: true });
         }
 

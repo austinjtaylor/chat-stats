@@ -95,11 +95,42 @@ class TeamStatsService:
                     ELSE 0
                 END as huck_percentage,
                 SUM(tss.opp_blocks) as blocks,
-                COALESCE(ROUND(AVG(tss.opp_hold_percentage), 2), 0.0) as hold_percentage,
-                COALESCE(ROUND(AVG(tss.opp_o_line_conversion), 2), 0.0) as o_line_conversion,
-                COALESCE(ROUND(AVG(tss.opp_break_percentage), 2), 0.0) as break_percentage,
-                COALESCE(ROUND(AVG(tss.opp_d_line_conversion), 2), 0.0) as d_line_conversion,
-                COALESCE(ROUND(AVG(tss.opp_red_zone_conversion), 2), 0.0) as red_zone_conversion
+                -- Use games-weighted average for opponent possession stats (2014-2019 don't have accurate raw counts)
+                CASE WHEN SUM(CASE WHEN tss.opp_hold_percentage > 0 THEN tss.games_played ELSE 0 END) > 0
+                    THEN ROUND(
+                        SUM(CASE WHEN tss.opp_hold_percentage > 0 THEN tss.opp_hold_percentage * tss.games_played ELSE 0 END) /
+                        SUM(CASE WHEN tss.opp_hold_percentage > 0 THEN tss.games_played ELSE 0 END)
+                    , 2)
+                    ELSE 0
+                END as hold_percentage,
+                CASE WHEN SUM(CASE WHEN tss.opp_o_line_conversion > 0 THEN tss.games_played ELSE 0 END) > 0
+                    THEN ROUND(
+                        SUM(CASE WHEN tss.opp_o_line_conversion > 0 THEN tss.opp_o_line_conversion * tss.games_played ELSE 0 END) /
+                        SUM(CASE WHEN tss.opp_o_line_conversion > 0 THEN tss.games_played ELSE 0 END)
+                    , 2)
+                    ELSE 0
+                END as o_line_conversion,
+                CASE WHEN SUM(CASE WHEN tss.opp_break_percentage > 0 THEN tss.games_played ELSE 0 END) > 0
+                    THEN ROUND(
+                        SUM(CASE WHEN tss.opp_break_percentage > 0 THEN tss.opp_break_percentage * tss.games_played ELSE 0 END) /
+                        SUM(CASE WHEN tss.opp_break_percentage > 0 THEN tss.games_played ELSE 0 END)
+                    , 2)
+                    ELSE 0
+                END as break_percentage,
+                CASE WHEN SUM(CASE WHEN tss.opp_d_line_conversion > 0 THEN tss.games_played ELSE 0 END) > 0
+                    THEN ROUND(
+                        SUM(CASE WHEN tss.opp_d_line_conversion > 0 THEN tss.opp_d_line_conversion * tss.games_played ELSE 0 END) /
+                        SUM(CASE WHEN tss.opp_d_line_conversion > 0 THEN tss.games_played ELSE 0 END)
+                    , 2)
+                    ELSE 0
+                END as d_line_conversion,
+                CASE WHEN SUM(CASE WHEN tss.opp_red_zone_conversion > 0 THEN tss.games_played ELSE 0 END) > 0
+                    THEN ROUND(
+                        SUM(CASE WHEN tss.opp_red_zone_conversion > 0 THEN tss.opp_red_zone_conversion * tss.games_played ELSE 0 END) /
+                        SUM(CASE WHEN tss.opp_red_zone_conversion > 0 THEN tss.games_played ELSE 0 END)
+                    , 2)
+                    ELSE 0
+                END as red_zone_conversion
             FROM team_season_stats tss
             JOIN teams t ON tss.team_id = t.team_id AND tss.year = t.year
             GROUP BY tss.team_id
@@ -127,24 +158,40 @@ class TeamStatsService:
                     ELSE 0
                 END as huck_percentage,
                 SUM(tss.blocks) as blocks,
-                CASE WHEN SUM(tss.o_line_points) > 0
-                    THEN ROUND((CAST(SUM(tss.o_line_scores) AS NUMERIC) / SUM(tss.o_line_points)) * 100, 2)
+                -- Use games-weighted average for possession stats (2014-2019 don't have accurate raw counts)
+                CASE WHEN SUM(CASE WHEN tss.hold_percentage > 0 THEN tss.games_played ELSE 0 END) > 0
+                    THEN ROUND(
+                        SUM(CASE WHEN tss.hold_percentage > 0 THEN tss.hold_percentage * tss.games_played ELSE 0 END) /
+                        SUM(CASE WHEN tss.hold_percentage > 0 THEN tss.games_played ELSE 0 END)
+                    , 2)
                     ELSE 0
                 END as hold_percentage,
-                CASE WHEN SUM(tss.o_line_possessions) > 0
-                    THEN ROUND((CAST(SUM(tss.o_line_scores) AS NUMERIC) / SUM(tss.o_line_possessions)) * 100, 2)
+                CASE WHEN SUM(CASE WHEN tss.o_line_conversion > 0 THEN tss.games_played ELSE 0 END) > 0
+                    THEN ROUND(
+                        SUM(CASE WHEN tss.o_line_conversion > 0 THEN tss.o_line_conversion * tss.games_played ELSE 0 END) /
+                        SUM(CASE WHEN tss.o_line_conversion > 0 THEN tss.games_played ELSE 0 END)
+                    , 2)
                     ELSE 0
                 END as o_line_conversion,
-                CASE WHEN SUM(tss.d_line_points) > 0
-                    THEN ROUND((CAST(SUM(tss.d_line_scores) AS NUMERIC) / SUM(tss.d_line_points)) * 100, 2)
+                CASE WHEN SUM(CASE WHEN tss.break_percentage > 0 THEN tss.games_played ELSE 0 END) > 0
+                    THEN ROUND(
+                        SUM(CASE WHEN tss.break_percentage > 0 THEN tss.break_percentage * tss.games_played ELSE 0 END) /
+                        SUM(CASE WHEN tss.break_percentage > 0 THEN tss.games_played ELSE 0 END)
+                    , 2)
                     ELSE 0
                 END as break_percentage,
-                CASE WHEN SUM(tss.d_line_possessions) > 0
-                    THEN ROUND((CAST(SUM(tss.d_line_scores) AS NUMERIC) / SUM(tss.d_line_possessions)) * 100, 2)
+                CASE WHEN SUM(CASE WHEN tss.d_line_conversion > 0 THEN tss.games_played ELSE 0 END) > 0
+                    THEN ROUND(
+                        SUM(CASE WHEN tss.d_line_conversion > 0 THEN tss.d_line_conversion * tss.games_played ELSE 0 END) /
+                        SUM(CASE WHEN tss.d_line_conversion > 0 THEN tss.games_played ELSE 0 END)
+                    , 2)
                     ELSE 0
                 END as d_line_conversion,
-                CASE WHEN SUM(tss.redzone_attempts) > 0
-                    THEN ROUND((CAST(SUM(tss.redzone_goals) AS NUMERIC) / SUM(tss.redzone_attempts)) * 100, 2)
+                CASE WHEN SUM(CASE WHEN tss.red_zone_conversion > 0 THEN tss.games_played ELSE 0 END) > 0
+                    THEN ROUND(
+                        SUM(CASE WHEN tss.red_zone_conversion > 0 THEN tss.red_zone_conversion * tss.games_played ELSE 0 END) /
+                        SUM(CASE WHEN tss.red_zone_conversion > 0 THEN tss.games_played ELSE 0 END)
+                    , 2)
                     ELSE 0
                 END as red_zone_conversion
             FROM team_season_stats tss

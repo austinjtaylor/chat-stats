@@ -29,11 +29,11 @@ class PlayerImporter(BaseImporter):
                 jersey_num = None
 
             player_data = {
-                "player_id": player.get("playerID", ""),
-                "first_name": player.get("firstName", ""),
-                "last_name": player.get("lastName", ""),
-                "full_name": player.get("fullName", ""),
-                "team_id": player.get("teamID", ""),
+                "player_id": player.get("playerID") or "",
+                "first_name": player.get("firstName") or "",
+                "last_name": player.get("lastName") or "",
+                "full_name": player.get("fullName") or "",
+                "team_id": player.get("teamID") or "",
                 "active": player.get("active", True),
                 "year": player.get("year"),
                 "jersey_number": jersey_num,
