@@ -23,6 +23,163 @@ from data.possession import calculate_possessions_batch, calculate_redzone_stats
 load_dotenv()
 
 
+def calculate_possession_stats_from_pgs(conn, year, year_teams):
+    """
+    Calculate possession stats from player_game_stats for years without game_events.
+
+    This is a fallback for 2013-2019 where game_events data is not available.
+    We can calculate HLD% and BRK% but not OLC%/DLC% (which require possession counts).
+
+    Args:
+        conn: Database connection
+        year: Season year
+        year_teams: List of team IDs for this year
+
+    Returns:
+        Dict mapping team_id to possession stats
+    """
+    # Calculate possession stats from player_game_stats using MAX aggregation
+    query = text(
+        """
+        WITH game_team_stats AS (
+            SELECT
+                pgs.team_id,
+                pgs.game_id,
+                MAX(pgs.o_points_played) as o_points,
+                MAX(pgs.d_points_played) as d_points,
+                MAX(pgs.o_points_scored) as o_scored,
+                MAX(pgs.d_points_scored) as d_scored
+            FROM player_game_stats pgs
+            JOIN games g ON pgs.game_id = g.game_id
+            WHERE g.year = :year
+              AND g.game_type NOT IN ('all-star', 'showcase', 'preseason')
+            GROUP BY pgs.team_id, pgs.game_id
+        )
+        SELECT
+            team_id,
+            SUM(o_points) as o_line_points,
+            SUM(o_scored) as o_line_scores,
+            SUM(d_points) as d_line_points,
+            SUM(d_scored) as d_line_scores
+        FROM game_team_stats
+        GROUP BY team_id
+    """
+    )
+
+    results = conn.execute(query, {"year": year}).fetchall()
+
+    stats = {}
+    for row in results:
+        team_id = row[0]
+        o_line_points = row[1] or 0
+        o_line_scores = row[2] or 0
+        d_line_points = row[3] or 0
+        d_line_scores = row[4] or 0
+
+        # For years without game_events, we set OLC%=HLD% and DLC%=BRK%
+        # (approximation: 1 possession per point)
+        stats[team_id] = {
+            "o_line_points": o_line_points,
+            "o_line_scores": o_line_scores,
+            "o_line_possessions": o_line_points,  # Approximation
+            "d_line_points": d_line_points,
+            "d_line_scores": d_line_scores,
+            "d_line_possessions": d_line_points,  # Approximation
+        }
+
+    return stats
+
+
+def calculate_opponent_stats_from_pgs(conn, year, year_teams):
+    """
+    Calculate opponent possession stats from player_game_stats.
+
+    For each team, sums up their opponents' stats from each game played.
+
+    Args:
+        conn: Database connection
+        year: Season year
+        year_teams: List of team IDs for this year
+
+    Returns:
+        Dict mapping team_id to opponent stats
+    """
+    # First get per-game team stats
+    query = text(
+        """
+        WITH game_team_stats AS (
+            SELECT
+                pgs.team_id,
+                pgs.game_id,
+                MAX(pgs.o_points_played) as o_points,
+                MAX(pgs.d_points_played) as d_points,
+                MAX(pgs.o_points_scored) as o_scored,
+                MAX(pgs.d_points_scored) as d_scored
+            FROM player_game_stats pgs
+            JOIN games g ON pgs.game_id = g.game_id
+            WHERE g.year = :year
+              AND g.game_type NOT IN ('all-star', 'showcase', 'preseason')
+            GROUP BY pgs.team_id, pgs.game_id
+        ),
+        games_with_teams AS (
+            SELECT
+                game_id,
+                home_team_id,
+                away_team_id
+            FROM games
+            WHERE year = :year
+              AND game_type NOT IN ('all-star', 'showcase', 'preseason')
+        )
+        SELECT
+            CASE WHEN g.home_team_id = gts.team_id THEN g.away_team_id ELSE g.home_team_id END as team_id,
+            SUM(gts.o_points) as opp_o_points,
+            SUM(gts.o_scored) as opp_o_scored,
+            SUM(gts.d_points) as opp_d_points,
+            SUM(gts.d_scored) as opp_d_scored
+        FROM game_team_stats gts
+        JOIN games_with_teams g ON gts.game_id = g.game_id
+        WHERE (g.home_team_id = gts.team_id OR g.away_team_id = gts.team_id)
+        GROUP BY CASE WHEN g.home_team_id = gts.team_id THEN g.away_team_id ELSE g.home_team_id END
+    """
+    )
+
+    results = conn.execute(query, {"year": year}).fetchall()
+
+    opp_stats = {}
+    for row in results:
+        team_id = row[0]
+        opp_o_points = row[1] or 0
+        opp_o_scores = row[2] or 0
+        opp_d_points = row[3] or 0
+        opp_d_scores = row[4] or 0
+
+        # Calculate percentages
+        opp_hold_pct = (
+            round((opp_o_scores / opp_o_points) * 100, 2) if opp_o_points > 0 else 0.0
+        )
+        opp_break_pct = (
+            round((opp_d_scores / opp_d_points) * 100, 2) if opp_d_points > 0 else 0.0
+        )
+
+        opp_stats[team_id] = {
+            "opp_o_line_points": opp_o_points,
+            "opp_o_line_scores": opp_o_scores,
+            "opp_o_line_possessions": opp_o_points,  # Approximation
+            "opp_d_line_points": opp_d_points,
+            "opp_d_line_scores": opp_d_scores,
+            "opp_d_line_possessions": opp_d_points,  # Approximation
+            "opp_hold_pct": opp_hold_pct,
+            "opp_o_conv": opp_hold_pct,  # Same as hold% when using approximation
+            "opp_break_pct": opp_break_pct,
+            "opp_d_conv": opp_break_pct,  # Same as break% when using approximation
+            "opp_rz_scores": 0,  # Not available without game_events
+            "opp_rz_attempts": 0,
+            "opp_rz_conv": 0.0,
+        }
+
+    return opp_stats
+
+
 class DatabaseWrapper:
     """Wrapper class that provides execute_query() method for compatibility."""
 
@@ -101,9 +258,173 @@ def populate_possession_stats(db):
             print(f"\n  📅 Processing {year} ({len(year_teams)} teams)...")
             print("  " + "-" * 66)
 
+            # Check game_events coverage for this year (need >= 80% coverage to use events)
+            coverage_result = conn.execute(
+                text(
+                    """
+                    SELECT
+                        COUNT(DISTINCT g.game_id) as total_games,
+                        COUNT(DISTINCT ge.game_id) as games_with_events
+                    FROM games g
+                    LEFT JOIN game_events ge ON g.game_id = ge.game_id
+                    WHERE g.year = :year
+                      AND g.game_type NOT IN ('all-star', 'showcase', 'preseason')
+                """
+                ),
+                {"year": year},
+            ).fetchone()
+
+            total_games = coverage_result[0] or 0
+            games_with_events = coverage_result[1] or 0
+            coverage_pct = (
+                (games_with_events / total_games * 100) if total_games > 0 else 0
+            )
+
+            # Use fallback for years with < 80% game_events coverage
+            use_fallback = coverage_pct < 80
+
+            if use_fallback:
+                if year < 2013:
+                    print(f"     ⏭️  Skipping {year} - no possession data available")
+                    continue
+
+                print(
+                    f"     📊 Using player_game_stats fallback ({coverage_pct:.0f}% game_events coverage)"
+                )
+                try:
+                    # Calculate from player_game_stats
+                    possession_stats = calculate_possession_stats_from_pgs(
+                        conn, year, year_teams
+                    )
+                    opponent_stats_map = calculate_opponent_stats_from_pgs(
+                        conn, year, year_teams
+                    )
+
+                    # No redzone data available for these years
+                    redzone_stats = {team_id: {} for team_id in year_teams}
+
+                    # Update each team's stats in the database
+                    print(f"     💾 Updating database...")
+                    for team_id in year_teams:
+                        poss = possession_stats.get(team_id, {})
+                        opp = opponent_stats_map.get(team_id, {})
+
+                        # Get team raw counts
+                        o_line_points = poss.get("o_line_points", 0)
+                        o_line_scores = poss.get("o_line_scores", 0)
+                        o_line_possessions = poss.get("o_line_possessions", 0)
+                        d_line_points = poss.get("d_line_points", 0)
+                        d_line_scores = poss.get("d_line_scores", 0)
+                        d_line_possessions = poss.get("d_line_possessions", 0)
+
+                        # Calculate team percentages
+                        hold_pct = (
+                            round((o_line_scores / o_line_points) * 100, 2)
+                            if o_line_points > 0
+                            else 0.0
+                        )
+                        o_conv = (
+                            round((o_line_scores / o_line_possessions) * 100, 2)
+                            if o_line_possessions > 0
+                            else 0.0
+                        )
+                        break_pct = (
+                            round((d_line_scores / d_line_points) * 100, 2)
+                            if d_line_points > 0
+                            else 0.0
+                        )
+                        d_conv = (
+                            round((d_line_scores / d_line_possessions) * 100, 2)
+                            if d_line_possessions > 0
+                            else 0.0
+                        )
+
+                        update_query = text(
+                            """
+                            UPDATE team_season_stats
+                            SET
+                                o_line_points = :o_line_points,
+                                o_line_scores = :o_line_scores,
+                                o_line_possessions = :o_line_possessions,
+                                d_line_points = :d_line_points,
+                                d_line_scores = :d_line_scores,
+                                d_line_possessions = :d_line_possessions,
+                                redzone_goals = 0,
+                                redzone_attempts = 0,
+                                hold_percentage = :hold_pct,
+                                o_line_conversion = :o_conv,
+                                break_percentage = :break_pct,
+                                d_line_conversion = :d_conv,
+                                red_zone_conversion = 0.0,
+                                opp_o_line_points = :opp_o_line_points,
+                                opp_o_line_scores = :opp_o_line_scores,
+                                opp_o_line_possessions = :opp_o_line_possessions,
+                                opp_d_line_points = :opp_d_line_points,
+                                opp_d_line_scores = :opp_d_line_scores,
+                                opp_d_line_possessions = :opp_d_line_possessions,
+                                opp_redzone_goals = 0,
+                                opp_redzone_attempts = 0,
+                                opp_hold_percentage = :opp_hold_pct,
+                                opp_o_line_conversion = :opp_o_conv,
+                                opp_break_percentage = :opp_break_pct,
+                                opp_d_line_conversion = :opp_d_conv,
+                                opp_red_zone_conversion = 0.0,
+                                updated_at = CURRENT_TIMESTAMP
+                            WHERE team_id = :team_id AND year = :year
+                        """
+                        )
+
+                        conn.execute(
+                            update_query,
+                            {
+                                "o_line_points": o_line_points,
+                                "o_line_scores": o_line_scores,
+                                "o_line_possessions": o_line_possessions,
+                                "d_line_points": d_line_points,
+                                "d_line_scores": d_line_scores,
+                                "d_line_possessions": d_line_possessions,
+                                "hold_pct": hold_pct,
+                                "o_conv": o_conv,
+                                "break_pct": break_pct,
+                                "d_conv": d_conv,
+                                "opp_o_line_points": opp.get("opp_o_line_points", 0),
+                                "opp_o_line_scores": opp.get("opp_o_line_scores", 0),
+                                "opp_o_line_possessions": opp.get(
+                                    "opp_o_line_possessions", 0
+                                ),
+                                "opp_d_line_points": opp.get("opp_d_line_points", 0),
+                                "opp_d_line_scores": opp.get("opp_d_line_scores", 0),
+                                "opp_d_line_possessions": opp.get(
+                                    "opp_d_line_possessions", 0
+                                ),
+                                "opp_hold_pct": opp.get("opp_hold_pct", 0.0),
+                                "opp_o_conv": opp.get("opp_o_conv", 0.0),
+                                "opp_break_pct": opp.get("opp_break_pct", 0.0),
+                                "opp_d_conv": opp.get("opp_d_conv", 0.0),
+                                "team_id": team_id,
+                                "year": year,
+                            },
+                        )
+
+                    conn.commit()
+                    total_updated += len(year_teams)
+                    print(
+                        f"     ✅ Updated {len(year_teams)} teams for {year} (from player_game_stats)"
+                    )
+                    continue
+
+                except Exception as e:
+                    print(f"     ❌ Error processing {year} fallback: {str(e)}")
+                    total_errors += 1
+                    conn.rollback()
+                    continue
+
+            # Year has game_events (>= 80% coverage) - use full calculation
             try:
                 # Calculate possession stats for all teams in this year (batch operation)
-                print(f"     🔄 Calculating possession stats...")
+                print(
+                    f"     🔄 Calculating possession stats from game_events ({coverage_pct:.0f}% coverage)..."
+                )
                 possession_stats = calculate_possessions_batch(
                     db,  # Pass db wrapper for execute_query() access
                     year_teams,

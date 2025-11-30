@@ -105,6 +105,10 @@ class EventProcessorState:
     current_point: Optional[Point] = None
     current_possession: Optional[str] = None
     point_had_action: bool = False
+    pass_made_since_gain: bool = (
+        True  # False when team just gained disc, True after a pass
+    )
+    point_had_team_pass: bool = False  # True if team made any pass during this point
 
     # Redzone tracking
     redzone_possessions: list[RedzonePossession] = field(default_factory=list)

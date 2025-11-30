@@ -146,7 +146,9 @@ def calculate_global_percentiles(
             percentiles = {}
             # Map all percentile values (skip the first column which is full_name)
             for i, field in enumerate(STAT_FIELDS):
-                percentiles[field] = row[i + 1]  # Keep None as-is for frontend to show "-"
+                percentiles[field] = row[
+                    i + 1
+                ]  # Keep None as-is for frontend to show "-"
             percentiles_map[full_name] = percentiles
 
         return percentiles_map

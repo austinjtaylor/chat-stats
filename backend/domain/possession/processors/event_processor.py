@@ -77,6 +77,14 @@ class PossessionEventProcessor:
             self._handle_turnover(event_type, state)
         elif event_type == 13:  # Opponent throwaway
             self._handle_opponent_turnover(state)
+        elif event_type == 12:  # CALLAHAN_BY_OPPOSING - opponent scores via callahan
+            self._handle_opponent_goal(state)
+        elif event_type == 14:  # STALL_ON_OPPOSING - team gains possession
+            self._handle_opponent_turnover(state)
+        elif event_type == 23:  # CALLAHAN - team scores via interception
+            self._handle_team_goal(state)
+        elif event_type in [28, 29, 30, 31]:  # Quarter end events
+            self._handle_quarter_end(state)
 
     def _handle_d_point_start(self, state: EventProcessorState) -> None:
         """Handle D-point start (team pulls)."""
@@ -91,6 +99,8 @@ class PossessionEventProcessor:
         )
         state.current_possession = self.opponent_type
         state.point_had_action = False
+        state.pass_made_since_gain = True
+        state.point_had_team_pass = False  # Reset for new point
 
     def _handle_o_point_start(self, state: EventProcessorState) -> None:
         """Handle O-point start (team receives)."""
@@ -105,12 +115,15 @@ class PossessionEventProcessor:
         )
         state.current_possession = self.team_type
         state.point_had_action = False
+        state.pass_made_since_gain = True
+        state.point_had_team_pass = False  # Reset for new point
 
     def _handle_team_goal(self, state: EventProcessorState) -> None:
         """Handle team goal event."""
         if state.current_point:
             state.current_point.scoring_team = self.team_type
             state.point_had_action = True
+            state.pass_made_since_gain = True  # Goal counts as meaningful possession
 
     def _handle_opponent_goal(self, state: EventProcessorState) -> None:
         """Handle opponent goal event."""
@@ -118,10 +131,39 @@ class PossessionEventProcessor:
             state.current_point.scoring_team = self.opponent_type
             state.point_had_action = True
 
+    def _handle_quarter_end(self, state: EventProcessorState) -> None:
+        """Handle quarter end events (END_Q1, HALFTIME, END_Q3, END_REG).
+
+        UFA Rule: A possession only counts if the team makes at least one pass
+        before the point/quarter ends. If team has disc but made no pass when
+        quarter ends AND the team made no passes during the entire point,
+        decrement the possession count.
+
+        This avoids penalizing teams who were actively playing during the point
+        but happened to gain possession right before a quarter break.
+        """
+        if not state.current_point:
+            return
+
+        # Only decrement if:
+        # 1. Team has disc but hasn't made a pass since gaining it
+        # 2. Team made NO passes at all during this point (avoiding active play penalty)
+        if (
+            state.current_possession == self.team_type
+            and not state.pass_made_since_gain
+            and not state.point_had_team_pass
+            and state.current_point.team_possessions > 0
+        ):
+            state.current_point.team_possessions -= 1
+
     def _handle_pass(self, state: EventProcessorState) -> None:
         """Handle pass event."""
         if state.current_point:
             state.point_had_action = True
+            # Mark that team made a pass (confirms meaningful possession)
+            if state.current_possession == self.team_type:
+                state.pass_made_since_gain = True
+                state.point_had_team_pass = True
 
     def _handle_turnover(self, event_type: int, state: EventProcessorState) -> None:
         """Handle turnover events."""
@@ -139,9 +181,13 @@ class PossessionEventProcessor:
         # Update possession counts if possession changed
         if new_possession != state.current_possession:
             if new_possession == self.team_type:
+                # Team gained disc - count immediately, mark as no pass yet
                 state.current_point.team_possessions += 1
+                state.pass_made_since_gain = False
             else:
+                # Team lost possession - count opponent's new possession
                 state.current_point.opponent_possessions += 1
+                state.pass_made_since_gain = True
             state.current_possession = new_possession
 
     def _handle_opponent_turnover(self, state: EventProcessorState) -> None:
@@ -153,10 +199,9 @@ class PossessionEventProcessor:
         new_possession = self.team_type
 
         if new_possession != state.current_possession:
-            if new_possession == self.team_type:
-                state.current_point.team_possessions += 1
-            else:
-                state.current_point.opponent_possessions += 1
+            # Team gained disc - count immediately, mark as no pass yet
+            state.current_point.team_possessions += 1
+            state.pass_made_since_gain = False
             state.current_possession = new_possession
 
     def _calculate_stats_from_points(self, points: List[Point]) -> PossessionStats:
@@ -302,6 +347,28 @@ class RedzoneEventProcessor:
                     point=state.point_num
                 )
                 state.in_possession = True
+
+        elif event_type == 12:  # CALLAHAN_BY_OPPOSING - opponent scores via callahan
+            if state.current_redzone_possession:
+                state.redzone_possessions.append(state.current_redzone_possession)
+                state.current_redzone_possession = None
+                state.in_possession = False
+
+        elif event_type == 14:  # STALL_ON_OPPOSING - we gain possession
+            if not state.in_possession:
+                if state.current_redzone_possession:
+                    state.redzone_possessions.append(state.current_redzone_possession)
+                state.current_redzone_possession = RedzonePossession(
+                    point=state.point_num
+                )
+                state.in_possession = True
+
+        elif event_type == 23:  # CALLAHAN - we score via interception
+            if state.current_redzone_possession:
+                state.current_redzone_possession.scored = True
+                state.redzone_possessions.append(state.current_redzone_possession)
+                state.current_redzone_possession = None
+                state.in_possession = False
 
     def _calculate_stats_from_possessions(
         self, possessions: List[RedzonePossession]
