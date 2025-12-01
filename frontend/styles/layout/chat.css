@@ -17,6 +17,7 @@ body.chat-page {
 /* Main container for chat page */
 .chat-page-container {
     min-height: 100vh;
+    min-height: 100svh;
     padding: 0;
     display: flex;
     flex-direction: column;
@@ -210,6 +211,7 @@ body.sidebar-expanded .chat-main-full {
     transform: none;
     width: 100%;
     height: 100vh;
+    height: 100svh;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
@@ -229,6 +231,7 @@ body.chat-active .chat-page-container {
 
 .chat-active .chat-container-full {
     height: 100vh;
+    height: 100svh;
     display: flex;
     flex-direction: column;
     padding: 0;
@@ -262,7 +265,9 @@ body.sidebar-expanded.chat-active .chat-container-full::before {
 .chat-active .chat-messages {
     flex: 1;
     max-height: 100vh; /* Extend to full viewport height */
+    max-height: 100svh;
     height: 100vh;
+    height: 100svh;
     overflow-y: auto;
     padding: 60px calc(50vw - 384px) var(--chat-input-height, 74px) calc(50vw - 384px); /* Bottom padding matches input height for perfect alignment */
     position: relative;

@@ -393,6 +393,7 @@ button.payment-option:hover {
     margin: 0;
     border-radius: 0;
     max-height: 100vh;
+    max-height: 100svh;
   }
 
   .payment-modal-overlay {

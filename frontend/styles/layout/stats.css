@@ -8,6 +8,7 @@ body.stats-page {
     /* Keep body from scrolling - tables scroll internally */
     overflow: hidden;
     height: 100vh;
+    height: 100svh;
 }
 
 /* Hide the app header on stats pages */
@@ -18,6 +19,7 @@ body.stats-page {
 /* Stats Container */
 .stats-container {
     height: 100vh;
+    height: 100svh;
     padding-top: 0;
     background: var(--background);
     color: var(--text-primary);
@@ -32,6 +34,7 @@ body.stats-page {
     margin: 0;
     padding: 0 1.5rem 0rem 1.5rem; /* No top padding, reduced side padding, no bottom padding */
     height: 100vh;
+    height: 100svh;
     overflow: hidden; /* Prevent main area scrolling */
     display: flex;
     flex-direction: column;
