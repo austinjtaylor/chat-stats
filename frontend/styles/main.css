@@ -38,6 +38,7 @@
 .page-container {
     padding-top: 80px;
     min-height: 100vh;
+    min-height: 100svh;
 }
 
 /* Auth Button Styles - Legacy (kept for backwards compatibility on other pages) */
@@ -308,7 +309,7 @@
 .w-auto { width: auto; }
 .h-full { height: 100%; }
 .h-auto { height: auto; }
-.h-screen { height: 100vh; }
+.h-screen { height: 100vh; height: 100svh; }
 
 /* Overflow Utilities */
 .overflow-auto { overflow: auto; }

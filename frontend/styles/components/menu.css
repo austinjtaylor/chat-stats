@@ -113,6 +113,10 @@
     margin-bottom: 1rem;
 }
 
+.chat-title-wrapper .chat-title {
+    margin-bottom: 0;
+}
+
 .chat-title-wrapper .logo-wrapper {
     width: 45px;
     height: 45px;

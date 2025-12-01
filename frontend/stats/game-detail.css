@@ -2,6 +2,7 @@
 body.stats-page[data-page="games"] {
     overflow: hidden !important;
     height: 100vh !important;
+    height: 100svh !important;
 }
 
 /* Remove sidebar margin for games page when sidebar is collapsed */
@@ -12,6 +13,7 @@ body.stats-page[data-page="games"]:not(.sidebar-expanded) .stats-container {
 /* Override container constraints for game detail page */
 .stats-page[data-page="games"] .stats-container {
     height: 100vh;
+    height: 100svh;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -19,6 +21,7 @@ body.stats-page[data-page="games"]:not(.sidebar-expanded) .stats-container {
 
 .stats-page[data-page="games"] .stats-main {
     height: 100vh;
+    height: 100svh;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -339,7 +342,7 @@ body.sidebar-open .stats-container {
 
 /* Tab Content */
 .tab-content {
-    padding: 0px 20px 0px 20px;
+    padding: 0;
     margin: 0 auto;
     width: 100%;
     flex: 1;
@@ -730,7 +733,7 @@ body.sidebar-open .stats-container {
 .play-by-play-container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 20px 0;
+    padding: 0 0;
 }
 
 .play-by-play-header {
@@ -959,13 +962,65 @@ body.sidebar-open .stats-container {
 }
 
 @media (max-width: 768px) {
+    .game-scoreboard {
+        padding: 0;
+    }
+
+    .stats-main {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    .game-search-wrapper {
+        top: 56px;
+        left: 5px;
+    }
+
     .scoreboard-content {
+        gap: 4px;
+        justify-content: center; /* center uses less space than space-around */
+    }
+
+    .team-score {
+        gap: 4px;
+        min-width: 0;
+        flex-shrink: 1; /* Allow team-score to shrink */
+    }
+
+    .team-logo {
+        width: 32px;
+        height: 32px;
+        flex-shrink: 0;
+    }
+
+    .team-info {
+        display: flex;
         flex-direction: column;
-        gap: 20px;
+        align-items: center;
+        min-width: 0;
+        flex-shrink: 1;
+    }
+
+    .team-name {
+        font-size: 11px;
+        white-space: nowrap;
+        text-align: center;
+    }
+
+    .team-final-score {
+        font-size: 16px;
+        text-align: center;
     }
 
     .quarter-scores {
-        width: 100%;
+        padding: 2px;
+        flex-shrink: 0;
+    }
+
+    .quarter-scores th,
+    .quarter-scores td {
+        padding: 1px 3px;
+        font-size: 9px;
     }
 
     .game-selection-panel {
@@ -982,31 +1037,42 @@ body.sidebar-open .stats-container {
     }
 
     .team-stats-table {
-        min-width: 450px;
+        table-layout: fixed;
+        width: 100% !important;
+        min-width: 0 !important;
     }
 
     .team-stats-table th,
     .team-stats-table td {
-        padding: 10px 12px;
-        font-size: 13px;
+        padding: 8px 4px;
+        font-size: 10px;
+        box-sizing: border-box;
     }
 
     .team-stats-table th.stat-category,
     .team-stats-table .stat-label {
-        width: 150px;
-        min-width: 150px;
-        font-size: 12px;
+        width: 40% !important;
+        min-width: 0 !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .team-stats-table th.team-column,
     .team-stats-table .stat-value {
-        width: 120px;
-        min-width: 120px;
+        width: 30% !important;
+        min-width: 0 !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        text-align: center;
     }
 
     .play-by-play-header {
         flex-direction: column;
         align-items: flex-start;
+        padding: 10px 10px;
+        margin-bottom: 0;
     }
 
     .point-header {

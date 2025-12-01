@@ -225,6 +225,7 @@ body.stats-page[data-page="players"]:not(.sidebar-expanded) .stats-container {
     overflow-x: auto !important;
     overflow-y: auto !important;
     max-height: calc(100vh - 220px) !important;
+    max-height: calc(100svh - 220px) !important;
     position: relative !important;
 }
 

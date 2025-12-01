@@ -178,6 +178,7 @@ body.stats-page[data-page="teams"]:not(.sidebar-expanded) .stats-container {
     overflow-x: auto !important;
     overflow-y: auto !important;
     max-height: calc(100vh - 155px) !important;
+    max-height: calc(100svh - 155px) !important;
     position: relative !important;
 }
 
@@ -202,3 +203,11 @@ body.stats-page[data-page="teams"]:not(.sidebar-expanded) .stats-container {
     text-transform: none; /* Override uppercase transform to show "Opp" not "OPP" */
 }
 
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    /* Remove max-width constraint and remove right padding on mobile */
+    .stats-page[data-page="teams"] .stats-main {
+        max-width: none !important;
+        padding-right: 0 !important;
+    }
+}
