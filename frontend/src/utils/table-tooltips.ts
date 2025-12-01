@@ -80,6 +80,10 @@ export const teamColumnDescriptions: Record<string, string> = {
     turnovers: 'Turnovers',
     completion_percentage: 'Completion Percentage',
     hucks_completed: 'Hucks Completed',
+    hucks_attempted: 'Hucks Attempted',
+    huck_turnovers: 'Huck Turnovers\n(Hucks attempted - Hucks completed)',
+    o_line_scores: 'Holds\n(Points where the O-line scored)',
+    d_line_scores: 'Breaks\n(Points where the D-line scored)',
     huck_percentage: 'Huck Percentage',
     hold_percentage: 'Hold Percentage\n(O-line scores / O-line points)',
     o_line_conversion: 'O-line Conversion Percentage\n(O-line scores / O-line possessions)',
@@ -97,6 +101,9 @@ export const teamColumnDescriptions: Record<string, string> = {
     T: 'Turnovers',
     'C %': 'Completion Percentage',
     H: 'Hucks',
+    HT: 'Huck Turnovers\n(Hucks attempted - Hucks completed)',
+    HLD: 'Holds\n(Points where the O-line scored)',
+    BRK: 'Breaks\n(Points where the D-line scored)',
     'H %': 'Huck Percentage',
     'HLD %': 'Hold Percentage\n(O-line scores / O-line points)',
     'OLC %': 'O-line Conversion Percentage\n(O-line scores / O-line possessions)',
@@ -105,19 +112,13 @@ export const teamColumnDescriptions: Record<string, string> = {
     'DLC %': 'D-line Conversion Percentage\n(D-line scores / D-line possessions)',
     'RZC %': 'Red Zone Conversion Percentage\n(Red zone scores / possessions within 20 yards of the endzone)',
     // Opponent stats
-    'OppS': 'Opponent Scores',
-    'OppSA': 'Opponent Scores Against',
-    'OppC': 'Opponent Completions',
-    'OppT': 'Opponent Turnovers',
-    'OppC %': 'Opponent Completion Percentage',
-    'OppH': 'Opponent Hucks',
-    'OppH %': 'Opponent Huck Percentage',
-    'OppHLD %': 'Opponent Hold Percentage\n(Opponent O-line scores / Opponent O-line points)',
-    'OppOLC %': 'Opponent O-line Conversion Percentage\n(Opponent O-line scores / Opponent O-line possessions)',
-    'OppB': 'Opponent Blocks',
-    'OppBRK %': 'Opponent Break Percentage\n(Opponent D-line scores / Opponent D-line points)',
-    'OppDLC %': 'Opponent D-line Conversion Percentage\n(Opponent D-line scores / Opponent D-line possessions)',
-    'OppRZC %': 'Opponent Red Zone Conversion Percentage\n(Opponent Red zone scores / possessions within 20 yards of the endzone)'
+    'Opp\nC': 'Opponent Completions',
+    'Opp\nT': 'Opponent Turnovers',
+    'Opp\nH': 'Opponent Hucks',
+    'Opp\nHT': 'Opponent Huck Turnovers\n(Opponent hucks attempted - hucks completed)',
+    'Opp\nHLD': 'Opponent Holds\n(Points where opponent O-line scored)',
+    'Opp\nB': 'Opponent Blocks',
+    'Opp\nBRK': 'Opponent Breaks\n(Points where opponent D-line scored)'
 };
 
 // Column descriptions for Game Box Score table

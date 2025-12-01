@@ -314,6 +314,12 @@ export interface TeamSeasonStats {
   red_zone_conversion?: number;
   /** Total hucks completed */
   hucks_completed?: number;
+  /** Total hucks attempted */
+  hucks_attempted?: number;
+  /** O-line scores (holds) */
+  o_line_scores?: number;
+  /** D-line scores (breaks) */
+  d_line_scores?: number;
   /** Huck completion percentage */
   huck_percentage?: number;
   /** Overall completion percentage */

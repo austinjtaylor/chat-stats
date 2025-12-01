@@ -18,6 +18,7 @@ interface TeamFilters extends StatsFilter {
 
 class TeamStats {
     currentSort: SortConfig;
+    savedTotalSort: SortConfig;  // Saved sort for Total view
     filters: TeamFilters;
     teams: TeamSeasonStats[];
     totalTeams: number;
@@ -25,6 +26,7 @@ class TeamStats {
 
     constructor() {
         this.currentSort = { key: 'wins', direction: 'desc' };
+        this.savedTotalSort = { key: 'wins', direction: 'desc' };
         this.filters = {
             season: 'career',
             view: 'total',
@@ -66,7 +68,20 @@ class TeamStats {
                 }
                 target.classList.add('active');
 
-                this.filters.view = target.dataset.view as 'total' | 'per-game';
+                const newView = target.dataset.view as 'total' | 'per-game';
+
+                // Save/restore sort based on view change
+                if (newView === 'per-game' && this.filters.view === 'total') {
+                    // Switching to Per Game: save current sort and use alphabetical
+                    this.savedTotalSort = { ...this.currentSort };
+                    this.currentSort = { key: 'name', direction: 'asc' };
+                } else if (newView === 'total' && this.filters.view === 'per-game') {
+                    // Switching back to Total: restore saved sort
+                    this.currentSort = { ...this.savedTotalSort };
+                }
+
+                this.filters.view = newView;
+                this.renderTableHeaders();  // Re-render headers for new column set
                 this.loadTeamStats();
             });
         });
@@ -109,9 +124,10 @@ class TeamStats {
         const seasonNum = parseInt(String(season));
         // For "All" mode (career), show all available columns
         const effectiveSeason = isNaN(seasonNum) ? 9999 : seasonNum;
+        const isPerGame = this.filters.view === 'per-game';
 
         // Core columns available for all years
-        const coreColumns: TeamColumn[] = [
+        const columns: TeamColumn[] = [
             { key: 'name', label: 'Team', sortable: true },
             { key: 'games_played', label: 'G', sortable: true },
             { key: 'wins', label: 'W', sortable: true },
@@ -120,44 +136,53 @@ class TeamStats {
             { key: 'scores_against', label: 'SA', sortable: true }
         ];
 
-        // Completion stats available from 2013+
-        const completionColumns: TeamColumn[] = [
-            { key: 'completions', label: `${oppPrefix}C`, sortable: true },
-            { key: 'turnovers', label: `${oppPrefix}T`, sortable: true },
-            { key: 'completion_percentage', label: `${oppPrefix}C %`, sortable: true }
-        ];
-
-        // Possession stats available from 2014+
-        const advancedColumns: TeamColumn[] = [
-            { key: 'hold_percentage', label: `${oppPrefix}HLD %`, sortable: true },
-            { key: 'o_line_conversion', label: `${oppPrefix}OLC %`, sortable: true },
-            { key: 'blocks', label: `${oppPrefix}B`, sortable: true },
-            { key: 'break_percentage', label: `${oppPrefix}BRK %`, sortable: true },
-            { key: 'd_line_conversion', label: `${oppPrefix}DLC %`, sortable: true }
-        ];
-
-        const columns = [...coreColumns];
-
-        // Add C, T, C% for 2013+
+        // Add C, T for 2013+
         if (effectiveSeason >= 2013) {
-            columns.push(...completionColumns);
-        }
-
-        // Add H and H% after C% for 2020+
-        if (effectiveSeason >= 2020) {
             columns.push(
-                { key: 'hucks_completed', label: `${oppPrefix}H`, sortable: true },
-                { key: 'huck_percentage', label: `${oppPrefix}H %`, sortable: true }
+                { key: 'completions', label: `${oppPrefix}C`, sortable: true },
+                { key: 'turnovers', label: `${oppPrefix}T`, sortable: true }
             );
+            // Total view: add C%
+            if (!isPerGame) {
+                columns.push({ key: 'completion_percentage', label: `${oppPrefix}C %`, sortable: true });
+            }
         }
 
-        // Add possession stats for 2014+ (HLD%, OLC%, B, BRK%, DLC%)
-        if (effectiveSeason >= 2014) {
-            columns.push(...advancedColumns);
-        }
-
-        // Add RZC% at the end for 2020+
+        // Add H for 2020+
         if (effectiveSeason >= 2020) {
+            columns.push({ key: 'hucks_completed', label: `${oppPrefix}H`, sortable: true });
+            if (isPerGame) {
+                // Per Game view: add HT
+                columns.push({ key: 'huck_turnovers', label: `${oppPrefix}HT`, sortable: true });
+            } else {
+                // Total view: add H%
+                columns.push({ key: 'huck_percentage', label: `${oppPrefix}H %`, sortable: true });
+            }
+        }
+
+        // Add possession stats for 2014+
+        if (effectiveSeason >= 2014) {
+            if (isPerGame) {
+                // Per Game view: HLD (raw count), B, BRK (raw count)
+                columns.push(
+                    { key: 'o_line_scores', label: `${oppPrefix}HLD`, sortable: true },
+                    { key: 'blocks', label: `${oppPrefix}B`, sortable: true },
+                    { key: 'd_line_scores', label: `${oppPrefix}BRK`, sortable: true }
+                );
+            } else {
+                // Total view: HLD%, OLC%, B, BRK%, DLC%
+                columns.push(
+                    { key: 'hold_percentage', label: `${oppPrefix}HLD %`, sortable: true },
+                    { key: 'o_line_conversion', label: `${oppPrefix}OLC %`, sortable: true },
+                    { key: 'blocks', label: `${oppPrefix}B`, sortable: true },
+                    { key: 'break_percentage', label: `${oppPrefix}BRK %`, sortable: true },
+                    { key: 'd_line_conversion', label: `${oppPrefix}DLC %`, sortable: true }
+                );
+            }
+        }
+
+        // Add RZC% at the end for 2020+ (Total view only)
+        if (!isPerGame && effectiveSeason >= 2020) {
             columns.push({ key: 'red_zone_conversion', label: `${oppPrefix}RZC %`, sortable: true });
         }
 
@@ -309,6 +334,30 @@ class TeamStats {
                 switch (col.key) {
                     case 'name':
                         return `<td class="team-name">${team.name || ''}</td>`;
+                    case 'wins':
+                        // Per Game view: show win ratio
+                        if (this.filters.view === 'per-game' && team.games_played > 0) {
+                            const ratio = team.wins / team.games_played;
+                            return `<td class="numeric">${ratio.toFixed(2)}</td>`;
+                        }
+                        return `<td class="numeric">${this.formatValue(team.wins || 0)}</td>`;
+                    case 'losses':
+                        // Per Game view: show loss ratio
+                        if (this.filters.view === 'per-game' && team.games_played > 0) {
+                            const ratio = team.losses / team.games_played;
+                            return `<td class="numeric">${ratio.toFixed(2)}</td>`;
+                        }
+                        return `<td class="numeric">${this.formatValue(team.losses || 0)}</td>`;
+                    case 'huck_turnovers':
+                        // Calculate HT = hucks_attempted - hucks_completed
+                        // Show "-" if huck stats not available
+                        if (team.hucks_attempted === null || team.hucks_attempted === undefined ||
+                            team.hucks_completed === null || team.hucks_completed === undefined) {
+                            return `<td class="numeric">-</td>`;
+                        }
+                        const ha = team.hucks_attempted as number;
+                        const hc = team.hucks_completed as number;
+                        return `<td class="numeric">${this.formatValue(Math.max(0, ha - hc))}</td>`;
                     case 'completion_percentage':
                     case 'huck_percentage':
                     case 'hold_percentage':
@@ -317,10 +366,10 @@ class TeamStats {
                     case 'd_line_conversion':
                     case 'red_zone_conversion':
                         return `<td class="numeric">${this.formatPercentage(team[col.key as keyof TeamSeasonStats] as number)}</td>`;
-                    case 'wins':
-                        return `<td class="numeric">${this.formatValue(team[col.key as keyof TeamSeasonStats] || 0)}</td>`;
                     default:
-                        return `<td class="numeric">${this.formatValue(team[col.key as keyof TeamSeasonStats] || 0)}</td>`;
+                        // Pass null/undefined through to formatValue to show "-"
+                        const val = team[col.key as keyof TeamSeasonStats];
+                        return `<td class="numeric">${this.formatValue(val)}</td>`;
                 }
             });
 
@@ -333,12 +382,21 @@ class TeamStats {
         const num = parseFloat(String(value));
         if (isNaN(num)) return '-';
 
-        // Format large numbers with commas
+        // Format large numbers with commas (for Total view)
         if (num >= 1000) {
-            return num.toLocaleString();
+            return Math.round(num).toLocaleString();
         }
 
-        return num.toString();
+        // For per-game view, round to 1 decimal place (nearest tenth)
+        if (this.filters.view === 'per-game') {
+            // Check if it's a decimal number
+            if (num % 1 !== 0) {
+                return num.toFixed(1);
+            }
+        }
+
+        // For integers or total view, show as-is
+        return Math.round(num * 100) / 100 + '';  // Round to avoid floating point issues
     }
 
     formatPercentage(value: number | null | undefined): string {

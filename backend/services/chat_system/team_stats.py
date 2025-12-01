@@ -90,11 +90,16 @@ class TeamStatsService:
                     ELSE 0
                 END as completion_percentage,
                 SUM(tss.opp_hucks_completed) as hucks_completed,
+                SUM(COALESCE(tss.opp_hucks_attempted, 0)) as hucks_attempted,
+                SUM(CASE WHEN tss.year >= 2021 THEN tss.games_played ELSE 0 END) as games_with_huck_stats,
                 CASE WHEN SUM(tss.opp_hucks_attempted) > 0
                     THEN ROUND((CAST(SUM(tss.opp_hucks_completed) AS NUMERIC) / SUM(tss.opp_hucks_attempted)) * 100, 2)
                     ELSE 0
                 END as huck_percentage,
                 SUM(tss.opp_blocks) as blocks,
+                SUM(COALESCE(tss.opp_o_line_scores, 0)) as o_line_scores,
+                SUM(COALESCE(tss.opp_d_line_scores, 0)) as d_line_scores,
+                SUM(CASE WHEN tss.year >= 2014 THEN tss.games_played ELSE 0 END) as games_with_possession_stats,
                 -- Use games-weighted average for opponent possession stats (2014-2019 don't have accurate raw counts)
                 CASE WHEN SUM(CASE WHEN tss.opp_hold_percentage > 0 THEN tss.games_played ELSE 0 END) > 0
                     THEN ROUND(
@@ -153,11 +158,16 @@ class TeamStatsService:
                     ELSE 0
                 END as completion_percentage,
                 SUM(tss.hucks_completed) as hucks_completed,
+                SUM(COALESCE(tss.hucks_attempted, 0)) as hucks_attempted,
+                SUM(CASE WHEN tss.year >= 2021 THEN tss.games_played ELSE 0 END) as games_with_huck_stats,
                 CASE WHEN SUM(tss.hucks_attempted) > 0
                     THEN ROUND((CAST(SUM(tss.hucks_completed) AS NUMERIC) / SUM(tss.hucks_attempted)) * 100, 2)
                     ELSE 0
                 END as huck_percentage,
                 SUM(tss.blocks) as blocks,
+                SUM(COALESCE(tss.o_line_scores, 0)) as o_line_scores,
+                SUM(COALESCE(tss.d_line_scores, 0)) as d_line_scores,
+                SUM(CASE WHEN tss.year >= 2014 THEN tss.games_played ELSE 0 END) as games_with_possession_stats,
                 -- Use games-weighted average for possession stats (2014-2019 don't have accurate raw counts)
                 CASE WHEN SUM(CASE WHEN tss.hold_percentage > 0 THEN tss.games_played ELSE 0 END) > 0
                     THEN ROUND(
@@ -227,11 +237,16 @@ class TeamStatsService:
                     ELSE 0
                 END as completion_percentage,
                 tss.opp_hucks_completed as hucks_completed,
+                COALESCE(tss.opp_hucks_attempted, 0) as hucks_attempted,
+                CASE WHEN tss.year >= 2021 THEN tss.games_played ELSE 0 END as games_with_huck_stats,
                 CASE WHEN tss.opp_hucks_attempted > 0
                     THEN ROUND((CAST(tss.opp_hucks_completed AS NUMERIC) / tss.opp_hucks_attempted) * 100, 2)
                     ELSE 0
                 END as huck_percentage,
                 tss.opp_blocks as blocks,
+                COALESCE(tss.opp_o_line_scores, 0) as o_line_scores,
+                COALESCE(tss.opp_d_line_scores, 0) as d_line_scores,
+                CASE WHEN tss.year >= 2014 THEN tss.games_played ELSE 0 END as games_with_possession_stats,
                 tss.opp_hold_percentage as hold_percentage,
                 tss.opp_o_line_conversion as o_line_conversion,
                 tss.opp_break_percentage as break_percentage,
@@ -259,11 +274,16 @@ class TeamStatsService:
                     ELSE 0
                 END as completion_percentage,
                 tss.hucks_completed,
+                COALESCE(tss.hucks_attempted, 0) as hucks_attempted,
+                CASE WHEN tss.year >= 2021 THEN tss.games_played ELSE 0 END as games_with_huck_stats,
                 CASE WHEN tss.hucks_attempted > 0
                     THEN ROUND((CAST(tss.hucks_completed AS NUMERIC) / tss.hucks_attempted) * 100, 2)
                     ELSE 0
                 END as huck_percentage,
                 tss.blocks,
+                COALESCE(tss.o_line_scores, 0) as o_line_scores,
+                COALESCE(tss.d_line_scores, 0) as d_line_scores,
+                CASE WHEN tss.year >= 2014 THEN tss.games_played ELSE 0 END as games_with_possession_stats,
                 tss.hold_percentage,
                 tss.o_line_conversion,
                 tss.break_percentage,
@@ -294,8 +314,29 @@ class TeamStatsService:
                 team["scores_against"] = round(team["scores_against"] / games, 2)
                 team["completions"] = round(team["completions"] / games, 2)
                 team["turnovers"] = round(team["turnovers"] / games, 2)
-                team["hucks_completed"] = round(team["hucks_completed"] / games, 2)
-                team["blocks"] = round(team["blocks"] / games, 2)
+
+                # Use games_with_possession_stats for possession columns (2014+ only)
+                possession_games = team.get("games_with_possession_stats", 0)
+                if possession_games > 0:
+                    team["blocks"] = round(team["blocks"] / possession_games, 2)
+                    team["o_line_scores"] = round(team["o_line_scores"] / possession_games, 2)
+                    team["d_line_scores"] = round(team["d_line_scores"] / possession_games, 2)
+                else:
+                    # No possession stats available for this team
+                    team["blocks"] = None
+                    team["o_line_scores"] = None
+                    team["d_line_scores"] = None
+
+                # Use games_with_huck_stats for huck columns (2021+ only)
+                huck_games = team.get("games_with_huck_stats", 0)
+                if huck_games > 0:
+                    team["hucks_completed"] = round(team["hucks_completed"] / huck_games, 2)
+                    team["hucks_attempted"] = round(team["hucks_attempted"] / huck_games, 2)
+                else:
+                    # No huck stats available for this team
+                    team["hucks_completed"] = None
+                    team["hucks_attempted"] = None
+
                 # Note: Percentages stay the same in per-game view
 
         return teams
