@@ -630,7 +630,7 @@ body.sidebar-open .stats-container {
 
 .team-stats-table th {
     padding: 15px;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 600;
     text-align: left;
     color: var(--text-primary);
@@ -663,7 +663,7 @@ body.sidebar-open .stats-container {
 
 .team-stats-table td {
     padding: 12px 15px;
-    font-size: 14px;
+    font-size: 16px;
 }
 
 .team-stats-table .stat-label {
@@ -963,7 +963,7 @@ body.sidebar-open .stats-container {
 
 @media (max-width: 768px) {
     .game-scoreboard {
-        padding: 0;
+        padding: 0 10px;
     }
 
     .stats-main {
@@ -972,7 +972,7 @@ body.sidebar-open .stats-container {
     }
 
     .game-search-wrapper {
-        top: 56px;
+        top: 80px;
         left: 5px;
     }
 
@@ -1002,13 +1002,13 @@ body.sidebar-open .stats-container {
     }
 
     .team-name {
-        font-size: 11px;
+        font-size: 14px;
         white-space: nowrap;
         text-align: center;
     }
 
     .team-final-score {
-        font-size: 16px;
+        font-size: 18px;
         text-align: center;
     }
 
@@ -1020,7 +1020,7 @@ body.sidebar-open .stats-container {
     .quarter-scores th,
     .quarter-scores td {
         padding: 1px 3px;
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .game-selection-panel {
@@ -1045,7 +1045,7 @@ body.sidebar-open .stats-container {
     .team-stats-table th,
     .team-stats-table td {
         padding: 8px 4px;
-        font-size: 10px;
+        font-size: 12px;
         box-sizing: border-box;
     }
 
