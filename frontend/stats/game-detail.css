@@ -218,13 +218,13 @@ body.sidebar-open .stats-container {
     flex-direction: column;
     margin: 0 auto;
     width: 100%;
-    padding-top: 20px;
+    padding-top: 0;
 }
 
 /* Scoreboard Header */
 .game-scoreboard {
     background: transparent;
-    padding: 0px 20px;
+    padding: 10px 20px;
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -963,7 +963,7 @@ body.sidebar-open .stats-container {
 
 @media (max-width: 768px) {
     .game-scoreboard {
-        padding: 0 10px;
+        padding: 10px 10px;
     }
 
     .stats-main {
