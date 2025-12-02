@@ -264,7 +264,8 @@ body.stats-page {
 }
 
 .filter-select.compact {
-    padding: 0.5rem 2.5rem 0.5rem 0.75rem; /* Extra right padding for arrow */
+    height: 34px;
+    padding: 0 2.5rem 0 0.75rem; /* Extra right padding for arrow */
     border: 1px solid var(--border-color);
     border-radius: 6px;
     background: var(--bg-secondary);
@@ -474,11 +475,11 @@ body.stats-page {
     border: 1px solid var(--border-color);
     border-radius: 4px;
     overflow: hidden;
-    height: 28px;
+    height: 34px;
 }
 
 .view-tabs.compact .tab-btn {
-    padding: 0.25rem 0.625rem;
+    padding: 0.5rem 0.625rem;
     font-size: 0.8125rem;
 }
 
