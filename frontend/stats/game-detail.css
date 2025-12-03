@@ -20,6 +20,7 @@ body.stats-page[data-page="games"]:not(.sidebar-expanded) .stats-container {
 }
 
 .stats-page[data-page="games"] .stats-main {
+    position: relative;
     height: 100vh;
     height: 100svh;
     overflow: hidden;
@@ -29,10 +30,10 @@ body.stats-page[data-page="games"]:not(.sidebar-expanded) .stats-container {
 
 /* Game Search Icon */
 .game-search-wrapper {
-    position: fixed;
-    top: 1.5rem;
-    left: 1rem;
-    z-index: 1000;
+    position: absolute;
+    top: 0rem;
+    left: 0rem;
+    z-index: 100;
 }
 
 /* Remove overlay - sidebar works standalone */
@@ -138,7 +139,7 @@ body.stats-page[data-page="games"]:not(.sidebar-expanded) .stats-container {
 .game-selection-header {
     font-size: 18px;
     font-weight: 600;
-    margin-bottom: 20px;
+    margin: 0;
     color: var(--text-primary);
 }
 
@@ -976,8 +977,10 @@ body.sidebar-open .stats-container {
     }
 
     .game-search-wrapper {
-        top: 80px;
-        left: 5px;
+        top: 0;
+        left: 0;
+        transform: scale(0.7);
+        transform-origin: top left;
     }
 
     .scoreboard-content {
@@ -1028,7 +1031,38 @@ body.sidebar-open .stats-container {
     }
 
     .game-selection-panel {
-        width: 85%;
+        width: 75%;
+    }
+
+    .panel-header {
+        padding: 10px 10px 10px 60px;
+    }
+
+    .panel-filters {
+        flex-direction: row;
+        gap: 8px;
+    }
+
+    .panel-filters .filter-group:first-child {
+        flex: 0 0 auto !important;
+        width: auto !important;
+        max-width: none !important;
+        box-sizing: border-box !important;
+        margin-left: 0;
+    }
+
+    .panel-filters .filter-group:last-child {
+        flex: 1 1 auto !important;
+        width: auto !important;
+        max-width: none !important;
+        box-sizing: border-box !important;
+        margin-left: 0;
+        overflow: hidden;
+    }
+
+    .panel-filters .filter-select {
+        width: 100% !important;
+        max-width: 100% !important;
     }
 
     #team-stats {
