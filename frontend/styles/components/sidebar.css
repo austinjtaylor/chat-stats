@@ -161,7 +161,7 @@
 .sidebar-toggle-icon svg {
   width: 20px;
   height: 20px;
-  color: var(--text-primary);
+  color: var(--text-secondary);
 }
 
 /* Hamburger as image */
