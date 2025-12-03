@@ -76,6 +76,14 @@ export class GameSearch {
             }
         });
 
+        // Close when clicking outside the iframe (parent document)
+        window.addEventListener('blur', () => {
+            const panel = this.elements.gameSelectionPanel;
+            if (panel && panel.classList.contains('active')) {
+                this.closeGameSearch();
+            }
+        });
+
         // Filter changes
         if (this.elements.yearFilter) {
             this.elements.yearFilter.addEventListener('change', (e) => {

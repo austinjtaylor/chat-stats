@@ -391,6 +391,13 @@ class MultiSelect {
             }
         });
 
+        // Close when clicking outside the iframe (parent document)
+        window.addEventListener('blur', () => {
+            if (this.isOpen) {
+                this.closeDropdown();
+            }
+        });
+
         // Handle ESC key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.isOpen) {
