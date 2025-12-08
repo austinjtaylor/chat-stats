@@ -12,6 +12,7 @@ import { GamePlayByPlay } from './game-play-by-play';
 export interface PlayerStats {
     name: string;
     jersey_number: string;
+    team_abbrev: string;
     points_played: number;
     o_points_played: number;
     d_points_played: number;
@@ -58,6 +59,7 @@ export interface TeamData {
     name: string;
     full_name: string;
     city: string;
+    abbrev?: string;
     final_score: number;
     quarter_scores: number[];
     players: PlayerStats[];
