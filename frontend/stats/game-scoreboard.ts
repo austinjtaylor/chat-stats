@@ -87,7 +87,8 @@ export class GameScoreboard {
 
         // Special case for team names that don't match their logo filenames
         const teamMapping: Record<string, string> = {
-            'alleycats': 'alley_cats'
+            'alleycats': 'alley_cats',
+            'mechanix': 'mechanics'
         };
 
         const finalCity = cityMapping[cityFormatted] || cityFormatted;
