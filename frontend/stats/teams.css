@@ -1,4 +1,14 @@
+/* Import shared multi-select component styles */
+@import './components/multi-select.css';
+
 /* Teams Page Specific Styles */
+
+/* Teams page season filter width */
+.stats-page[data-page="teams"] #seasonFilter {
+    min-width: 120px;
+    max-width: 120px;
+    width: 120px;
+}
 
 /* Remove sidebar margin for teams page when sidebar is collapsed */
 body.stats-page[data-page="teams"]:not(.sidebar-expanded) .stats-container {

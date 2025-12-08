@@ -3,6 +3,8 @@
  */
 
 import { statsAPI } from '../src/api/client';
+import { MultiSelect } from './components/multi-select';
+import type { MultiSelectOption } from './components/multi-select';
 
 export interface GameListItem {
     game_id: string;
@@ -22,13 +24,16 @@ export class GameSearch {
     private currentTeamFilter: string = 'all';
     private teams: any[] = [];
 
+    // MultiSelect instance for team filter (year filter is fire-and-forget)
+    private teamMultiSelect: MultiSelect | null = null;
+
     // DOM elements
     private elements = {
         gameSearchIcon: null as HTMLElement | null,
         gameSelectionPanel: null as HTMLElement | null,
         closePanel: null as HTMLElement | null,
-        yearFilter: null as HTMLSelectElement | null,
-        teamFilter: null as HTMLSelectElement | null,
+        yearFilter: null as HTMLElement | null,
+        teamFilter: null as HTMLElement | null,
         gameList: null as HTMLElement | null,
     };
 
@@ -37,7 +42,70 @@ export class GameSearch {
 
     constructor() {
         this.initializeElements();
+        this.initializeYearMultiSelect();
+        this.initializeTeamMultiSelect();
         this.attachEventListeners();
+    }
+
+    private initializeYearMultiSelect(): void {
+        const yearOptions: MultiSelectOption[] = [
+            { value: 2025, label: '2025' },
+            { value: 2024, label: '2024' },
+            { value: 2023, label: '2023' },
+            { value: 2022, label: '2022' },
+            { value: 2021, label: '2021' },
+            { value: 2020, label: '2020' },
+            { value: 2019, label: '2019' },
+            { value: 2018, label: '2018' },
+            { value: 2017, label: '2017' },
+            { value: 2016, label: '2016' },
+            { value: 2015, label: '2015' },
+            { value: 2014, label: '2014' },
+            { value: 2013, label: '2013' },
+            { value: 2012, label: '2012' }
+        ];
+
+        // Year filter is fire-and-forget - no need to store reference
+        new MultiSelect({
+            containerId: 'yearFilter',
+            options: yearOptions,
+            selectedValues: [2025],  // Default to 2025
+            placeholder: 'Select year...',
+            allowSelectAll: false,
+            searchable: false,
+            exclusiveMode: true,  // Single-select mode
+            onChange: (selected) => this.handleYearChange(selected)
+        });
+    }
+
+    private initializeTeamMultiSelect(): void {
+        const teamOptions: MultiSelectOption[] = [
+            { value: 'all', label: 'All' }
+        ];
+
+        this.teamMultiSelect = new MultiSelect({
+            containerId: 'teamFilter',
+            options: teamOptions,
+            selectedValues: ['all'],
+            placeholder: 'Select team...',
+            allowSelectAll: false,
+            searchable: false,
+            exclusiveMode: true,  // Single-select mode
+            onChange: (selected) => this.handleTeamChange(selected)
+        });
+    }
+
+    private handleYearChange(selected: (string | number)[]): void {
+        const value = selected[0];
+        this.currentYear = typeof value === 'number' ? value : parseInt(String(value));
+        this.loadTeams();
+        this.loadGamesList();
+    }
+
+    private handleTeamChange(selected: (string | number)[]): void {
+        const value = selected[0];
+        this.currentTeamFilter = String(value);
+        this.loadGamesList();
     }
 
     private initializeElements(): void {
@@ -84,21 +152,7 @@ export class GameSearch {
             }
         });
 
-        // Filter changes
-        if (this.elements.yearFilter) {
-            this.elements.yearFilter.addEventListener('change', (e) => {
-                this.currentYear = parseInt((e.target as HTMLSelectElement).value);
-                this.loadTeams();
-                this.loadGamesList();
-            });
-        }
-
-        if (this.elements.teamFilter) {
-            this.elements.teamFilter.addEventListener('change', (e) => {
-                this.currentTeamFilter = (e.target as HTMLSelectElement).value;
-                this.loadGamesList();
-            });
-        }
+        // Filter changes are now handled by MultiSelect in initializeYearMultiSelect() and initializeTeamMultiSelect()
     }
 
     public setOnGameSelect(callback: (gameId: string) => void): void {
@@ -130,24 +184,26 @@ export class GameSearch {
         try {
             this.teams = await statsAPI.getTeams(this.currentYear);
 
-            if (this.elements.teamFilter) {
-                const currentSelection = this.elements.teamFilter.value;
-                this.elements.teamFilter.innerHTML = '<option value="all">All</option>';
+            if (this.teamMultiSelect) {
+                const teamOptions: MultiSelectOption[] = [
+                    { value: 'all', label: 'All' }
+                ];
 
                 this.teams.forEach(team => {
-                    const option = document.createElement('option');
-                    option.value = team.team_id;
-                    option.textContent = team.name;
-                    this.elements.teamFilter!.appendChild(option);
+                    teamOptions.push({
+                        value: team.team_id,
+                        label: team.name
+                    });
                 });
 
-                const teamExists = this.teams.some(team => team.team_id === currentSelection);
-                if (teamExists) {
-                    this.elements.teamFilter.value = currentSelection;
-                } else {
-                    this.elements.teamFilter.value = 'all';
+                // Check if current selection still exists in new team list
+                const teamExists = this.teams.some(team => team.team_id === this.currentTeamFilter);
+                if (!teamExists && this.currentTeamFilter !== 'all') {
                     this.currentTeamFilter = 'all';
                 }
+
+                this.teamMultiSelect.updateOptions(teamOptions);
+                this.teamMultiSelect.setSelected([this.currentTeamFilter]);
             }
         } catch (error) {
             console.error('Failed to load teams:', error);

@@ -1,3 +1,14 @@
+/* Import shared multi-select component styles */
+@import './components/multi-select.css';
+
+/* Games page filter widths */
+.game-selection-panel #yearFilter,
+.game-selection-panel #teamFilter {
+    min-width: 100%;
+    max-width: 100%;
+    width: 100%;
+}
+
 /* Override the body constraints for game detail page */
 body.stats-page[data-page="games"] {
     overflow: hidden !important;
@@ -91,7 +102,7 @@ body.stats-page[data-page="games"]:not(.sidebar-expanded) .stats-container {
 .panel-filters .filter-group:last-child {
     flex: 1;
     margin-left: 20px; /* Add spacing before Team selector */
-    overflow: hidden; /* Prevent Team selector overflow */
+    /* overflow: hidden removed - was clipping the dropdown */
 }
 
 .panel-filters .filter-group label {

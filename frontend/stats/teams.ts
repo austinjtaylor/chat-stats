@@ -1,8 +1,10 @@
 // Team statistics page functionality - TypeScript version
 
-import type { TeamSeasonStats, SortConfig, StatsFilter } from '../types/models';
+import type { TeamSeasonStats, SortConfig } from '../types/models';
 import type { TeamStatsResponse } from '../types/api';
 import { initializeTableTooltips, teamColumnDescriptions } from '../src/utils/table-tooltips';
+import { MultiSelect } from './components/multi-select';
+import type { MultiSelectOption } from './components/multi-select';
 
 interface TeamColumn {
     key: string;
@@ -10,10 +12,11 @@ interface TeamColumn {
     sortable: boolean;
 }
 
-interface TeamFilters extends StatsFilter {
-    season: string | number;
+interface TeamFilters {
+    season: (string | number)[]; // Changed to array for multi-select
     view: 'total' | 'per-game';
     perspective: 'team' | 'opponent';
+    careerMode: boolean; // Track if career mode is active
 }
 
 class TeamStats {
@@ -23,14 +26,16 @@ class TeamStats {
     teams: TeamSeasonStats[];
     totalTeams: number;
     cache: Map<string, { data: any; timestamp: number }>;
+    seasonMultiSelect: MultiSelect | null = null;
 
     constructor() {
         this.currentSort = { key: 'wins', direction: 'desc' };
         this.savedTotalSort = { key: 'wins', direction: 'desc' };
         this.filters = {
-            season: 'career',
+            season: ['career'],
             view: 'total',
-            perspective: 'team'
+            perspective: 'team',
+            careerMode: true
         };
         this.teams = [];
         this.totalTeams = 0;
@@ -40,21 +45,63 @@ class TeamStats {
     }
 
     async init(): Promise<void> {
+        this.initializeSeasonMultiSelect();
         this.setupEventListeners();
         this.renderTableHeaders();
         await this.loadTeamStats();
     }
 
-    setupEventListeners(): void {
-        // Season filter
-        const seasonFilter = document.getElementById('seasonFilter') as HTMLSelectElement;
-        if (seasonFilter) {
-            seasonFilter.addEventListener('change', (e) => {
-                this.filters.season = (e.target as HTMLSelectElement).value;
-                this.renderTableHeaders(); // Re-render headers for the new season
-                this.loadTeamStats();
-            });
+    private initializeSeasonMultiSelect(): void {
+        const seasonOptions: MultiSelectOption[] = [
+            { value: 'career', label: 'All' },
+            { value: 2025, label: '2025' },
+            { value: 2024, label: '2024' },
+            { value: 2023, label: '2023' },
+            { value: 2022, label: '2022' },
+            { value: 2021, label: '2021' },
+            { value: 2019, label: '2019' },
+            { value: 2018, label: '2018' },
+            { value: 2017, label: '2017' },
+            { value: 2016, label: '2016' },
+            { value: 2015, label: '2015' },
+            { value: 2014, label: '2014' },
+            { value: 2013, label: '2013' },
+            { value: 2012, label: '2012' }
+        ];
+
+        this.seasonMultiSelect = new MultiSelect({
+            containerId: 'seasonFilter',
+            options: seasonOptions,
+            selectedValues: ['career'],  // Default to All
+            placeholder: 'Select seasons...',
+            allowSelectAll: false,  // Don't allow "Select All" when Career is an option
+            searchable: false,
+            exclusiveValues: ['career'],  // Career clears all other selections
+            onChange: (selected) => this.handleSeasonChange(selected)
+        });
+    }
+
+    private handleSeasonChange(selected: (string | number)[]): void {
+        // Update filters based on selection
+        if (selected.includes('career')) {
+            this.filters.season = ['career'];
+            this.filters.careerMode = true;
+        } else {
+            this.filters.season = selected;
+            this.filters.careerMode = false;
         }
+
+        this.clearCache();
+        this.renderTableHeaders();
+        this.loadTeamStats();
+    }
+
+    private clearCache(): void {
+        this.cache.clear();
+    }
+
+    setupEventListeners(): void {
+        // Season filter is now handled by MultiSelect in initializeSeasonMultiSelect()
 
         // View toggle (Total/Per Game)
         document.querySelectorAll('[data-view]').forEach(btn => {
@@ -118,12 +165,16 @@ class TeamStats {
         }
     }
 
-    getColumnsForSeason(season: string | number): TeamColumn[] {
+    getColumnsForSeason(season: (string | number)[] | string | number): TeamColumn[] {
         const isOpponent = this.filters.perspective === 'opponent';
         const oppPrefix = isOpponent ? 'Opp\n' : '';
-        const seasonNum = parseInt(String(season));
-        // For "All" mode (career), show all available columns
-        const effectiveSeason = isNaN(seasonNum) ? 9999 : seasonNum;
+
+        // Handle array input by using the earliest numeric season for column filtering
+        const effectiveSeason = Array.isArray(season)
+            ? (season.includes('career')
+                ? 9999  // Career mode shows all columns
+                : Math.min(...season.map(s => parseInt(String(s))).filter(n => !isNaN(n))))
+            : (parseInt(String(season)) || 9999);
         const isPerGame = this.filters.view === 'per-game';
 
         // Core columns available for all years
@@ -281,9 +332,12 @@ class TeamStats {
 
             window.ufaStats.showLoading('#teamsTableBody', 'Loading team statistics...');
 
+            // Serialize seasons array as comma-separated values for API
+            const seasonParam = this.filters.careerMode ? 'career' : this.filters.season.join(',');
+
             // OPTIMIZED: Don't send sort/order params (backend ignores them anyway)
             const response = await window.ufaStats.fetchData<TeamStatsResponse>('/teams/stats', {
-                season: this.filters.season,
+                season: seasonParam,
                 view: this.filters.view,
                 perspective: this.filters.perspective
             });
