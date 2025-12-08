@@ -153,35 +153,34 @@ uv run mypy .                  # Type checking
 
 ### Database Backup & Restore
 
+**Requires**: `pg_dump` and `psql` (install via: `brew install libpq`)
+
 ```bash
-# Create database backup with timestamp
+# Create PostgreSQL backup with timestamp (uses pg_dump)
 uv run python scripts/backup_database.py backup
 
-# Create compressed backup (saves space)
+# Create compressed backup (saves ~70% space)
 uv run python scripts/backup_database.py backup --compress
 
 # Create backup and keep only 3 most recent backups
 uv run python scripts/backup_database.py backup --cleanup 3
 
-# Export database as SQL dump (version-control friendly)
-uv run python scripts/backup_database.py dump
-
 # List all available backups
 uv run python scripts/backup_database.py list
 
-# Restore from a specific backup
-uv run python scripts/backup_database.py restore sports_stats_20240903_142530.db
+# Restore from a specific backup (WARNING: overwrites existing data)
+uv run python scripts/backup_database.py restore sports_stats_20251208_105631.sql
 
 # Clean up old backups (keep 5 most recent)
 uv run python scripts/backup_database.py cleanup --keep 5
 ```
 
 **Backup Strategy:**
-- Regular backups are stored in `backups/` directory (excluded from Git)
-- Compressed backups save ~70% disk space
-- SQL dumps are text files suitable for version control
+- Backups are SQL dumps from PostgreSQL (Supabase) using `pg_dump`
+- Stored in `backups/` directory (excluded from Git)
+- Compressed backups (`.sql.gz`) save ~70% disk space
 - Automatic cleanup prevents backup directory bloat
-- Restore creates a safety backup of current database before restoring
+- Restore creates a safety backup before overwriting data
 
 ### Environment Setup
 Create `.env` file in root with:

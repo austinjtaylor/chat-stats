@@ -2,16 +2,21 @@
 """
 Database backup utility for sports stats application.
 
-This script creates timestamped backups of the SQLite database and manages
-backup retention to prevent storage bloat.
+This script creates timestamped backups of the PostgreSQL database (Supabase)
+and manages backup retention to prevent storage bloat.
+
+Requires: pg_dump and psql (install via: brew install libpq)
 """
 
 import argparse
 import gzip
+import os
 import shutil
-import sqlite3
+import subprocess
 from datetime import datetime
 from pathlib import Path
+
+from dotenv import load_dotenv
 
 
 def get_project_root() -> Path:
@@ -19,9 +24,13 @@ def get_project_root() -> Path:
     return Path(__file__).parent.parent
 
 
-def get_database_path() -> Path:
-    """Get the path to the main database."""
-    return get_project_root() / "db" / "sports_stats.db"
+def get_database_url() -> str:
+    """Get the DATABASE_URL from environment."""
+    load_dotenv(get_project_root() / ".env")
+    url = os.getenv("DATABASE_URL")
+    if not url:
+        raise ValueError("DATABASE_URL not set in environment")
+    return url
 
 
 def get_backups_dir() -> Path:
@@ -31,9 +40,51 @@ def get_backups_dir() -> Path:
     return backups_dir
 
 
+def find_pg_dump() -> str:
+    """Find pg_dump executable path."""
+    # Check common locations
+    paths = [
+        "/opt/homebrew/opt/libpq/bin/pg_dump",  # macOS Homebrew (Apple Silicon)
+        "/usr/local/opt/libpq/bin/pg_dump",  # macOS Homebrew (Intel)
+        "/opt/homebrew/bin/pg_dump",
+        "/usr/local/bin/pg_dump",
+        "/usr/bin/pg_dump",
+    ]
+    for path in paths:
+        if Path(path).exists():
+            return path
+    # Try to find in PATH
+    result = shutil.which("pg_dump")
+    if result:
+        return result
+    raise FileNotFoundError(
+        "pg_dump not found. Install PostgreSQL client tools: brew install libpq"
+    )
+
+
+def find_psql() -> str:
+    """Find psql executable path."""
+    paths = [
+        "/opt/homebrew/opt/libpq/bin/psql",
+        "/usr/local/opt/libpq/bin/psql",
+        "/opt/homebrew/bin/psql",
+        "/usr/local/bin/psql",
+        "/usr/bin/psql",
+    ]
+    for path in paths:
+        if Path(path).exists():
+            return path
+    result = shutil.which("psql")
+    if result:
+        return result
+    raise FileNotFoundError(
+        "psql not found. Install PostgreSQL client tools: brew install libpq"
+    )
+
+
 def create_backup(compress: bool = False) -> Path:
     """
-    Create a timestamped backup of the database.
+    Create a timestamped backup of the PostgreSQL database using pg_dump.
 
     Args:
         compress: Whether to compress the backup with gzip
@@ -41,48 +92,42 @@ def create_backup(compress: bool = False) -> Path:
     Returns:
         Path to the created backup file
     """
-    db_path = get_database_path()
-    if not db_path.exists():
-        raise FileNotFoundError(f"Database not found at {db_path}")
-
+    pg_dump = find_pg_dump()
+    db_url = get_database_url()
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     backups_dir = get_backups_dir()
 
     if compress:
-        backup_path = backups_dir / f"sports_stats_{timestamp}.db.gz"
-        with open(db_path, "rb") as f_in:
+        # Create uncompressed first, then compress
+        temp_path = backups_dir / f"sports_stats_{timestamp}.sql"
+        backup_path = backups_dir / f"sports_stats_{timestamp}.sql.gz"
+
+        result = subprocess.run(
+            [pg_dump, db_url, "--no-owner", "--no-acl", "-f", str(temp_path)],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"pg_dump failed: {result.stderr}")
+
+        # Compress the file
+        with open(temp_path, "rb") as f_in:
             with gzip.open(backup_path, "wb") as f_out:
                 shutil.copyfileobj(f_in, f_out)
+        temp_path.unlink()  # Remove uncompressed file
     else:
-        backup_path = backups_dir / f"sports_stats_{timestamp}.db"
-        shutil.copy2(db_path, backup_path)
+        backup_path = backups_dir / f"sports_stats_{timestamp}.sql"
+        result = subprocess.run(
+            [pg_dump, db_url, "--no-owner", "--no-acl", "-f", str(backup_path)],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"pg_dump failed: {result.stderr}")
 
-    print(f"Backup created: {backup_path}")
+    size_mb = backup_path.stat().st_size / (1024 * 1024)
+    print(f"Backup created: {backup_path} ({size_mb:.1f} MB)")
     return backup_path
-
-
-def export_sql_dump() -> Path:
-    """
-    Export database as SQL dump (version-control friendly).
-
-    Returns:
-        Path to the created SQL dump file
-    """
-    db_path = get_database_path()
-    if not db_path.exists():
-        raise FileNotFoundError(f"Database not found at {db_path}")
-
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backups_dir = get_backups_dir()
-    dump_path = backups_dir / f"database_dump_{timestamp}.sql"
-
-    with sqlite3.connect(db_path) as conn:
-        with open(dump_path, "w") as f:
-            for line in conn.iterdump():
-                f.write(f"{line}\n")
-
-    print(f"SQL dump created: {dump_path}")
-    return dump_path
 
 
 def list_backups() -> list[Path]:
@@ -90,7 +135,7 @@ def list_backups() -> list[Path]:
     backups_dir = get_backups_dir()
     backups = []
 
-    for pattern in ["sports_stats_*.db", "sports_stats_*.db.gz", "database_dump_*.sql"]:
+    for pattern in ["sports_stats_*.sql", "sports_stats_*.sql.gz"]:
         backups.extend(backups_dir.glob(pattern))
 
     return sorted(backups, key=lambda p: p.stat().st_mtime, reverse=True)
@@ -119,7 +164,9 @@ def cleanup_old_backups(keep_count: int = 5) -> None:
 
 def restore_backup(backup_path: Path) -> None:
     """
-    Restore database from a backup file.
+    Restore PostgreSQL database from a SQL dump.
+
+    WARNING: This will overwrite existing data in the database.
 
     Args:
         backup_path: Path to the backup file to restore
@@ -127,35 +174,50 @@ def restore_backup(backup_path: Path) -> None:
     if not backup_path.exists():
         raise FileNotFoundError(f"Backup file not found: {backup_path}")
 
-    db_path = get_database_path()
+    psql = find_psql()
+    db_url = get_database_url()
 
     # Create backup of current database before restore
-    if db_path.exists():
-        current_backup = (
-            get_backups_dir()
-            / f"pre_restore_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
-        )
-        shutil.copy2(db_path, current_backup)
-        print(f"Current database backed up to: {current_backup}")
+    print("Creating safety backup before restore...")
+    safety_backup = create_backup(compress=True)
+    print(f"Safety backup created: {safety_backup}")
 
-    # Restore from backup
+    print(f"\nRestoring from: {backup_path}")
+    print("WARNING: This will overwrite existing data!")
+
     if backup_path.suffix == ".gz":
-        with gzip.open(backup_path, "rb") as f_in:
-            with open(db_path, "wb") as f_out:
-                shutil.copyfileobj(f_in, f_out)
+        # Decompress and pipe to psql
+        with gzip.open(backup_path, "rt") as f:
+            result = subprocess.run(
+                [psql, db_url],
+                input=f.read(),
+                capture_output=True,
+                text=True,
+            )
     else:
-        shutil.copy2(backup_path, db_path)
+        result = subprocess.run(
+            [psql, db_url, "-f", str(backup_path)],
+            capture_output=True,
+            text=True,
+        )
 
-    print(f"Database restored from: {backup_path}")
+    if result.returncode != 0:
+        print(f"Restore completed with warnings/errors:\n{result.stderr}")
+    else:
+        print("Database restored successfully")
 
 
 def main():
     """Main command-line interface."""
-    parser = argparse.ArgumentParser(description="Database backup utility")
+    parser = argparse.ArgumentParser(
+        description="PostgreSQL database backup utility for Supabase"
+    )
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # Backup command
-    backup_parser = subparsers.add_parser("backup", help="Create database backup")
+    backup_parser = subparsers.add_parser(
+        "backup", help="Create PostgreSQL database backup using pg_dump"
+    )
     backup_parser.add_argument(
         "--compress", "-c", action="store_true", help="Compress backup with gzip"
     )
@@ -163,18 +225,17 @@ def main():
         "--cleanup",
         "-k",
         type=int,
-        default=5,
-        help="Keep N most recent backups (default: 5)",
+        default=None,
+        help="Keep N most recent backups after creating new one",
     )
-
-    # SQL dump command
-    subparsers.add_parser("dump", help="Export database as SQL dump")
 
     # List command
     subparsers.add_parser("list", help="List all backups")
 
     # Restore command
-    restore_parser = subparsers.add_parser("restore", help="Restore from backup")
+    restore_parser = subparsers.add_parser(
+        "restore", help="Restore database from backup (WARNING: overwrites data)"
+    )
     restore_parser.add_argument("backup_file", help="Backup file to restore from")
 
     # Cleanup command
@@ -199,9 +260,6 @@ def main():
             if args.cleanup:
                 cleanup_old_backups(keep_count=args.cleanup)
 
-        elif args.command == "dump":
-            export_sql_dump()
-
         elif args.command == "list":
             backups = list_backups()
             if not backups:
@@ -212,7 +270,8 @@ def main():
                     size_mb = backup.stat().st_size / (1024 * 1024)
                     mtime = datetime.fromtimestamp(backup.stat().st_mtime)
                     print(
-                        f"  {backup.name} ({size_mb:.1f} MB, {mtime.strftime('%Y-%m-%d %H:%M:%S')})"
+                        f"  {backup.name} ({size_mb:.1f} MB, "
+                        f"{mtime.strftime('%Y-%m-%d %H:%M:%S')})"
                     )
 
         elif args.command == "restore":
