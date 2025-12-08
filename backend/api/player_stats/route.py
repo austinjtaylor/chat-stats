@@ -100,6 +100,7 @@ def create_player_stats_route(stats_system):
                         players,
                         seasons=seasons if not is_career_mode else None,
                         teams=teams if teams[0] != "all" else None,
+                        per_mode=per,
                     )
 
             total_pages = (total + per_page - 1) // per_page
