@@ -215,8 +215,12 @@ def calculate_hold_break_from_pgs(cursor, team_id, year):
     d_line_points = row[2] or 0
     d_line_scores = row[3] or 0
 
-    hold_pct = round((o_line_scores / o_line_points) * 100, 2) if o_line_points > 0 else None
-    break_pct = round((d_line_scores / d_line_points) * 100, 2) if d_line_points > 0 else None
+    hold_pct = (
+        round((o_line_scores / o_line_points) * 100, 2) if o_line_points > 0 else None
+    )
+    break_pct = (
+        round((d_line_scores / d_line_points) * 100, 2) if d_line_points > 0 else None
+    )
 
     return hold_pct, break_pct
 
@@ -289,8 +293,10 @@ def update_possession_stats():
                         """,
                         (olc, dlc, team_id, year),
                     )
-                print(f"  Updated {team_name}: OLC={olc}%, DLC={dlc}%" +
-                      (f", HLD={hold_pct}%, BRK={break_pct}%" if hold_pct else ""))
+                print(
+                    f"  Updated {team_name}: OLC={olc}%, DLC={dlc}%"
+                    + (f", HLD={hold_pct}%, BRK={break_pct}%" if hold_pct else "")
+                )
                 total_updated += 1
             else:
                 # Insert new record with basic data + possession stats
@@ -301,11 +307,25 @@ def update_possession_stats():
                      o_line_conversion, d_line_conversion, hold_percentage, break_percentage)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """,
-                    (team_id, year, wins, losses, ties, standing, div_id, div_name,
-                     olc, dlc, hold_pct, break_pct),
+                    (
+                        team_id,
+                        year,
+                        wins,
+                        losses,
+                        ties,
+                        standing,
+                        div_id,
+                        div_name,
+                        olc,
+                        dlc,
+                        hold_pct,
+                        break_pct,
+                    ),
                 )
-                print(f"  Inserted {team_name}: OLC={olc}%, DLC={dlc}%" +
-                      (f", HLD={hold_pct}%, BRK={break_pct}%" if hold_pct else ""))
+                print(
+                    f"  Inserted {team_name}: OLC={olc}%, DLC={dlc}%"
+                    + (f", HLD={hold_pct}%, BRK={break_pct}%" if hold_pct else "")
+                )
                 total_inserted += 1
 
     conn.commit()

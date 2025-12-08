@@ -53,7 +53,7 @@ def restore_table(sqlite_conn, pg_conn, table_name):
     columns = get_table_columns(sqlite_cursor, table_name)
 
     # Skip columns that don't exist in PostgreSQL or are auto-generated
-    skip_columns = {'id', 'created_at', 'updated_at'}
+    skip_columns = {"id", "created_at", "updated_at"}
     columns = [c for c in columns if c not in skip_columns]
 
     if not columns:

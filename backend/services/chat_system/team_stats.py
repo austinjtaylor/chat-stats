@@ -319,8 +319,12 @@ class TeamStatsService:
                 possession_games = team.get("games_with_possession_stats", 0)
                 if possession_games > 0:
                     team["blocks"] = round(team["blocks"] / possession_games, 2)
-                    team["o_line_scores"] = round(team["o_line_scores"] / possession_games, 2)
-                    team["d_line_scores"] = round(team["d_line_scores"] / possession_games, 2)
+                    team["o_line_scores"] = round(
+                        team["o_line_scores"] / possession_games, 2
+                    )
+                    team["d_line_scores"] = round(
+                        team["d_line_scores"] / possession_games, 2
+                    )
                 else:
                     # No possession stats available for this team
                     team["blocks"] = None
@@ -330,8 +334,12 @@ class TeamStatsService:
                 # Use games_with_huck_stats for huck columns (2021+ only)
                 huck_games = team.get("games_with_huck_stats", 0)
                 if huck_games > 0:
-                    team["hucks_completed"] = round(team["hucks_completed"] / huck_games, 2)
-                    team["hucks_attempted"] = round(team["hucks_attempted"] / huck_games, 2)
+                    team["hucks_completed"] = round(
+                        team["hucks_completed"] / huck_games, 2
+                    )
+                    team["hucks_attempted"] = round(
+                        team["hucks_attempted"] / huck_games, 2
+                    )
                 else:
                     # No huck stats available for this team
                     team["hucks_completed"] = None
