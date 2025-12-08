@@ -48,21 +48,47 @@ STAT_FIELDS = [
 # Stats where lower is better (turnovers, etc.) - percentile should be inverted
 INVERT_STATS = ["total_throwaways", "total_stalls", "total_drops"]
 
+# Stats that are already rates/percentages and should NOT be divided by games_played
+NON_COUNTING_STATS = [
+    "completion_percentage",
+    "huck_percentage",
+    "offensive_efficiency",
+    "yards_per_turn",
+    "yards_per_completion",
+    "yards_per_reception",
+    "assists_per_turnover",
+    "games_played",
+]
 
-def build_percentile_expressions() -> list[str]:
+
+def build_percentile_expressions(per_mode: str = "total") -> list[str]:
     """
     Build CUME_DIST() SQL expressions for all stats.
+
+    Args:
+        per_mode: "total" for raw totals, "game" for per-game, "possession" for per-100-possessions
 
     Returns:
         List of SQL expressions for calculating percentiles
     """
     percentile_expressions = []
     for field in STAT_FIELDS:
+        # Determine the value expression based on per_mode
+        if per_mode == "game" and field not in NON_COUNTING_STATS:
+            # For per-game mode, divide counting stats by games_played
+            value_expr = f"CASE WHEN games_played > 0 THEN CAST({field} AS NUMERIC) / games_played ELSE 0 END"
+        elif per_mode == "possession" and field not in NON_COUNTING_STATS:
+            # For per-possession mode, divide by possessions and multiply by 100
+            value_expr = f"CASE WHEN possessions > 0 THEN CAST({field} AS NUMERIC) / possessions * 100 ELSE 0 END"
+        else:
+            # For total mode or non-counting stats, use raw value
+            value_expr = field
+
         # For stats where lower is better, invert the percentile
         if field in INVERT_STATS:
-            expr = f"ROUND(CAST((1 - CUME_DIST() OVER (ORDER BY {field})) * 100 AS NUMERIC), 0) as {field}_percentile"
+            expr = f"ROUND(CAST((1 - CUME_DIST() OVER (ORDER BY {value_expr})) * 100 AS NUMERIC), 0) as {field}_percentile"
         else:
-            expr = f"ROUND(CAST(CUME_DIST() OVER (ORDER BY {field} NULLS FIRST) * 100 AS NUMERIC), 0) as {field}_percentile"
+            expr = f"ROUND(CAST(CUME_DIST() OVER (ORDER BY {value_expr} NULLS FIRST) * 100 AS NUMERIC), 0) as {field}_percentile"
         percentile_expressions.append(expr)
     return percentile_expressions
 
@@ -72,6 +98,7 @@ def calculate_global_percentiles(
     players: list[dict],
     seasons: Optional[list] = None,
     teams: Optional[list] = None,
+    per_mode: str = "total",
 ) -> dict:
     """
     Calculate global percentile rankings for each player's stats.
@@ -81,6 +108,7 @@ def calculate_global_percentiles(
         players: List of player dicts to calculate percentiles for
         seasons: List of season years to filter by (None or ["career"] = all seasons)
         teams: List of team IDs to filter by (None or ["all"] = all teams)
+        per_mode: "total" for raw totals, "game" for per-game, "possession" for per-100-possessions
 
     Returns:
         Dictionary mapping full_name to percentile values for each stat.
@@ -107,7 +135,7 @@ def calculate_global_percentiles(
     )
 
     # Build CUME_DIST() expressions for all stats
-    percentile_expressions = build_percentile_expressions()
+    percentile_expressions = build_percentile_expressions(per_mode)
 
     # Build WHERE clause filters for seasons and teams
     season_where = ""
@@ -130,11 +158,11 @@ def calculate_global_percentiles(
     # Calculate global percentiles based on the appropriate data source
     if is_career_mode:
         percentiles_sql = _build_career_percentiles_query(
-            percentile_expressions, team_where, names_str
+            percentile_expressions, team_where, names_str, per_mode
         )
     else:
         percentiles_sql = _build_season_percentiles_query(
-            percentile_expressions, season_where, team_where, names_str
+            percentile_expressions, season_where, team_where, names_str, per_mode
         )
 
     try:
@@ -161,7 +189,10 @@ def calculate_global_percentiles(
 
 
 def _build_career_percentiles_query(
-    percentile_expressions: list[str], team_where: str, names_str: str
+    percentile_expressions: list[str],
+    team_where: str,
+    names_str: str,
+    per_mode: str = "total",
 ) -> str:
     """Build SQL query for career mode percentiles.
 
@@ -175,40 +206,48 @@ def _build_career_percentiles_query(
         # For yards_per_turn and assists_per_turnover, return NULL when turnovers = 0
         modified_expressions = []
         for field in STAT_FIELDS:
+            # Determine the value expression based on per_mode
+            if per_mode == "game" and field not in NON_COUNTING_STATS:
+                value_expr = f"CASE WHEN games_played > 0 THEN CAST({field} AS NUMERIC) / games_played ELSE 0 END"
+            elif per_mode == "possession" and field not in NON_COUNTING_STATS:
+                value_expr = f"CASE WHEN possessions > 0 THEN CAST({field} AS NUMERIC) / possessions * 100 ELSE 0 END"
+            else:
+                value_expr = field
+
             if field in INVERT_STATS:
-                expr = f"ROUND(CAST((1 - CUME_DIST() OVER (ORDER BY {field})) * 100 AS NUMERIC), 0) as {field}_percentile"
+                expr = f"ROUND(CAST((1 - CUME_DIST() OVER (ORDER BY {value_expr})) * 100 AS NUMERIC), 0) as {field}_percentile"
             elif field == "yards_per_turn":
                 # Return NULL percentile when turnovers = 0 (displayed value is total yards, not a ratio)
                 expr = f"""CASE WHEN (total_throwaways + total_stalls + total_drops) = 0 THEN NULL
-                    ELSE ROUND(CAST(CUME_DIST() OVER (ORDER BY CASE WHEN (total_throwaways + total_stalls + total_drops) > 0 THEN {field} ELSE NULL END NULLS FIRST) * 100 AS NUMERIC), 0)
+                    ELSE ROUND(CAST(CUME_DIST() OVER (ORDER BY CASE WHEN (total_throwaways + total_stalls + total_drops) > 0 THEN {value_expr} ELSE NULL END NULLS FIRST) * 100 AS NUMERIC), 0)
                 END as {field}_percentile"""
             elif field == "assists_per_turnover":
                 # Return NULL percentile when turnovers = 0 (displayed value is NULL or not meaningful)
                 expr = f"""CASE WHEN (total_throwaways + total_stalls + total_drops) = 0 THEN NULL
-                    ELSE ROUND(CAST(CUME_DIST() OVER (ORDER BY CASE WHEN (total_throwaways + total_stalls + total_drops) > 0 THEN {field} ELSE NULL END NULLS FIRST) * 100 AS NUMERIC), 0)
+                    ELSE ROUND(CAST(CUME_DIST() OVER (ORDER BY CASE WHEN (total_throwaways + total_stalls + total_drops) > 0 THEN {value_expr} ELSE NULL END NULLS FIRST) * 100 AS NUMERIC), 0)
                 END as {field}_percentile"""
             elif field == "completion_percentage":
                 # Return NULL percentile when throw_attempts < 100 (stat shows "-")
                 expr = f"""CASE WHEN {field} IS NULL THEN NULL
-                    ELSE ROUND(CAST(CUME_DIST() OVER (ORDER BY {field} NULLS FIRST) * 100 AS NUMERIC), 0)
+                    ELSE ROUND(CAST(CUME_DIST() OVER (ORDER BY {value_expr} NULLS FIRST) * 100 AS NUMERIC), 0)
                 END as {field}_percentile"""
             elif field == "offensive_efficiency":
                 # Return NULL percentile when o_opportunities < 100 (stat shows "-")
                 expr = f"""CASE WHEN {field} IS NULL THEN NULL
-                    ELSE ROUND(CAST(CUME_DIST() OVER (ORDER BY {field} NULLS FIRST) * 100 AS NUMERIC), 0)
+                    ELSE ROUND(CAST(CUME_DIST() OVER (ORDER BY {value_expr} NULLS FIRST) * 100 AS NUMERIC), 0)
                 END as {field}_percentile"""
             elif field == "yards_per_completion":
                 # Return NULL percentile when completions = 0 (stat shows "-")
                 expr = f"""CASE WHEN {field} IS NULL THEN NULL
-                    ELSE ROUND(CAST(CUME_DIST() OVER (ORDER BY {field} NULLS FIRST) * 100 AS NUMERIC), 0)
+                    ELSE ROUND(CAST(CUME_DIST() OVER (ORDER BY {value_expr} NULLS FIRST) * 100 AS NUMERIC), 0)
                 END as {field}_percentile"""
             elif field == "yards_per_reception":
                 # Return NULL percentile when catches = 0 (stat shows "-")
                 expr = f"""CASE WHEN {field} IS NULL THEN NULL
-                    ELSE ROUND(CAST(CUME_DIST() OVER (ORDER BY {field} NULLS FIRST) * 100 AS NUMERIC), 0)
+                    ELSE ROUND(CAST(CUME_DIST() OVER (ORDER BY {value_expr} NULLS FIRST) * 100 AS NUMERIC), 0)
                 END as {field}_percentile"""
             else:
-                expr = f"ROUND(CAST(CUME_DIST() OVER (ORDER BY {field} NULLS FIRST) * 100 AS NUMERIC), 0) as {field}_percentile"
+                expr = f"ROUND(CAST(CUME_DIST() OVER (ORDER BY {value_expr} NULLS FIRST) * 100 AS NUMERIC), 0) as {field}_percentile"
             modified_expressions.append(expr)
 
         return f"""
@@ -376,10 +415,12 @@ def _build_season_percentiles_query(
     season_where: str,
     team_where: str,
     names_str: str,
+    per_mode: str = "total",
 ) -> str:
     """Build SQL query for season-specific percentiles.
 
     Groups by player_id to match the main query behavior, then joins to get full_name.
+    Note: per_mode is used by percentile_expressions which are passed in pre-built.
     """
     # Build filters for games_count CTE (replace pss. with pgs.)
     games_season_where = season_where.replace("pss.", "pgs.")
