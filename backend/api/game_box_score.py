@@ -41,10 +41,12 @@ def create_box_score_routes(stats_system):
                 ht.full_name as home_team_name,
                 ht.city as home_team_city,
                 ht.name as home_team_short_name,
+                ht.abbrev as home_team_abbrev,
                 ht.logo_url as home_team_logo_url,
                 at.full_name as away_team_name,
                 at.city as away_team_city,
                 at.name as away_team_short_name,
+                at.abbrev as away_team_abbrev,
                 at.logo_url as away_team_logo_url
             FROM games g
             LEFT JOIN teams ht ON g.home_team_id = ht.team_id AND g.year = ht.year
@@ -120,9 +122,17 @@ def create_box_score_routes(stats_system):
             away_players = []
 
             for player in all_players:
+                is_home_team = player["team_id"] == game["home_team_id"]
+                team_abbrev = (
+                    game["home_team_abbrev"]
+                    if is_home_team
+                    else game["away_team_abbrev"]
+                )
+
                 player_data = {
                     "name": player["full_name"],
                     "jersey_number": player["jersey_number"] or "",
+                    "team_abbrev": team_abbrev or "",
                     "points_played": player["points_played"],
                     "o_points_played": player["o_points_played"],
                     "d_points_played": player["d_points_played"],
@@ -146,7 +156,7 @@ def create_box_score_routes(stats_system):
                     "drops": player["drops"],
                 }
 
-                if player["team_id"] == game["home_team_id"]:
+                if is_home_team:
                     home_players.append(player_data)
                 elif player["team_id"] == game["away_team_id"]:
                     away_players.append(player_data)
@@ -171,6 +181,7 @@ def create_box_score_routes(stats_system):
                     "name": game["home_team_short_name"],
                     "full_name": game["home_team_name"],
                     "city": game["home_team_city"],
+                    "abbrev": game["home_team_abbrev"],
                     "final_score": game["home_score"],
                     "quarter_scores": quarter_scores.get("home", []),
                     "players": home_players,
@@ -182,6 +193,7 @@ def create_box_score_routes(stats_system):
                     "name": game["away_team_short_name"],
                     "full_name": game["away_team_name"],
                     "city": game["away_team_city"],
+                    "abbrev": game["away_team_abbrev"],
                     "final_score": game["away_score"],
                     "quarter_scores": quarter_scores.get("away", []),
                     "players": away_players,

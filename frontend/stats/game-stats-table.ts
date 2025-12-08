@@ -106,6 +106,7 @@ export class GameStatsTable {
         this.elements.statsTableBody.innerHTML = players.map(player => `
             <tr>
                 <td class="player-name">${player.name}</td>
+                <td>${player.team_abbrev}</td>
                 <td>${player.jersey_number || '-'}</td>
                 <td class="numeric">${player.points_played}</td>
                 <td class="numeric">${player.o_points_played}</td>
