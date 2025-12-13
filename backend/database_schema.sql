@@ -190,6 +190,7 @@ CREATE TABLE IF NOT EXISTS game_events (
     pull_y REAL,  -- Y coordinate of pull landing
     pull_ms INTEGER,  -- Pull hangtime in milliseconds
     line_players TEXT,  -- JSON array of player IDs on the line
+    pass_type VARCHAR(10),  -- Pass classification: dish, swing, dump, huck, gainer
     UNIQUE(game_id, event_index, team)
 );
 

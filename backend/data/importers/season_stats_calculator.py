@@ -40,6 +40,7 @@ class SeasonStatsCalculator:
         """
         try:
             # Calculate player season stats - use UFA statistics
+            # Include pass type counts from game_events
             player_stats_query = """
             SELECT
                 pgs.player_id,
@@ -60,11 +61,31 @@ class SeasonStatsCalculator:
                     WHEN SUM(pgs.throw_attempts) > 0
                     THEN CAST(SUM(pgs.completions) AS FLOAT) / SUM(pgs.throw_attempts) * 100
                     ELSE 0
-                END as completion_percentage
+                END as completion_percentage,
+                COALESCE(pt.total_dish, 0) as total_dish,
+                COALESCE(pt.total_swing, 0) as total_swing,
+                COALESCE(pt.total_dump, 0) as total_dump,
+                COALESCE(pt.total_huck, 0) as total_huck,
+                COALESCE(pt.total_gainer, 0) as total_gainer
             FROM player_game_stats pgs
             JOIN games g ON pgs.game_id = g.id
+            LEFT JOIN (
+                SELECT
+                    ge.thrower_id as player_id,
+                    SUM(CASE WHEN ge.pass_type = 'dish' THEN 1 ELSE 0 END) as total_dish,
+                    SUM(CASE WHEN ge.pass_type = 'swing' THEN 1 ELSE 0 END) as total_swing,
+                    SUM(CASE WHEN ge.pass_type = 'dump' THEN 1 ELSE 0 END) as total_dump,
+                    SUM(CASE WHEN ge.pass_type = 'huck' THEN 1 ELSE 0 END) as total_huck,
+                    SUM(CASE WHEN ge.pass_type = 'gainer' THEN 1 ELSE 0 END) as total_gainer
+                FROM game_events ge
+                JOIN games g2 ON ge.game_id = g2.game_id
+                WHERE g2.year = :year
+                AND ge.event_type IN (18, 19)
+                AND ge.pass_type IS NOT NULL
+                GROUP BY ge.thrower_id
+            ) pt ON pgs.player_id = pt.player_id
             WHERE g.year = :year
-            GROUP BY pgs.player_id, pgs.team_id
+            GROUP BY pgs.player_id, pgs.team_id, pt.total_dish, pt.total_swing, pt.total_dump, pt.total_huck, pt.total_gainer
             """
 
             player_results = self.db.execute_query(
@@ -100,6 +121,7 @@ class SeasonStatsCalculator:
             year_param: Year parameter
         """
         try:
+            # Include pass type counts from game_events via player_game_stats
             team_stats_query = """
             SELECT
                 t.id as team_id,
@@ -123,11 +145,32 @@ class SeasonStatsCalculator:
                     WHEN g.home_team_id = t.id THEN g.away_score
                     WHEN g.away_team_id = t.id THEN g.home_score
                     ELSE 0
-                END) as points_against
+                END) as points_against,
+                COALESCE(pt.team_dish, 0) as team_dish,
+                COALESCE(pt.team_swing, 0) as team_swing,
+                COALESCE(pt.team_dump, 0) as team_dump,
+                COALESCE(pt.team_huck, 0) as team_huck,
+                COALESCE(pt.team_gainer, 0) as team_gainer
             FROM teams t
             LEFT JOIN games g ON (g.home_team_id = t.id OR g.away_team_id = t.id)
                               AND g.year = :year
-            GROUP BY t.id
+            LEFT JOIN (
+                SELECT
+                    pgs.team_id,
+                    SUM(CASE WHEN ge.pass_type = 'dish' THEN 1 ELSE 0 END) as team_dish,
+                    SUM(CASE WHEN ge.pass_type = 'swing' THEN 1 ELSE 0 END) as team_swing,
+                    SUM(CASE WHEN ge.pass_type = 'dump' THEN 1 ELSE 0 END) as team_dump,
+                    SUM(CASE WHEN ge.pass_type = 'huck' THEN 1 ELSE 0 END) as team_huck,
+                    SUM(CASE WHEN ge.pass_type = 'gainer' THEN 1 ELSE 0 END) as team_gainer
+                FROM game_events ge
+                JOIN player_game_stats pgs ON ge.thrower_id = pgs.player_id
+                    AND ge.game_id = pgs.game_id
+                WHERE pgs.year = :year
+                AND ge.event_type IN (18, 19)
+                AND ge.pass_type IS NOT NULL
+                GROUP BY pgs.team_id
+            ) pt ON t.id = pt.team_id
+            GROUP BY t.id, pt.team_dish, pt.team_swing, pt.team_dump, pt.team_huck, pt.team_gainer
             """
 
             team_results = self.db.execute_query(team_stats_query, {"year": year_param})

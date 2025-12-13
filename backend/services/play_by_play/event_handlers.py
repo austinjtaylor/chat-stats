@@ -5,6 +5,8 @@ Event handlers for processing different game event types.
 import math
 from typing import Any
 
+from utils.pass_type import classify_pass, get_display_name
+
 
 class EventHandlers:
     """Handlers for processing different types of game events."""
@@ -77,24 +79,23 @@ class EventHandlers:
             angle_radians = math.atan2(vertical_yards, -horizontal_yards)
             angle_degrees = math.degrees(angle_radians)
 
-            if vertical_yards <= 0:
-                pass_type = "Dump"
-            elif vertical_yards >= 40:
-                pass_type = "Huck"
-            else:
-                pass_type = "Pass"
+            # Classify pass type using utility function
+            pass_type_key = classify_pass(thrower_x, thrower_y, receiver_x, receiver_y)
+            pass_type_display = get_display_name(pass_type_key)
 
             return {
                 "type": "pass",
-                "description": f"{pass_type} from {thrower_last} to {receiver_last}",
+                "description": f"{pass_type_display} from {thrower_last} to {receiver_last}",
                 "yard_line": int(actual_distance),
                 "direction": angle_degrees,
+                "pass_type": pass_type_key,
             }
         else:
             return {
                 "type": "pass",
                 "description": f"Pass from {thrower_last} to {receiver_last}",
                 "yard_line": None,
+                "pass_type": None,
             }
 
     @staticmethod
@@ -132,20 +133,23 @@ class EventHandlers:
             angle_radians = math.atan2(vertical_yards, -horizontal_yards)
             angle_degrees = math.degrees(angle_radians)
 
-            # Determine if it's a huck (40+ yards forward)
-            pass_type = "Huck " if vertical_yards >= 40 else ""
+            # Classify pass type using utility function
+            pass_type_key = classify_pass(thrower_x, thrower_y, receiver_x, receiver_y)
+            pass_type_display = get_display_name(pass_type_key)
 
             return {
                 "type": "goal",
-                "description": f"{pass_type}Score from {thrower_last} to {receiver_last}",
+                "description": f"{pass_type_display} Score from {thrower_last} to {receiver_last}",
                 "yard_line": int(actual_distance),
                 "direction": angle_degrees,
+                "pass_type": pass_type_key,
             }
         else:
             return {
                 "type": "goal",
                 "description": f"Score from {thrower_last} to {receiver_last}",
                 "yard_line": None,
+                "pass_type": None,
             }
 
     @staticmethod

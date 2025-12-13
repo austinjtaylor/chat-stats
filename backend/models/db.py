@@ -95,6 +95,12 @@ class PlayerGameStats(BaseModel):
     o_opportunity_scores: int = 0
     d_opportunities: int = 0
     d_opportunity_stops: int = 0
+    # Pass type counts
+    dish_count: int = 0
+    swing_count: int = 0
+    dump_count: int = 0
+    huck_count: int = 0
+    gainer_count: int = 0
 
     @property
     def calculated_plus_minus(self) -> int:
@@ -158,6 +164,12 @@ class PlayerSeasonStats(BaseModel):
     total_o_opportunity_scores: int = 0
     total_d_opportunities: int = 0
     total_d_opportunity_stops: int = 0
+    # Pass type counts
+    total_dish: int = 0
+    total_swing: int = 0
+    total_dump: int = 0
+    total_huck: int = 0
+    total_gainer: int = 0
     # Calculated fields
     calculated_plus_minus: int | None = None
     completion_percentage: float | None = None
@@ -241,6 +253,12 @@ class TeamSeasonStats(BaseModel):
     opp_break_percentage: float | None = None
     opp_d_line_conversion: float | None = None
     opp_red_zone_conversion: float | None = None
+    # Pass type counts
+    team_dish: int = 0
+    team_swing: int = 0
+    team_dump: int = 0
+    team_huck: int = 0
+    team_gainer: int = 0
 
 
 class StatsQuery(BaseModel):
