@@ -238,7 +238,7 @@ body.sidebar-open .stats-container {
 /* Scoreboard Header */
 .game-scoreboard {
     background: transparent;
-    padding: 10px 20px;
+    padding: 5px 20px;
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -247,25 +247,25 @@ body.sidebar-open .stats-container {
     align-items: center;
     justify-content: center;
     margin: 0 auto;
-    gap: 40px;
+    gap: 30px;
 }
 
 .team-score {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 10px;
 }
 
 .team-logo {
-    width: 60px;
-    height: 60px;
+    width: 50px;
+    height: 50px;
     background: white;
     border-radius: 5px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    font-size: 24px;
+    font-size: 20px;
     overflow: hidden;
 }
 
@@ -284,13 +284,13 @@ body.sidebar-open .stats-container {
 }
 
 .team-name {
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text-primary);
 }
 
 .team-final-score {
-    font-size: 36px;
+    font-size: 28px;
     font-weight: bold;
     color: var(--text-primary);
 }
@@ -298,7 +298,7 @@ body.sidebar-open .stats-container {
 .quarter-scores {
     background: transparent;
     border-radius: 8px;
-    padding: 10px;
+    padding: 5px;
     flex-shrink: 0;
 }
 
@@ -308,9 +308,10 @@ body.sidebar-open .stats-container {
 
 .quarter-scores th,
 .quarter-scores td {
-    padding: 5px 10px;
+    padding: 3px 8px;
     text-align: center;
     border-right: 1px solid var(--border-color);
+    font-size: 12px;
 }
 
 .quarter-scores th:last-child,
@@ -320,7 +321,7 @@ body.sidebar-open .stats-container {
 }
 
 .quarter-scores th {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-secondary);
 }
 

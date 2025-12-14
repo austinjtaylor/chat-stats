@@ -2,21 +2,9 @@
  * Unified Stats Page Styles
  */
 
-/* Stats Header */
-.stats-header {
-  padding: 1rem 2rem 0rem;
-}
-
-.stats-title {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0;
-}
-
 /* Tab Navigation */
 .stats-tabs {
-  padding: 0 2rem;
+  padding: 1rem 2rem 0;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -76,18 +64,8 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-  .stats-header {
-    padding: 1.25rem 1rem;
-  }
-
-  .stats-title {
-    font-size: 1.5rem;
-    margin-left: 25px; /* Space for hamburger button */
-    line-height: 10px; /* Match hamburger button height for vertical alignment */
-  }
-
   .stats-tabs {
-    padding: 0 1rem;
+    padding: 0.75rem 1rem 0 5.5rem; /* Extra left padding for menu button */
   }
 
   .tab-button {
