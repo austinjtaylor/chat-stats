@@ -89,6 +89,10 @@ class EventHandlers:
                 "yard_line": int(actual_distance),
                 "direction": angle_degrees,
                 "pass_type": pass_type_key,
+                "thrower_x": thrower_x,
+                "thrower_y": thrower_y,
+                "receiver_x": receiver_x,
+                "receiver_y": receiver_y,
             }
         else:
             return {
@@ -96,6 +100,10 @@ class EventHandlers:
                 "description": f"Pass from {thrower_last} to {receiver_last}",
                 "yard_line": None,
                 "pass_type": None,
+                "thrower_x": None,
+                "thrower_y": None,
+                "receiver_x": None,
+                "receiver_y": None,
             }
 
     @staticmethod
@@ -143,6 +151,10 @@ class EventHandlers:
                 "yard_line": int(actual_distance),
                 "direction": angle_degrees,
                 "pass_type": pass_type_key,
+                "thrower_x": thrower_x,
+                "thrower_y": thrower_y,
+                "receiver_x": receiver_x,
+                "receiver_y": receiver_y,
             }
         else:
             return {
@@ -150,6 +162,10 @@ class EventHandlers:
                 "description": f"Score from {thrower_last} to {receiver_last}",
                 "yard_line": None,
                 "pass_type": None,
+                "thrower_x": None,
+                "thrower_y": None,
+                "receiver_x": None,
+                "receiver_y": None,
             }
 
     @staticmethod
@@ -229,6 +245,10 @@ class EventHandlers:
             "type": "drop",
             "description": f"Drop by {receiver_last}",
             "yard_line": yard_line,
+            "thrower_x": event.get("thrower_x"),
+            "thrower_y": event.get("thrower_y"),
+            "turnover_x": event.get("turnover_x"),
+            "turnover_y": event.get("turnover_y"),
         }
 
     @staticmethod
@@ -271,12 +291,20 @@ class EventHandlers:
                 "description": f"{throwaway_type} by {thrower_last}",
                 "yard_line": int(actual_distance),
                 "direction": angle_degrees,
+                "thrower_x": thrower_x,
+                "thrower_y": thrower_y,
+                "turnover_x": turnover_x,
+                "turnover_y": turnover_y,
             }
         else:
             return {
                 "type": "throwaway",
                 "description": f"Throwaway by {thrower_last}",
                 "yard_line": None,
+                "thrower_x": None,
+                "thrower_y": None,
+                "turnover_x": None,
+                "turnover_y": None,
             }
 
     @staticmethod
@@ -294,7 +322,13 @@ class EventHandlers:
             int(event["turnover_y"]) if event.get("turnover_y") is not None else None
         )
 
-        return {"type": "stall", "description": "Stall", "yard_line": yard_line}
+        return {
+            "type": "stall",
+            "description": "Stall",
+            "yard_line": yard_line,
+            "turnover_x": event.get("turnover_x"),
+            "turnover_y": event.get("turnover_y"),
+        }
 
     @staticmethod
     def handle_opponent_turnover_event(

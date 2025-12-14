@@ -7,6 +7,7 @@ import { GameSearch } from './game-search';
 import { GameScoreboard } from './game-scoreboard';
 import { GameStatsTable } from './game-stats-table';
 import { GamePlayByPlay } from './game-play-by-play';
+import { GameFieldMap } from './game-field-map';
 
 // Export interfaces for use by other modules
 export interface PlayerStats {
@@ -87,6 +88,7 @@ class GameDetailPage {
     private gameScoreboard: GameScoreboard;
     private gameStatsTable: GameStatsTable;
     private gamePlayByPlay: GamePlayByPlay;
+    private gameFieldMap: GameFieldMap;
 
     // DOM elements
     private elements = {
@@ -100,6 +102,7 @@ class GameDetailPage {
         this.gameScoreboard = new GameScoreboard();
         this.gameStatsTable = new GameStatsTable();
         this.gamePlayByPlay = new GamePlayByPlay(this.getCityAbbreviation.bind(this));
+        this.gameFieldMap = new GameFieldMap(this.getCityAbbreviation.bind(this));
 
         // Setup component callbacks
         this.gameSearch.setOnGameSelect(this.loadGameDetails.bind(this));
@@ -188,6 +191,11 @@ class GameDetailPage {
         return playByPlayTab?.classList.contains('active') || false;
     }
 
+    private isFieldMapTabActive(): boolean {
+        const fieldMapTab = document.getElementById('field-map');
+        return fieldMapTab?.classList.contains('active') || false;
+    }
+
     private async loadGameDetails(gameId: string, closePanel: boolean = true): Promise<void> {
         try {
             const data: BoxScoreData = await statsAPI.getGameBoxScore(gameId);
@@ -202,6 +210,16 @@ class GameDetailPage {
             if (this.isPlayByPlayTabActive()) {
                 this.gamePlayByPlay.loadPlayByPlay(data.game_id).then(() => {
                     this.gamePlayByPlay.renderPlayByPlay(
+                        data.home_team.city,
+                        data.away_team.city
+                    );
+                });
+            }
+
+            // If field-map tab is currently active, reload field map data
+            if (this.isFieldMapTabActive()) {
+                this.gameFieldMap.loadFieldMapData(data.game_id).then(() => {
+                    this.gameFieldMap.renderFieldMap(
                         data.home_team.city,
                         data.away_team.city
                     );
@@ -265,6 +283,16 @@ class GameDetailPage {
         if (tabId === 'play-by-play' && this.currentGame) {
             this.gamePlayByPlay.loadPlayByPlay(this.currentGame.game_id).then(() => {
                 this.gamePlayByPlay.renderPlayByPlay(
+                    this.currentGame?.home_team.city,
+                    this.currentGame?.away_team.city
+                );
+            });
+        }
+
+        // Load field map data when switching to that tab
+        if (tabId === 'field-map' && this.currentGame) {
+            this.gameFieldMap.loadFieldMapData(this.currentGame.game_id).then(() => {
+                this.gameFieldMap.renderFieldMap(
                     this.currentGame?.home_team.city,
                     this.currentGame?.away_team.city
                 );
