@@ -986,7 +986,7 @@ export class PassPlots {
         container.appendChild(canvas);
     }
 
-    private drawYardLinesAndNumbers(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+    private drawYardLinesAndNumbers(ctx: CanvasRenderingContext2D, width: number, _height: number): void {
         // Draw yard lines
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
         ctx.lineWidth = 1;
