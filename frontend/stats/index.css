@@ -65,7 +65,7 @@
 /* Responsive */
 @media (max-width: 768px) {
   .stats-tabs {
-    padding: 0.75rem 1rem 0 5.5rem; /* Extra left padding for menu button */
+    padding: 0.75rem 1rem 0 2.5rem; /* Extra left padding for menu button */
   }
 
   .tab-button {
