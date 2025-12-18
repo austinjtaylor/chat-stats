@@ -6,6 +6,7 @@ import os
 
 from api.game import create_game_routes
 from api.game_box_score import create_box_score_routes
+from api.pass_events import create_pass_events_routes
 from api.player_stats import create_player_stats_route
 
 # Import route modules
@@ -56,6 +57,7 @@ player_stats_router = create_player_stats_route(stats_system)
 game_router = create_game_routes(stats_system)
 box_score_router = create_box_score_routes(stats_system)
 stripe_router = create_stripe_routes(stats_system)
+pass_events_router = create_pass_events_routes(stats_system)
 
 # Include all routers
 app.include_router(basic_router)
@@ -63,6 +65,7 @@ app.include_router(player_stats_router)
 app.include_router(game_router)
 app.include_router(box_score_router)
 app.include_router(stripe_router)
+app.include_router(pass_events_router)
 
 
 @app.on_event("startup")

@@ -191,9 +191,9 @@ class GameDetailPage {
         return playByPlayTab?.classList.contains('active') || false;
     }
 
-    private isFieldMapTabActive(): boolean {
-        const fieldMapTab = document.getElementById('field-map');
-        return fieldMapTab?.classList.contains('active') || false;
+    private isPassPlotTabActive(): boolean {
+        const passPlotTab = document.getElementById('pass-plot');
+        return passPlotTab?.classList.contains('active') || false;
     }
 
     private async loadGameDetails(gameId: string, closePanel: boolean = true): Promise<void> {
@@ -216,8 +216,8 @@ class GameDetailPage {
                 });
             }
 
-            // If field-map tab is currently active, reload field map data
-            if (this.isFieldMapTabActive()) {
+            // If pass-plot tab is currently active, reload field map data
+            if (this.isPassPlotTabActive()) {
                 this.gameFieldMap.loadFieldMapData(data.game_id).then(() => {
                     this.gameFieldMap.renderFieldMap(
                         data.home_team.city,
@@ -290,7 +290,7 @@ class GameDetailPage {
         }
 
         // Load field map data when switching to that tab
-        if (tabId === 'field-map' && this.currentGame) {
+        if (tabId === 'pass-plot' && this.currentGame) {
             this.gameFieldMap.loadFieldMapData(this.currentGame.game_id).then(() => {
                 this.gameFieldMap.renderFieldMap(
                     this.currentGame?.home_team.city,
