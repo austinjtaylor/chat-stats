@@ -504,8 +504,30 @@
 }
 
 @media (max-width: 600px) {
+    .pass-plots-container {
+        height: 100vh;
+        min-height: auto;
+        overflow-y: auto;
+    }
+
     .filters-panel {
         padding: 12px;
+        max-height: 180px;
+    }
+
+    .field-panel {
+        min-height: auto;
+        flex: none;
+    }
+
+    .field-container {
+        height: calc(100vh - 280px);
+        padding: 12px;
+    }
+
+    .field-container svg,
+    .field-container canvas {
+        max-height: calc(100vh - 310px);
     }
 
     .filters-section {
