@@ -292,6 +292,7 @@ class PlayerStatsQueryBuilder:
             tcs.total_blocks,
             tcs.calculated_plus_minus,
             tcs.total_completions,
+            tcs.total_throw_attempts,
             tcs.completion_percentage,
             tcs.total_yards_thrown,
             tcs.total_yards_received,
@@ -460,6 +461,7 @@ class PlayerStatsQueryBuilder:
                 cs.total_blocks,
                 cs.calculated_plus_minus,
                 cs.total_completions,
+                cs.total_throw_attempts,
                 cs.completion_percentage,
                 cs.total_yards_thrown,
                 cs.total_yards_received,
@@ -737,12 +739,17 @@ class PlayerStatsQueryBuilder:
         FROM team_career_stats tcs
         LEFT JOIN games_count gc ON tcs.player_id = gc.player_id
         WHERE gc.games_played > 0
+        {f" AND tcs.possessions >= {self.possession_threshold}" if self.possession_threshold > 0 else ""}
+        {f" AND tcs.total_throw_attempts >= {self.throw_attempts_threshold}" if self.throw_attempts_threshold > 0 else ""}
         {" AND " + having_clause if having_clause else ""}
         """
 
     def _build_optimized_count_query(self) -> str:
         """Build optimized count query when no custom filters are present."""
         if self.is_career_mode and self.teams[0] != "all":
+            # When in per_possession mode with thresholds, use the filtered count query
+            if self.possession_threshold > 0 or self.throw_attempts_threshold > 0:
+                return self._build_team_career_count_query()
             team_filter_for_count = self.team_filter.replace(" AND ", "")
             return f"""
             SELECT COUNT(DISTINCT pss.player_id) as total
@@ -756,8 +763,16 @@ class PlayerStatsQueryBuilder:
             )
             """
         elif self.is_career_mode:
-            # When in per_possession mode, count from player_season_stats with year filter
-            if self.per_possession_mode:
+            # When in per_possession mode with thresholds, use subquery approach
+            if self.per_possession_mode and (self.possession_threshold > 0 or self.throw_attempts_threshold > 0):
+                main_query = self.build_main_query()
+                return f"""
+                SELECT COUNT(*) FROM (
+                    {main_query.replace(f'LIMIT {self.per_page} OFFSET {(self.page-1) * self.per_page}', '')}
+                ) AS filtered_results
+                """
+            # Simple count for per_possession mode without thresholds
+            elif self.per_possession_mode:
                 return f"""
                 SELECT COUNT(DISTINCT pss.player_id) as total
                 FROM player_season_stats pss
