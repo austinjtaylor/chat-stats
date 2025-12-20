@@ -24,6 +24,9 @@ import {
 import { renderThrowLines } from './pass-plots-field';
 import { renderHeatmap } from './pass-plots-heatmap';
 
+// Get API base URL from environment
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || '';
+
 export class PassPlots {
     private filterOptions: FilterOptions | null = null;
     private events: PassEvent[] = [];
@@ -63,7 +66,7 @@ export class PassPlots {
             if (options?.team_id) params.set('team_id', options.team_id);
             if (options?.game_id) params.set('game_id', options.game_id);
             const queryString = params.toString();
-            const response = await fetch(`/api/pass-events/filters${queryString ? '?' + queryString : ''}`);
+            const response = await fetch(`${API_BASE_URL}/api/pass-events/filters${queryString ? '?' + queryString : ''}`);
             this.filterOptions = await response.json();
         } catch (error) {
             console.error('Failed to load filter options:', error);
@@ -366,7 +369,7 @@ export class PassPlots {
 
         try {
             const params = buildQueryParams(this.filterState);
-            const response = await fetch(`/api/pass-events?${params}`);
+            const response = await fetch(`${API_BASE_URL}/api/pass-events?${params}`);
             const data: PassEventsResponse = await response.json();
 
             this.events = data.events;
