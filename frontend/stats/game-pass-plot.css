@@ -1,18 +1,18 @@
-/* Field Map Component Styles */
+/* Game Pass Plot Component Styles */
 
 /* Container Layout */
-#field-map {
+#pass-plot {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
     height: 100%;
 }
 
-#field-map.active {
+#pass-plot.active {
     display: flex;
 }
 
-.field-map-container {
+.game-pass-plot-container {
     display: flex;
     gap: 20px;
     padding: 20px;
@@ -22,7 +22,7 @@
 }
 
 /* Filters Panel */
-.field-map-filters {
+.game-pass-plot-filters {
     flex: 0 0 280px;
     display: flex;
     flex-direction: column;
@@ -131,12 +131,12 @@
 }
 
 /* Team toggle */
-.field-map-team-toggle {
+.game-pass-plot-team-toggle {
     display: flex;
     gap: 5px;
 }
 
-.field-map-team-toggle .team-filter-btn {
+.game-pass-plot-team-toggle .team-filter-btn {
     flex: 1;
     padding: 8px 16px;
     background: var(--bg-tertiary);
@@ -149,18 +149,18 @@
     transition: all 0.2s;
 }
 
-.field-map-team-toggle .team-filter-btn:hover {
+.game-pass-plot-team-toggle .team-filter-btn:hover {
     background: var(--bg-hover);
 }
 
-.field-map-team-toggle .team-filter-btn.active {
+.game-pass-plot-team-toggle .team-filter-btn.active {
     background: var(--primary-color);
     border-color: var(--primary-color);
     color: white;
 }
 
 /* Field Canvas Container */
-.field-map-canvas {
+.game-pass-plot-canvas {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -177,7 +177,7 @@
     justify-content: center;
 }
 
-.field-map-svg {
+.game-pass-plot-svg {
     max-width: 300px;
     width: 100%;
     height: auto;
@@ -218,7 +218,7 @@
 }
 
 /* Legend */
-.field-map-legend {
+.game-pass-plot-legend {
     display: flex;
     flex-wrap: wrap;
     gap: 16px;
@@ -263,11 +263,11 @@
 
 /* Responsive */
 @media (max-width: 900px) {
-    .field-map-container {
+    .game-pass-plot-container {
         flex-direction: column;
     }
 
-    .field-map-filters {
+    .game-pass-plot-filters {
         flex: none;
         flex-direction: row;
         flex-wrap: wrap;
@@ -281,13 +281,13 @@
         padding: 12px;
     }
 
-    .field-map-svg {
+    .game-pass-plot-svg {
         max-width: 250px;
     }
 }
 
 @media (max-width: 600px) {
-    .field-map-container {
+    .game-pass-plot-container {
         padding: 12px;
         gap: 12px;
     }
@@ -301,7 +301,7 @@
         align-items: flex-start;
     }
 
-    .field-map-legend {
+    .game-pass-plot-legend {
         gap: 12px;
     }
 

@@ -423,7 +423,7 @@
     margin: 16px 0;
 }
 
-/* Field SVG Styling (reused from game-field-map) */
+/* Field SVG Styling (shared with game-pass-plot) */
 .field-grass {
     fill: #2D5A27;
 }

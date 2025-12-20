@@ -1,7 +1,7 @@
 /* Import shared multi-select component styles */
 @import './components/multi-select.css';
-/* Import field map styles */
-@import './game-field-map.css';
+/* Import pass plot styles */
+@import './game-pass-plot.css';
 
 /* Games page filter widths */
 .game-selection-panel #yearFilter,

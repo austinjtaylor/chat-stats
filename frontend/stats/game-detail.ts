@@ -7,7 +7,7 @@ import { GameSearch } from './game-search';
 import { GameScoreboard } from './game-scoreboard';
 import { GameStatsTable } from './game-stats-table';
 import { GamePlayByPlay } from './game-play-by-play';
-import { GameFieldMap } from './game-field-map';
+import { GamePassPlot } from './game-pass-plot';
 
 // Export interfaces for use by other modules
 export interface PlayerStats {
@@ -88,7 +88,7 @@ class GameDetailPage {
     private gameScoreboard: GameScoreboard;
     private gameStatsTable: GameStatsTable;
     private gamePlayByPlay: GamePlayByPlay;
-    private gameFieldMap: GameFieldMap;
+    private gamePassPlot: GamePassPlot;
 
     // DOM elements
     private elements = {
@@ -102,7 +102,7 @@ class GameDetailPage {
         this.gameScoreboard = new GameScoreboard();
         this.gameStatsTable = new GameStatsTable();
         this.gamePlayByPlay = new GamePlayByPlay(this.getCityAbbreviation.bind(this));
-        this.gameFieldMap = new GameFieldMap(this.getCityAbbreviation.bind(this));
+        this.gamePassPlot = new GamePassPlot(this.getCityAbbreviation.bind(this));
 
         // Setup component callbacks
         this.gameSearch.setOnGameSelect(this.loadGameDetails.bind(this));
@@ -216,10 +216,10 @@ class GameDetailPage {
                 });
             }
 
-            // If pass-plot tab is currently active, reload field map data
+            // If pass-plot tab is currently active, reload pass plot data
             if (this.isPassPlotTabActive()) {
-                this.gameFieldMap.loadFieldMapData(data.game_id).then(() => {
-                    this.gameFieldMap.renderFieldMap(
+                this.gamePassPlot.loadPassPlotData(data.game_id).then(() => {
+                    this.gamePassPlot.renderPassPlot(
                         data.home_team.city,
                         data.away_team.city
                     );
@@ -289,10 +289,10 @@ class GameDetailPage {
             });
         }
 
-        // Load field map data when switching to that tab
+        // Load pass plot data when switching to that tab
         if (tabId === 'pass-plot' && this.currentGame) {
-            this.gameFieldMap.loadFieldMapData(this.currentGame.game_id).then(() => {
-                this.gameFieldMap.renderFieldMap(
+            this.gamePassPlot.loadPassPlotData(this.currentGame.game_id).then(() => {
+                this.gamePassPlot.renderPassPlot(
                     this.currentGame?.home_team.city,
                     this.currentGame?.away_team.city
                 );

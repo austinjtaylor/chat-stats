@@ -1,10 +1,10 @@
 /**
- * Game Field Map Component - Visualizes pass events on a field diagram
+ * Game Pass Plot Component - Visualizes pass events on a field diagram
  */
 
 import { statsAPI } from '../src/api/client';
 
-export interface FieldMapEvent {
+export interface PassPlotEvent {
     type: string;
     thrower_x: number | null;
     thrower_y: number | null;
@@ -49,9 +49,9 @@ interface PlayerInfo {
     count: number;
 }
 
-export class GameFieldMap {
+export class GamePassPlot {
     private playByPlayData: PlayByPlayData | null = null;
-    private allEvents: FieldMapEvent[] = [];
+    private allEvents: PassPlotEvent[] = [];
     private filterState: FilterState;
 
     // Computed counts for filter labels
@@ -83,13 +83,13 @@ export class GameFieldMap {
         };
     }
 
-    public async loadFieldMapData(gameId: string): Promise<void> {
+    public async loadPassPlotData(gameId: string): Promise<void> {
         try {
             this.playByPlayData = await statsAPI.getGamePlayByPlay(gameId);
             this.extractEventsFromPoints();
             this.computeFilterCounts();
         } catch (error) {
-            console.error('Failed to load field map data:', error);
+            console.error('Failed to load pass plot data:', error);
         }
     }
 
@@ -109,14 +109,12 @@ export class GameFieldMap {
             let hasSeenTurnover = false;
 
             for (const event of point.events) {
-                // Check if this event is a turnover
-                if (['drop', 'throwaway', 'stall', 'block', 'opponent_turnover'].includes(event.type)) {
-                    hasSeenTurnover = true;
-                    continue; // Skip to processing the turnover event itself
-                }
-
-                // Skip events we don't visualize
+                // Skip events we don't visualize, but track turnovers for "out of turnover" marking
                 if (!['pass', 'goal', 'drop', 'throwaway', 'stall'].includes(event.type)) {
+                    // Mark that a turnover occurred (block, opponent_turnover, etc.)
+                    if (['block', 'opponent_turnover'].includes(event.type)) {
+                        hasSeenTurnover = true;
+                    }
                     continue;
                 }
 
@@ -127,6 +125,14 @@ export class GameFieldMap {
 
                 if (!hasCoords) continue;
 
+                // Capture whether this event happened after a turnover (before marking current event as turnover)
+                const isAfterTurnover = hasSeenTurnover;
+
+                // Extract player names - "from X" for passes, "by X" for turnovers
+                const throwerName = event.description?.match(/from (\w+)/)?.[1] ||
+                                   event.description?.match(/by (\w+)/)?.[1];
+                const receiverName = event.description?.match(/to (\w+)/)?.[1];
+
                 this.allEvents.push({
                     type: event.type,
                     thrower_x: event.thrower_x ?? null,
@@ -135,16 +141,21 @@ export class GameFieldMap {
                     receiver_y: event.receiver_y ?? null,
                     turnover_x: event.turnover_x ?? null,
                     turnover_y: event.turnover_y ?? null,
-                    thrower_name: event.description?.match(/from (\w+)/)?.[1],
-                    receiver_name: event.description?.match(/to (\w+)/)?.[1],
+                    thrower_name: throwerName,
+                    receiver_name: receiverName,
                     thrower_id: event.thrower_id,
                     receiver_id: event.receiver_id,
                     quarter: point.quarter,
                     point_number: point.point_number,
                     line_type: point.line_type,
                     team: point.team,
-                    is_after_turnover: hasSeenTurnover
+                    is_after_turnover: isAfterTurnover
                 });
+
+                // Mark turnover AFTER adding the event so the turnover itself isn't marked as "after turnover"
+                if (['drop', 'throwaway', 'stall'].includes(event.type)) {
+                    hasSeenTurnover = true;
+                }
             }
         }
     }
@@ -210,7 +221,7 @@ export class GameFieldMap {
         existingQuarters.forEach(q => this.filterState.periods.add(q));
     }
 
-    private getFilteredEvents(): FieldMapEvent[] {
+    private getFilteredEvents(): PassPlotEvent[] {
         return this.allEvents.filter(event => {
             // Team filter
             if (event.team !== this.filterState.team) return false;
@@ -256,8 +267,8 @@ export class GameFieldMap {
         });
     }
 
-    public renderFieldMap(homeCity?: string, awayCity?: string): void {
-        this.container = document.getElementById('field-map');
+    public renderPassPlot(homeCity?: string, awayCity?: string): void {
+        this.container = document.getElementById('pass-plot');
         if (!this.container) return;
 
         // Store cities if provided
@@ -265,15 +276,15 @@ export class GameFieldMap {
         if (awayCity !== undefined) this.awayCity = awayCity;
 
         const html = `
-            <div class="field-map-container">
-                <div class="field-map-filters">
+            <div class="game-pass-plot-container">
+                <div class="game-pass-plot-filters">
                     ${this.renderTeamFilter()}
                     ${this.renderPlayerFilter()}
                     ${this.renderEventTypeFilter()}
                     ${this.renderLineTypeFilter()}
                     ${this.renderPeriodFilter()}
                 </div>
-                <div class="field-map-canvas">
+                <div class="game-pass-plot-canvas">
                     <div class="field-svg-wrapper">
                         ${this.renderSVGField()}
                     </div>
@@ -296,7 +307,7 @@ export class GameFieldMap {
                 <div class="filter-group-header">
                     <span class="filter-group-title">Filter by team</span>
                 </div>
-                <div class="field-map-team-toggle">
+                <div class="game-pass-plot-team-toggle">
                     <button class="team-filter-btn ${this.filterState.team === 'away' ? 'active' : ''}"
                             data-team="away">${awayAbbrev}</button>
                     <button class="team-filter-btn ${this.filterState.team === 'home' ? 'active' : ''}"
@@ -438,7 +449,7 @@ export class GameFieldMap {
         // SVG viewBox: 533 wide (53.3 yards * 10), 1200 tall (120 yards * 10)
         // Field is oriented with north (attacking) endzone at top
         return `
-            <svg viewBox="0 0 533 1200" class="field-map-svg" id="fieldMapSvg">
+            <svg viewBox="0 0 533 1200" class="game-pass-plot-svg" id="passPlotSvg">
                 <!-- Field background -->
                 <rect class="field-grass" x="0" y="0" width="533" height="1200"/>
 
@@ -517,7 +528,7 @@ export class GameFieldMap {
         });
     }
 
-    private createEventElement(event: FieldMapEvent): SVGGElement | null {
+    private createEventElement(event: PassPlotEvent): SVGGElement | null {
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         g.classList.add('field-event');
 
@@ -609,7 +620,7 @@ export class GameFieldMap {
         ];
 
         return `
-            <div class="field-map-legend">
+            <div class="game-pass-plot-legend">
                 ${legendItems.map(item => `
                     <div class="legend-item">
                         <span class="legend-line" style="background: ${item.color};"></span>
@@ -623,7 +634,7 @@ export class GameFieldMap {
 
     private attachEventListeners(): void {
         // Team filter buttons
-        document.querySelectorAll('.field-map-team-toggle .team-filter-btn').forEach(button => {
+        document.querySelectorAll('.game-pass-plot-team-toggle .team-filter-btn').forEach(button => {
             button.addEventListener('click', (e) => {
                 const team = (e.target as HTMLElement).dataset.team as 'home' | 'away';
                 if (team && team !== this.filterState.team) {
@@ -631,7 +642,7 @@ export class GameFieldMap {
                     // Reset player selection when team changes
                     this.filterState.players.clear();
                     this.computeFilterCounts();
-                    this.renderFieldMap();
+                    this.renderPassPlot();
                 }
             });
         });
@@ -726,7 +737,7 @@ export class GameFieldMap {
                 [1, 2, 3, 4, 5].forEach(p => this.filterState.periods.add(p));
                 break;
         }
-        this.renderFieldMap();
+        this.renderPassPlot();
     }
 
     private deselectAll(filterType: string): void {
@@ -744,8 +755,8 @@ export class GameFieldMap {
                 this.filterState.periods.clear();
                 break;
         }
-        this.renderFieldMap();
+        this.renderPassPlot();
     }
 }
 
-export default GameFieldMap;
+export default GamePassPlot;
