@@ -3,7 +3,6 @@ User profile management service.
 Handles user preferences and profile updates.
 """
 
-
 from fastapi import HTTPException
 from models.user import UpdateUserPreferences, UserPreferences
 

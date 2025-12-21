@@ -3,7 +3,6 @@ Filter building and validation for player statistics queries.
 """
 
 
-
 def build_having_clause(
     custom_filters: list,
     per_game: bool = False,

@@ -238,9 +238,7 @@ def _row_to_player_dict(row) -> dict:
     }
 
 
-def _filter_percentiles_for_players(
-    all_percentiles: dict, players: list[dict]
-) -> dict:
+def _filter_percentiles_for_players(all_percentiles: dict, players: list[dict]) -> dict:
     """
     Filter cached percentiles to only include players on the current page.
 

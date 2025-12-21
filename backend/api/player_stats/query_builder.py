@@ -765,7 +765,9 @@ class PlayerStatsQueryBuilder:
             """
         elif self.is_career_mode:
             # When in per_possession mode with thresholds, use subquery approach
-            if self.per_possession_mode and (self.possession_threshold > 0 or self.throw_attempts_threshold > 0):
+            if self.per_possession_mode and (
+                self.possession_threshold > 0 or self.throw_attempts_threshold > 0
+            ):
                 main_query = self.build_main_query()
                 return f"""
                 SELECT COUNT(*) FROM (

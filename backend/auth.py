@@ -3,7 +3,6 @@ Authentication middleware for Supabase JWT token validation.
 Protects API endpoints and extracts user information from tokens.
 """
 
-
 import jwt
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer

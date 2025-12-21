@@ -2,7 +2,6 @@
 Global percentile calculation for player statistics.
 """
 
-
 from sqlalchemy import text
 
 # List of all stat fields to calculate percentiles for
