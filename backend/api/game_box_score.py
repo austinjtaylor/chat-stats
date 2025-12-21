@@ -6,7 +6,8 @@ from fastapi import APIRouter, HTTPException
 from services.box_score_service import calculate_team_stats
 from services.play_by_play_service import calculate_play_by_play
 from services.quarter_score_service import calculate_quarter_scores
-from data.cache import get_cache, cache_key_for_endpoint
+
+from data.cache import cache_key_for_endpoint, get_cache
 
 
 def create_box_score_routes(stats_system):

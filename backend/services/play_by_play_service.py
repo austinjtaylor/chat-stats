@@ -14,7 +14,7 @@ Total: 739 lines across 3 focused service modules (was 577 lines in 1 monolithic
 
 from typing import Any
 
-from .play_by_play import EventHandlers, PointBuilder, PlayerEnrichment
+from .play_by_play import EventHandlers, PlayerEnrichment, PointBuilder
 
 
 def process_team_events(

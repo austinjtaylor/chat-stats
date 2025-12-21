@@ -3,7 +3,6 @@ Subscription and payment data models.
 """
 
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -25,7 +24,7 @@ class UserSubscription(BaseModel):
     status: str  # 'active', 'canceled', 'past_due', 'incomplete'
     queries_this_month: int
     query_limit: int
-    current_period_end: Optional[datetime] = None
+    current_period_end: datetime | None = None
     cancel_at_period_end: bool = False
     at_query_limit: bool
 

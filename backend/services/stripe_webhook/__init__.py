@@ -12,9 +12,9 @@ Extracted from monolithic webhook function for better organization and testabili
 """
 
 from .checkout_handler import CheckoutHandler
+from .helpers import map_price_to_tier
 from .invoice_handler import InvoiceHandler
 from .subscription_handler import SubscriptionHandler
-from .helpers import map_price_to_tier
 
 __all__ = [
     "CheckoutHandler",

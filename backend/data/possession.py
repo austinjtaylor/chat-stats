@@ -6,16 +6,15 @@ This module now serves as a thin wrapper around the refactored domain modules
 for backward compatibility.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from domain.possession import (
     PossessionCalculator,
-    RedzoneCalculator,
-    TeamStatsAggregator,
     PossessionEventProcessor,
+    RedzoneCalculator,
     RedzoneEventProcessor,
+    TeamStatsAggregator,
 )
-
 
 # ===== PUBLIC API FUNCTIONS =====
 # These functions maintain backward compatibility with the original API
@@ -23,7 +22,7 @@ from domain.possession import (
 
 def calculate_possessions(
     db, game_id: str, team_id: str, is_home_team: bool
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     """
     Calculate possession-based statistics matching UFA methodology exactly.
 
@@ -42,7 +41,7 @@ def calculate_possessions(
 
 def calculate_team_stats_combined(
     db, game_id: str, team_id: str, is_home_team: bool
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Calculate both possession and redzone statistics in a single pass.
     Optimized to fetch game_events once and process both metrics together.
@@ -62,7 +61,7 @@ def calculate_team_stats_combined(
 
 def calculate_redzone_stats_for_team(
     db, game_id: str, team_id: str, is_home_team: bool
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Calculate redzone statistics for a single team in a game.
 
@@ -80,8 +79,8 @@ def calculate_redzone_stats_for_team(
 
 
 def calculate_team_percentages(
-    stats: Dict[str, Any], opponent_stats: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
+    stats: dict[str, Any], opponent_stats: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """
     Calculate various percentage statistics for a team.
 
@@ -113,8 +112,8 @@ def calculate_redzone_stats(game_id: str) -> dict:
 
 
 def _process_possession_events(
-    events: List[Dict[str, Any]], team_type: str, opponent_type: str
-) -> Dict[str, Any]:
+    events: list[dict[str, Any]], team_type: str, opponent_type: str
+) -> dict[str, Any]:
     """
     Process a list of events to calculate possession stats.
     Extracted core logic for reuse in batch processing.
@@ -133,8 +132,8 @@ def _process_possession_events(
 
 
 def calculate_possessions_batch(
-    db, team_ids: List[str], season_filter: str = "", season_param: Optional[int] = None
-) -> Dict[str, Dict[str, Any]]:
+    db, team_ids: list[str], season_filter: str = "", season_param: int | None = None
+) -> dict[str, dict[str, Any]]:
     """
     Calculate possession statistics for multiple teams in a single batch query.
     Optimized to avoid N+1 query problem.
@@ -153,8 +152,8 @@ def calculate_possessions_batch(
 
 
 def _process_redzone_events(
-    events: List[Dict[str, Any]], team_type: str, opponent_type: str
-) -> Dict[str, Any]:
+    events: list[dict[str, Any]], team_type: str, opponent_type: str
+) -> dict[str, Any]:
     """
     Process a list of events to calculate redzone stats.
     Extracted core logic for reuse in batch processing.
@@ -173,8 +172,8 @@ def _process_redzone_events(
 
 
 def calculate_redzone_stats_batch(
-    db, team_ids: List[str], season_filter: str = "", season_param: Optional[int] = None
-) -> Dict[str, Dict[str, Any]]:
+    db, team_ids: list[str], season_filter: str = "", season_param: int | None = None
+) -> dict[str, dict[str, Any]]:
     """
     Calculate redzone statistics for multiple teams in a single batch query.
 

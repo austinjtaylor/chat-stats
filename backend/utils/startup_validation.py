@@ -7,7 +7,6 @@ Fails fast with clear error messages if configuration is missing or invalid.
 
 import os
 import sys
-from typing import List, Tuple
 
 
 class ValidationError(Exception):
@@ -47,7 +46,7 @@ def validate_required_env_vars() -> None:
         required_vars.extend(stripe_vars)
 
     # Collect missing variables
-    missing: List[Tuple[str, str]] = []
+    missing: list[tuple[str, str]] = []
 
     for var_name, description in required_vars:
         value = os.getenv(var_name)
@@ -184,7 +183,7 @@ def run_startup_validation() -> None:
         print("✅ Startup validation passed!\n")
 
     except ValidationError as e:
-        print(f"\n❌ STARTUP VALIDATION FAILED:\n")
+        print("\n❌ STARTUP VALIDATION FAILED:\n")
         print(str(e))
         print(
             "\nApplication cannot start. Please fix the configuration errors and try again.\n"

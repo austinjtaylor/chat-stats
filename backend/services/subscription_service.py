@@ -4,13 +4,11 @@ Handles tier validation, query limits, and subscription updates.
 """
 
 from datetime import datetime
-from typing import Optional
 
 from fastapi import HTTPException
-from sqlalchemy import text
+from models.subscription import SUBSCRIPTION_TIERS, UserSubscription
 
 from data.database import SQLDatabase
-from models.subscription import SUBSCRIPTION_TIERS, UserSubscription
 
 
 class SubscriptionService:
@@ -20,7 +18,7 @@ class SubscriptionService:
         """Initialize subscription service."""
         self.db = db
 
-    def get_user_subscription(self, user_id: str) -> Optional[UserSubscription]:
+    def get_user_subscription(self, user_id: str) -> UserSubscription | None:
         """
         Get a user's subscription details.
 

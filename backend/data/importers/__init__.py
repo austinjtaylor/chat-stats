@@ -12,11 +12,11 @@ Total: 428 lines across 5 importer modules
 Extracted from monolithic processor for better organization and testability.
 """
 
-from .team_importer import TeamImporter
-from .player_importer import PlayerImporter
 from .game_importer import GameImporter
-from .stats_importer import StatsImporter
+from .player_importer import PlayerImporter
 from .season_stats_calculator import SeasonStatsCalculator
+from .stats_importer import StatsImporter
+from .team_importer import TeamImporter
 
 __all__ = [
     "TeamImporter",

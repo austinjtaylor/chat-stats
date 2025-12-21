@@ -3,11 +3,11 @@ Data models for possession tracking.
 """
 
 from .point import (
-    Point,
-    RedzonePossession,
-    PossessionStats,
-    RedzoneStats,
     EventProcessorState,
+    Point,
+    PossessionStats,
+    RedzonePossession,
+    RedzoneStats,
 )
 
 __all__ = [

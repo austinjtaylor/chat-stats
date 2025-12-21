@@ -17,19 +17,19 @@ from typing import Any
 
 from core.ai_generator import AIGenerator
 from core.session_manager import SessionManager
+
+# Import service modules
+from services.chat_system import (
+    DatabaseStatsService,
+    DataImportService,
+    SearchService,
+    TeamStatsService,
+)
 from tools.manager import StatsToolManager
 from utils.response import format_game_details_response, should_format_response
 
 from data.database import get_db
 from data.processor import StatsProcessor
-
-# Import service modules
-from services.chat_system import (
-    DatabaseStatsService,
-    SearchService,
-    TeamStatsService,
-    DataImportService,
-)
 
 
 class StatsChatSystem:

@@ -11,8 +11,8 @@ All modules under 330 lines with clear separation of concerns.
 """
 
 from .event_handlers import EventHandlers
-from .point_builder import PointBuilder
 from .player_enrichment import PlayerEnrichment
+from .point_builder import PointBuilder
 
 __all__ = [
     "EventHandlers",

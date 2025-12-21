@@ -3,7 +3,6 @@ Player enrichment service for fetching and enriching event data with player name
 """
 
 import json
-from typing import Any
 
 
 class PlayerEnrichment:

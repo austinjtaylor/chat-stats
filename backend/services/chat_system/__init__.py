@@ -11,10 +11,10 @@ Total: 672 lines across 4 service modules (was 707 lines in 1 monolithic file)
 All modules under 275 lines with clear separation of concerns.
 """
 
+from .data_import import DataImportService
 from .database_stats import DatabaseStatsService
 from .search import SearchService
 from .team_stats import TeamStatsService
-from .data_import import DataImportService
 
 __all__ = [
     "DatabaseStatsService",

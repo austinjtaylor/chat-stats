@@ -4,6 +4,7 @@ Database statistics and health check service.
 
 import datetime
 from typing import Any
+
 from data.cache import cache_key_for_endpoint, get_cache
 
 

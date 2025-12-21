@@ -3,12 +3,11 @@ Authentication middleware for Supabase JWT token validation.
 Protects API endpoints and extracts user information from tokens.
 """
 
+
 import jwt
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from typing import Optional
-
-from supabase_client import get_jwt_secret as get_supabase_jwt_secret, SUPABASE_URL
+from supabase_client import get_jwt_secret as get_supabase_jwt_secret
 from utils.security_logger import log_auth_failure
 
 # Security scheme for Bearer tokens
@@ -23,7 +22,7 @@ def get_jwt_secret() -> str:
     return get_supabase_jwt_secret()
 
 
-def decode_jwt_token(token: str, ip_address: Optional[str] = None) -> dict:
+def decode_jwt_token(token: str, ip_address: str | None = None) -> dict:
     """
     Decode and validate a Supabase JWT token.
 
@@ -110,10 +109,10 @@ async def get_current_user(
 
 
 async def get_current_user_optional(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(
+    credentials: HTTPAuthorizationCredentials | None = Depends(
         HTTPBearer(auto_error=False)
     ),
-) -> Optional[dict]:
+) -> dict | None:
     """
     Optional auth dependency - returns user if authenticated, None otherwise.
     Use this for routes that work with or without auth.

@@ -2,12 +2,13 @@
 SQL query construction for player statistics endpoint.
 """
 
-from .filters import (
-    get_team_career_sort_column,
-    build_having_clause,
-    SEASON_STATS_ALIAS_MAPPING,
-)
 from utils.query import get_sort_column
+
+from .filters import (
+    SEASON_STATS_ALIAS_MAPPING,
+    build_having_clause,
+    get_team_career_sort_column,
+)
 
 
 class PlayerStatsQueryBuilder:
@@ -773,7 +774,7 @@ class PlayerStatsQueryBuilder:
                 """
             # Simple count for per_possession mode without thresholds
             elif self.per_possession_mode:
-                return f"""
+                return """
                 SELECT COUNT(DISTINCT pss.player_id) as total
                 FROM player_season_stats pss
                 WHERE pss.year >= 2014
@@ -786,7 +787,7 @@ class PlayerStatsQueryBuilder:
                 )
                 """
             else:
-                return f"""
+                return """
                 SELECT COUNT(*) as total
                 FROM player_career_stats
                 WHERE games_played > 0

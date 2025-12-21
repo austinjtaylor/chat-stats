@@ -12,20 +12,19 @@ All modules under 600 lines with clear separation of concerns.
 """
 
 # Export main route creator
-from .route import create_player_stats_route
-
 # Export utility functions for backward compatibility
 from .filters import (
+    SEASON_STATS_ALIAS_MAPPING,
     build_having_clause,
     get_team_career_sort_column,
-    SEASON_STATS_ALIAS_MAPPING,
 )
 from .percentile_calculator import (
-    calculate_global_percentiles,
-    STAT_FIELDS,
     INVERT_STATS,
+    STAT_FIELDS,
+    calculate_global_percentiles,
 )
 from .query_builder import PlayerStatsQueryBuilder
+from .route import create_player_stats_route
 
 __all__ = [
     # Main route

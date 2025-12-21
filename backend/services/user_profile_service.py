@@ -3,13 +3,11 @@ User profile management service.
 Handles user preferences and profile updates.
 """
 
-from typing import Optional
 
 from fastapi import HTTPException
-from sqlalchemy import text
+from models.user import UpdateUserPreferences, UserPreferences
 
 from data.database import SQLDatabase
-from models.user import UserPreferences, UpdateUserPreferences
 
 
 class UserProfileService:
@@ -19,7 +17,7 @@ class UserProfileService:
         """Initialize user profile service."""
         self.db = db
 
-    def get_user_preferences(self, user_id: str) -> Optional[UserPreferences]:
+    def get_user_preferences(self, user_id: str) -> UserPreferences | None:
         """
         Get a user's preferences.
 
@@ -131,7 +129,7 @@ class UserProfileService:
 
 
 # Singleton instance
-_user_profile_service: Optional[UserProfileService] = None
+_user_profile_service: UserProfileService | None = None
 
 
 def get_user_profile_service(db: SQLDatabase) -> UserProfileService:

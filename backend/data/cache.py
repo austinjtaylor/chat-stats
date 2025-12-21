@@ -7,7 +7,7 @@ import hashlib
 import json
 import threading
 import time
-from typing import Any, Optional
+from typing import Any
 
 
 class CacheManager:
@@ -44,7 +44,7 @@ class CacheManager:
             return hashlib.md5(key_str.encode()).hexdigest()
         return str(key)
 
-    def get(self, key: str | dict) -> Optional[Any]:
+    def get(self, key: str | dict) -> Any | None:
         """
         Get value from cache if not expired.
 
@@ -69,7 +69,7 @@ class CacheManager:
             self.misses += 1
             return None
 
-    def set(self, key: str | dict, value: Any, ttl: Optional[int] = None) -> None:
+    def set(self, key: str | dict, value: Any, ttl: int | None = None) -> None:
         """
         Set value in cache with TTL.
 
@@ -183,7 +183,7 @@ class CacheManager:
 
 
 # Global cache instance
-_cache_instance: Optional[CacheManager] = None
+_cache_instance: CacheManager | None = None
 
 
 def get_cache() -> CacheManager:
@@ -196,7 +196,7 @@ def get_cache() -> CacheManager:
     return _cache_instance
 
 
-def cache_key_for_query(query: str, params: Optional[dict] = None) -> dict:
+def cache_key_for_query(query: str, params: dict | None = None) -> dict:
     """
     Create a cache key for a SQL query.
 

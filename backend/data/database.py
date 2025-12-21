@@ -33,7 +33,7 @@ class SQLDatabase:
                 "DATABASE_URL is required. Please set it in your .env file."
             )
 
-        print(f"🐘 Using PostgreSQL database (Supabase)")
+        print("🐘 Using PostgreSQL database (Supabase)")
 
         # Create PostgreSQL engine
         self.engine = create_engine(

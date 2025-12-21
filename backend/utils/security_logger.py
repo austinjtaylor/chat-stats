@@ -8,7 +8,7 @@ failures, payment attempts, and suspicious activity.
 import json
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 # Configure security logger
 security_logger = logging.getLogger("security")
@@ -22,9 +22,9 @@ security_logger.addHandler(handler)
 
 def log_security_event(
     event_type: str,
-    user_id: Optional[str] = None,
-    ip_address: Optional[str] = None,
-    details: Optional[dict[str, Any]] = None,
+    user_id: str | None = None,
+    ip_address: str | None = None,
+    details: dict[str, Any] | None = None,
     severity: str = "INFO",
 ) -> None:
     """
@@ -59,9 +59,9 @@ def log_security_event(
 
 def log_auth_failure(
     reason: str,
-    user_id: Optional[str] = None,
-    ip_address: Optional[str] = None,
-    details: Optional[dict[str, Any]] = None,
+    user_id: str | None = None,
+    ip_address: str | None = None,
+    details: dict[str, Any] | None = None,
 ) -> None:
     """Log an authentication failure."""
     log_security_event(
@@ -76,10 +76,10 @@ def log_auth_failure(
 def log_payment_attempt(
     success: bool,
     user_id: str,
-    amount: Optional[float] = None,
+    amount: float | None = None,
     currency: str = "USD",
-    ip_address: Optional[str] = None,
-    details: Optional[dict[str, Any]] = None,
+    ip_address: str | None = None,
+    details: dict[str, Any] | None = None,
 ) -> None:
     """Log a payment attempt (success or failure)."""
     log_security_event(
@@ -99,8 +99,8 @@ def log_payment_attempt(
 def log_webhook_event(
     event_type: str,
     verified: bool,
-    ip_address: Optional[str] = None,
-    details: Optional[dict[str, Any]] = None,
+    ip_address: str | None = None,
+    details: dict[str, Any] | None = None,
 ) -> None:
     """Log a webhook event."""
     log_security_event(
@@ -117,8 +117,8 @@ def log_webhook_event(
 
 def log_rate_limit_exceeded(
     endpoint: str,
-    user_id: Optional[str] = None,
-    ip_address: Optional[str] = None,
+    user_id: str | None = None,
+    ip_address: str | None = None,
 ) -> None:
     """Log a rate limit violation."""
     log_security_event(
@@ -132,9 +132,9 @@ def log_rate_limit_exceeded(
 
 def log_suspicious_activity(
     activity_type: str,
-    user_id: Optional[str] = None,
-    ip_address: Optional[str] = None,
-    details: Optional[dict[str, Any]] = None,
+    user_id: str | None = None,
+    ip_address: str | None = None,
+    details: dict[str, Any] | None = None,
 ) -> None:
     """Log suspicious activity that may indicate an attack."""
     log_security_event(

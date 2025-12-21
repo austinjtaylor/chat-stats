@@ -6,9 +6,8 @@ Provides validation for payment-related inputs like price IDs and redirect URLs.
 
 import os
 import re
-from typing import Optional
-from fastapi import HTTPException
 
+from fastapi import HTTPException
 
 # Valid Stripe price ID format: price_XXXX... (starts with price_)
 STRIPE_PRICE_ID_PATTERN = re.compile(r"^price_[a-zA-Z0-9]+$")
@@ -117,7 +116,7 @@ def validate_redirect_url(url: str) -> None:
         )
 
 
-def validate_customer_email(email: Optional[str]) -> None:
+def validate_customer_email(email: str | None) -> None:
     """
     Validate a customer email address.
 

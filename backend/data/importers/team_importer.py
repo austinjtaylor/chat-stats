@@ -3,6 +3,7 @@ Team data importer.
 """
 
 from typing import Any
+
 from models.db import Team
 
 

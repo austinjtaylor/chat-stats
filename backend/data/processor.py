@@ -23,11 +23,11 @@ import pandas as pd
 
 from data.database import SQLDatabase
 from data.importers import (
-    TeamImporter,
-    PlayerImporter,
     GameImporter,
-    StatsImporter,
+    PlayerImporter,
     SeasonStatsCalculator,
+    StatsImporter,
+    TeamImporter,
 )
 
 

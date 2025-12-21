@@ -14,15 +14,15 @@ from api.routes import create_basic_routes
 from api.stripe_routes import create_stripe_routes
 from config import config
 from core.chat_system import get_stats_system
-from fastapi import FastAPI
 
 # Import CORS, trusted host, and static files configuration
 from cors_config import DevStaticFiles, configure_cors, configure_trusted_host
+from fastapi import FastAPI
+from middleware.logging_middleware import configure_request_logging
+from middleware.rate_limit import configure_rate_limiting
 
 # Import production hardening middleware
 from middleware.security import configure_security_headers
-from middleware.logging_middleware import configure_request_logging
-from middleware.rate_limit import configure_rate_limiting
 
 # Import startup validation
 from utils.startup_validation import run_startup_validation

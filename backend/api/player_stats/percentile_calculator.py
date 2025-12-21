@@ -2,9 +2,8 @@
 Global percentile calculation for player statistics.
 """
 
-from typing import Optional
-from sqlalchemy import text
 
+from sqlalchemy import text
 
 # List of all stat fields to calculate percentiles for
 STAT_FIELDS = [
@@ -96,8 +95,8 @@ def build_percentile_expressions(per_mode: str = "total") -> list[str]:
 def calculate_global_percentiles(
     conn,
     players: list[dict],
-    seasons: Optional[list] = None,
-    teams: Optional[list] = None,
+    seasons: list | None = None,
+    teams: list | None = None,
     per_mode: str = "total",
 ) -> dict:
     """

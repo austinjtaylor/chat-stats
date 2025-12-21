@@ -3,13 +3,13 @@ Event processor for possession and redzone tracking.
 Consolidates duplicate event processing logic.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..models.point import (
-    Point,
-    RedzonePossession,
     EventProcessorState,
+    Point,
     PossessionStats,
+    RedzonePossession,
     RedzoneStats,
 )
 
@@ -27,7 +27,7 @@ class PossessionEventProcessor:
         self.team_type = team_type
         self.opponent_type = "away" if team_type == "home" else "home"
 
-    def process_events(self, events: List[Dict[str, Any]]) -> PossessionStats:
+    def process_events(self, events: list[dict[str, Any]]) -> PossessionStats:
         """
         Process a list of events to calculate possession stats.
 
@@ -52,7 +52,7 @@ class PossessionEventProcessor:
         return self._calculate_stats_from_points(state.points)
 
     def _process_single_event(
-        self, event: Dict[str, Any], state: EventProcessorState
+        self, event: dict[str, Any], state: EventProcessorState
     ) -> None:
         """
         Process a single event and update state.
@@ -204,7 +204,7 @@ class PossessionEventProcessor:
             state.pass_made_since_gain = False
             state.current_possession = new_possession
 
-    def _calculate_stats_from_points(self, points: List[Point]) -> PossessionStats:
+    def _calculate_stats_from_points(self, points: list[Point]) -> PossessionStats:
         """
         Calculate statistics from processed points.
 
@@ -248,7 +248,7 @@ class RedzoneEventProcessor:
         self.team_type = team_type
         self.opponent_type = "away" if team_type == "home" else "home"
 
-    def process_events(self, events: List[Dict[str, Any]]) -> RedzoneStats:
+    def process_events(self, events: list[dict[str, Any]]) -> RedzoneStats:
         """
         Process a list of events to calculate redzone stats.
 
@@ -273,7 +273,7 @@ class RedzoneEventProcessor:
         return self._calculate_stats_from_possessions(state.redzone_possessions)
 
     def _process_single_event(
-        self, event: Dict[str, Any], state: EventProcessorState
+        self, event: dict[str, Any], state: EventProcessorState
     ) -> None:
         """Process a single event for redzone tracking."""
         event_type = event["event_type"]
@@ -371,7 +371,7 @@ class RedzoneEventProcessor:
                 state.in_possession = False
 
     def _calculate_stats_from_possessions(
-        self, possessions: List[RedzonePossession]
+        self, possessions: list[RedzonePossession]
     ) -> RedzoneStats:
         """Calculate statistics from redzone possessions."""
         stats = RedzoneStats()

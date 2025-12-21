@@ -3,7 +3,7 @@ Redzone calculator for Ultimate Frisbee statistics.
 Calculates redzone efficiency and scoring percentages.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..processors.event_processor import RedzoneEventProcessor
 
@@ -22,7 +22,7 @@ class RedzoneCalculator:
 
     def calculate_for_team(
         self, game_id: str, team_id: str, is_home_team: bool
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Calculate redzone statistics for a single team in a game.
 
@@ -49,7 +49,7 @@ class RedzoneCalculator:
 
         return stats.to_dict()
 
-    def calculate_for_game(self, game_id: str) -> Dict[str, Any]:
+    def calculate_for_game(self, game_id: str) -> dict[str, Any]:
         """
         Calculate redzone statistics for both teams in a game.
 
@@ -60,7 +60,7 @@ class RedzoneCalculator:
             Dictionary with stats for both teams
         """
 
-        def analyze_team_redzone(team_type: str) -> Dict[str, Any]:
+        def analyze_team_redzone(team_type: str) -> dict[str, Any]:
             """Analyze redzone for a specific team."""
             events = self._fetch_events(game_id, team_type)
             processor = RedzoneEventProcessor(team_type)
@@ -74,10 +74,10 @@ class RedzoneCalculator:
 
     def calculate_batch(
         self,
-        team_ids: List[str],
+        team_ids: list[str],
         season_filter: str = "",
-        season_param: Optional[int] = None,
-    ) -> Dict[str, Dict[str, Any]]:
+        season_param: int | None = None,
+    ) -> dict[str, dict[str, Any]]:
         """
         Calculate redzone statistics for multiple teams in a single batch.
 
@@ -165,7 +165,7 @@ class RedzoneCalculator:
 
         return results
 
-    def _fetch_events(self, game_id: str, team_type: str) -> List[Dict[str, Any]]:
+    def _fetch_events(self, game_id: str, team_type: str) -> list[dict[str, Any]]:
         """
         Fetch events with position data for redzone calculation.
 

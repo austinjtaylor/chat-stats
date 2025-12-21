@@ -12,10 +12,10 @@ Total: 636 lines across 5 operation modules
 Extracted from monolithic service for better organization and testability.
 """
 
+from .checkout_operations import CheckoutOperations
+from .invoice_operations import InvoiceOperations
 from .payment_methods import PaymentMethodOperations
 from .subscription_operations import SubscriptionOperations
-from .invoice_operations import InvoiceOperations
-from .checkout_operations import CheckoutOperations
 from .webhook_operations import WebhookOperations
 
 __all__ = [

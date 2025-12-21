@@ -5,10 +5,10 @@ Protects against DOS attacks and API abuse by limiting requests per time window.
 Uses SlowAPI for flexible rate limiting with different limits per endpoint.
 """
 
+from fastapi import Request
 from slowapi import Limiter
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from fastapi import Request, HTTPException
+from slowapi.util import get_remote_address
 from starlette.responses import JSONResponse
 
 

@@ -3,9 +3,10 @@ Team statistics aggregator for possession and redzone metrics.
 Combines multiple statistics sources and calculates percentages.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from utils.stats import calculate_percentage
+
 from ..calculators.possession_calculator import PossessionCalculator
 from ..calculators.redzone_calculator import RedzoneCalculator
 
@@ -26,7 +27,7 @@ class TeamStatsAggregator:
 
     def calculate_combined_stats(
         self, game_id: str, team_id: str, is_home_team: bool
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Calculate both possession and redzone statistics in a single operation.
         Optimized to minimize database queries.
@@ -50,8 +51,8 @@ class TeamStatsAggregator:
 
     @staticmethod
     def calculate_team_percentages(
-        stats: Dict[str, Any], opponent_stats: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        stats: dict[str, Any], opponent_stats: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """
         Calculate various percentage statistics for a team.
 

@@ -121,7 +121,7 @@ class PaymentMethodOperations:
                 # Once a card is saved to Link, Stripe no longer exposes the underlying card information
                 # This is a Stripe security feature, not a bug
                 print(
-                    f"Payment method is type 'link' - card details not available (Stripe security limitation)"
+                    "Payment method is type 'link' - card details not available (Stripe security limitation)"
                 )
 
                 # Get Link email info

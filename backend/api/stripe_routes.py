@@ -2,32 +2,30 @@
 Stripe payment and subscription API routes.
 """
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
-
 from auth import get_current_user
-from core.chat_system import get_stats_system
-from middleware.rate_limit import auth_limit, public_limit, no_limit
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from middleware.rate_limit import auth_limit, no_limit, public_limit
 from models.subscription import (
+    SUBSCRIPTION_TIERS,
     StripeBillingPortalRequest,
     StripeBillingPortalResponse,
     StripeCheckoutRequest,
     StripeCheckoutResponse,
     StripeSetupIntentResponse,
-    SUBSCRIPTION_TIERS,
 )
 from services.stripe_service import get_stripe_service
-from services.subscription_service import get_subscription_service
 from services.stripe_webhook import (
     CheckoutHandler,
     InvoiceHandler,
     SubscriptionHandler,
     map_price_to_tier,
 )
-from utils.security_logger import log_webhook_event, log_payment_attempt
+from services.subscription_service import get_subscription_service
+from utils.security_logger import log_webhook_event
 from utils.validators import (
+    validate_customer_email,
     validate_price_id,
     validate_redirect_url,
-    validate_customer_email,
 )
 
 
@@ -427,7 +425,7 @@ def create_stripe_routes(stats_system):
                 stripe_customer_id, payment_method_id
             )
             return {"status": "success", **response}
-        except HTTPException as e:
+        except HTTPException:
             raise
 
     @router.post("/create-setup-intent", response_model=StripeSetupIntentResponse)

@@ -3,7 +3,6 @@ Data models for possession tracking in Ultimate Frisbee.
 """
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
@@ -17,7 +16,7 @@ class Point:
 
     pulling_team: str  # 'home' or 'away'
     receiving_team: str  # 'home' or 'away'
-    scoring_team: Optional[str] = None  # 'home', 'away', or None
+    scoring_team: str | None = None  # 'home', 'away', or None
     team_possessions: int = 0
     opponent_possessions: int = 0
 
@@ -102,8 +101,8 @@ class EventProcessorState:
 
     # Possession tracking
     points: list[Point] = field(default_factory=list)
-    current_point: Optional[Point] = None
-    current_possession: Optional[str] = None
+    current_point: Point | None = None
+    current_possession: str | None = None
     point_had_action: bool = False
     pass_made_since_gain: bool = (
         True  # False when team just gained disc, True after a pass
@@ -112,7 +111,7 @@ class EventProcessorState:
 
     # Redzone tracking
     redzone_possessions: list[RedzonePossession] = field(default_factory=list)
-    current_redzone_possession: Optional[RedzonePossession] = None
+    current_redzone_possession: RedzonePossession | None = None
     in_possession: bool = False
     point_num: int = 0
 

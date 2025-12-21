@@ -18,7 +18,7 @@ from deepeval.metrics import (
     HallucinationMetric,
 )
 from deepeval.models.base_model import DeepEvalBaseLLM
-from deepeval.test_case import LLMTestCase, LLMTestCaseParams
+from deepeval.test_case import LLMTestCase
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -26,7 +26,6 @@ from anthropic import Anthropic
 from app import app
 from config import Config
 from fastapi.testclient import TestClient
-
 
 # Expected Data Constants
 # These values represent the current state of the test database.

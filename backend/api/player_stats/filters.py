@@ -2,7 +2,6 @@
 Filter building and validation for player statistics queries.
 """
 
-from typing import Optional
 
 
 def build_having_clause(
@@ -10,7 +9,7 @@ def build_having_clause(
     per_game: bool = False,
     per_possession: bool = False,
     table_prefix: str = "",
-    alias_mapping: Optional[dict] = None,
+    alias_mapping: dict | None = None,
 ) -> str:
     """
     Build a HAVING clause from custom filters.

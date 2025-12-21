@@ -6,7 +6,7 @@ Logs all API requests with timing, status codes, and user information.
 import json
 import logging
 import time
-from typing import Callable
+from collections.abc import Callable
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request

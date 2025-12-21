@@ -3,7 +3,7 @@ Possession calculator for Ultimate Frisbee statistics.
 Calculates O-line and D-line conversion rates and hold percentages.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..processors.event_processor import PossessionEventProcessor
 
@@ -22,7 +22,7 @@ class PossessionCalculator:
 
     def calculate_for_game(
         self, game_id: str, team_id: str, is_home_team: bool
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Calculate possession statistics for a team in a specific game.
 
@@ -47,10 +47,10 @@ class PossessionCalculator:
 
     def calculate_batch(
         self,
-        team_ids: List[str],
+        team_ids: list[str],
         season_filter: str = "",
-        season_param: Optional[int] = None,
-    ) -> Dict[str, Dict[str, Any]]:
+        season_param: int | None = None,
+    ) -> dict[str, dict[str, Any]]:
         """
         Calculate possession statistics for multiple teams in a single batch.
         Optimized to avoid N+1 query problem.
@@ -143,7 +143,7 @@ class PossessionCalculator:
 
         return results
 
-    def _fetch_events(self, game_id: str, team_type: str) -> List[Dict[str, Any]]:
+    def _fetch_events(self, game_id: str, team_type: str) -> list[dict[str, Any]]:
         """
         Fetch events for a specific game and team.
 
