@@ -11,7 +11,7 @@ import { initUserMenu, destroyUserMenu } from '../components/auth/UserMenu';
 import type { Session } from '@supabase/supabase-js';
 
 /**
- * Initialize tab navigation
+ * Initialize tab navigation with lazy loading for iframes
  */
 function initTabs(): void {
   const tabButtons = document.querySelectorAll('.tab-button');
@@ -30,6 +30,15 @@ function initTabs(): void {
       button.classList.add('active');
       const activePane = document.getElementById(`${tabName}-tab`);
       activePane?.classList.add('active');
+
+      // Lazy load iframe if it has data-src
+      if (activePane) {
+        const iframe = activePane.querySelector('iframe[data-src]') as HTMLIFrameElement;
+        if (iframe && iframe.dataset.src && !iframe.src) {
+          iframe.src = iframe.dataset.src;
+          delete iframe.dataset.src;
+        }
+      }
     });
   });
 }

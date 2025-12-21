@@ -151,24 +151,24 @@
 
             <!-- Tab Content -->
             <div class="tab-content">
-                <!-- Players Tab -->
+                <!-- Players Tab - loads immediately -->
                 <div class="tab-pane active" id="players-tab">
                     <iframe src="/stats/players.html" frameborder="0" class="stats-iframe"></iframe>
                 </div>
 
-                <!-- Teams Tab -->
+                <!-- Teams Tab - lazy loaded -->
                 <div class="tab-pane" id="teams-tab">
-                    <iframe src="/stats/teams.html" frameborder="0" class="stats-iframe"></iframe>
+                    <iframe data-src="/stats/teams.html" frameborder="0" class="stats-iframe"></iframe>
                 </div>
 
-                <!-- Games Tab -->
+                <!-- Games Tab - lazy loaded -->
                 <div class="tab-pane" id="games-tab">
-                    <iframe src="/stats/game-detail.html" frameborder="0" class="stats-iframe"></iframe>
+                    <iframe data-src="/stats/game-detail.html" frameborder="0" class="stats-iframe"></iframe>
                 </div>
 
-                <!-- Pass Plots Tab -->
+                <!-- Pass Plots Tab - lazy loaded (400k+ events) -->
                 <div class="tab-pane" id="pass-plots-tab">
-                    <iframe src="/stats/pass-plots.html" frameborder="0" class="stats-iframe"></iframe>
+                    <iframe data-src="/stats/pass-plots.html" frameborder="0" class="stats-iframe"></iframe>
                 </div>
             </div>
         </main>

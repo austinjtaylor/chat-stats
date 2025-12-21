@@ -1,7 +1,7 @@
 // Player statistics page functionality - TypeScript version
 
 import type { PlayerSeasonStats, SortConfig } from '../types/models';
-import type { StatsResponse, PlayerStatsResponse } from '../types/api';
+import type { PlayerStatsResponse } from '../types/api';
 import { initializeTableTooltips, playerColumnDescriptions } from '../src/utils/table-tooltips';
 import { MultiSelect } from './components/multi-select';
 import type { MultiSelectOption } from './components/multi-select';
@@ -130,11 +130,14 @@ class PlayerStats {
         this.initializeSeasonMultiSelect();
         this.initializePerMultiSelect();
         this.initializeTeamMultiSelect(); // Initialize with just "All" option immediately
-        await this.loadTeams(); // This will update the team list with actual teams
         this.setupEventListeners();
         this.setupModalEventListeners();
         this.renderTableHeaders();
-        await this.loadPlayerStats();
+        // Run both API calls in parallel for faster initial load
+        await Promise.all([
+            this.loadTeams(),
+            this.loadPlayerStats()
+        ]);
     }
 
     private initializeSeasonMultiSelect(): void {
@@ -274,14 +277,10 @@ class PlayerStats {
 
     async loadTeams(): Promise<void> {
         try {
-            const data = await window.ufaStats.fetchData<StatsResponse>('/stats');
-            if (data.team_standings) {
-                this.teams = data.team_standings.map(team => ({
-                    id: team.team_id,
-                    name: team.name || '',
-                    is_current: team.is_current,
-                    last_year: team.last_year
-                }));
+            // Use lightweight teams/dropdown endpoint instead of heavy /stats endpoint
+            const teams = await window.ufaStats.fetchData<TeamInfo[]>('/teams/dropdown');
+            if (teams && Array.isArray(teams)) {
+                this.teams = teams;
                 this.initializeTeamMultiSelect();
             }
         } catch (error) {
@@ -728,7 +727,8 @@ class PlayerStats {
                 page: this.currentPage,
                 per_page: this.pageSize,
                 sort: this.currentSort.key,
-                order: this.currentSort.direction
+                order: this.currentSort.direction,
+                include_percentiles: true  // Include percentiles in single request
             };
 
             // Add custom filters if present
@@ -736,14 +736,13 @@ class PlayerStats {
                 queryParams.custom_filters = JSON.stringify(this.filters.customFilters);
             }
 
-            // Use the new dedicated API endpoint
+            // Fetch player stats with percentiles
             const response = await window.ufaStats.fetchData<PlayerStatsResponse>('/players/stats', queryParams);
 
             if (response) {
                 this.players = response.players || [];
                 this.percentiles = response.percentiles || {};
                 this.totalPlayers = response.total || 0;
-                // Fix: API returns 'total_pages' not 'pages'
                 this.totalPages = response.total_pages || 0;
 
                 // Fallback: calculate totalPages if not provided
@@ -756,16 +755,9 @@ class PlayerStats {
                     data: response,
                     timestamp: Date.now()
                 });
-
-                console.log('API Response:', {
-                    playersCount: this.players.length,
-                    total: this.totalPlayers,
-                    pages: this.totalPages,
-                    calculatedPages: Math.ceil(this.totalPlayers / this.pageSize),
-                    response: response
-                });
             } else {
                 this.players = [];
+                this.percentiles = {};
                 this.totalPlayers = 0;
                 this.totalPages = 0;
             }
@@ -774,7 +766,7 @@ class PlayerStats {
             this.renderPagination();
             this.updatePlayerCount();
 
-            // Prefetch adjacent pages
+            // Prefetch adjacent pages in background
             this.prefetchPages();
 
         } catch (error) {
@@ -971,15 +963,16 @@ class PlayerStats {
                 continue;
             }
 
-            // Prepare query params
+            // Prepare query params - explicitly skip percentiles for faster prefetch
             const queryParams: any = {
-                season: this.filters.season,
-                team: this.filters.team,
+                season: this.filters.careerMode ? 'career' : [...this.filters.season].sort().join(','),
+                team: this.filters.team.includes('all') ? 'all' : [...this.filters.team].sort().join(','),
                 per: this.filters.per,
                 page: page,
                 per_page: this.pageSize,
                 sort: this.currentSort.key,
-                order: this.currentSort.direction
+                order: this.currentSort.direction,
+                include_percentiles: false  // Skip percentiles for prefetch
             };
 
             // Add custom filters if present

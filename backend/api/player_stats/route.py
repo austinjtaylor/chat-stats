@@ -3,14 +3,15 @@ Player statistics API route handler.
 """
 
 import json
-from typing import Optional
+
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import text
-
 from utils.query import convert_to_per_game_stats, convert_to_per_possession_stats
-from data.cache import get_cache, cache_key_for_endpoint
-from .query_builder import PlayerStatsQueryBuilder
+
+from data.cache import cache_key_for_endpoint, get_cache
+
 from .percentile_calculator import calculate_global_percentiles
+from .query_builder import PlayerStatsQueryBuilder
 
 
 def create_player_stats_route(stats_system):
@@ -26,7 +27,8 @@ def create_player_stats_route(stats_system):
         sort: str = "calculated_plus_minus",
         order: str = "desc",
         per: str = "total",
-        custom_filters: Optional[str] = None,
+        custom_filters: str | None = None,
+        include_percentiles: bool = False,
     ):
         """Get paginated player statistics with filtering and sorting"""
         try:
@@ -50,6 +52,7 @@ def create_player_stats_route(stats_system):
                 order=order,
                 per=per,
                 custom_filters=custom_filters,
+                include_percentiles=include_percentiles,
             )
 
             cached_result = cache.get(cache_key)
@@ -91,17 +94,35 @@ def create_player_stats_route(stats_system):
             elif per == "possession":
                 players = convert_to_per_possession_stats(players)
 
-            # Calculate global percentiles for all players
+            # Calculate global percentiles only if requested (lazy loading)
             percentiles = {}
-            if players:
-                with stats_system.db.engine.connect() as conn:
-                    percentiles = calculate_global_percentiles(
-                        conn,
-                        players,
-                        seasons=seasons if not is_career_mode else None,
-                        teams=teams if teams[0] != "all" else None,
-                        per_mode=per,
+            if include_percentiles and players:
+                # Check percentile-specific cache (longer TTL, shared across pages)
+                percentile_cache_key = cache_key_for_endpoint(
+                    "percentiles",
+                    season=",".join(str(s) for s in sorted_seasons),
+                    team=",".join(sorted_teams),
+                    per=per,
+                )
+                cached_percentiles = cache.get(percentile_cache_key)
+
+                if cached_percentiles is not None:
+                    # Filter cached percentiles to only include current page players
+                    percentiles = _filter_percentiles_for_players(
+                        cached_percentiles, players
                     )
+                else:
+                    with stats_system.db.engine.connect() as conn:
+                        all_percentiles = calculate_global_percentiles(
+                            conn,
+                            players,
+                            seasons=seasons if not is_career_mode else None,
+                            teams=teams if teams[0] != "all" else None,
+                            per_mode=per,
+                        )
+                    # Cache all percentiles with longer TTL (1 hour)
+                    cache.set(percentile_cache_key, all_percentiles, ttl=3600)
+                    percentiles = all_percentiles
 
             total_pages = (total + per_page - 1) // per_page
 
@@ -114,7 +135,7 @@ def create_player_stats_route(stats_system):
                 "total_pages": total_pages,
             }
 
-            # Cache the result
+            # Cache the result with shorter TTL for stats-only responses
             cache.set(cache_key, result, ttl=300)  # 5 minute TTL
 
             return result
@@ -157,7 +178,7 @@ def _parse_filters(season: str, team: str) -> tuple[list, list, bool]:
     return seasons, teams, is_career_mode
 
 
-def _parse_custom_filters(custom_filters: Optional[str]) -> list:
+def _parse_custom_filters(custom_filters: str | None) -> list:
     """Parse JSON custom filters string."""
     if not custom_filters:
         return []
@@ -215,3 +236,36 @@ def _row_to_player_dict(row) -> dict:
         "yards_per_reception": row[41] if row[41] is not None else None,
         "assists_per_turnover": row[42] if row[42] is not None else None,
     }
+
+
+def _filter_percentiles_for_players(
+    all_percentiles: dict, players: list[dict]
+) -> dict:
+    """
+    Filter cached percentiles to only include players on the current page.
+
+    Args:
+        all_percentiles: Full percentile data keyed by player identifier
+        players: List of player dicts for current page
+
+    Returns:
+        Filtered percentiles dict containing only current page players
+    """
+    # If percentiles are already filtered or structured differently, return as-is
+    if not all_percentiles:
+        return {}
+
+    # Get player identifiers from current page
+    player_keys = set()
+    for player in players:
+        # Use full_name + team_id as identifier (matches percentile calculator)
+        key = f"{player.get('full_name', '')}_{player.get('team_id', '')}"
+        player_keys.add(key)
+
+    # Filter percentiles to only include current page players
+    filtered = {}
+    for key, value in all_percentiles.items():
+        if key in player_keys:
+            filtered[key] = value
+
+    return filtered if filtered else all_percentiles

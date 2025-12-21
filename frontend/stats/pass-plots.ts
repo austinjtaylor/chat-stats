@@ -54,6 +54,15 @@ export class PassPlots {
 
     private async init(): Promise<void> {
         await this.loadFilterOptions();
+
+        // Default to latest season for faster initial load (instead of all 400k+ events)
+        if (this.filterOptions && this.filterOptions.seasons.length > 0) {
+            const latestSeason = this.filterOptions.seasons[0]; // Seasons are sorted descending
+            this.filterState.season = latestSeason;
+            // Reload filter options with season to get season-specific teams/players/games
+            await this.loadFilterOptions({ season: latestSeason });
+        }
+
         this.initializeFilters();
         this.attachEventListeners();
         await this.loadData();
@@ -76,10 +85,14 @@ export class PassPlots {
     private initializeFilters(): void {
         if (!this.filterOptions) return;
 
+        // Default to current season (set in init) or 'all' if not set
+        // Keep as number to match option values (not string)
+        const selectedSeason: string | number = this.filterState.season ?? 'all';
+
         this.seasonSelect = new MultiSelect({
             containerId: 'seasonFilter',
             options: buildSeasonOptions(this.filterOptions),
-            selectedValues: ['all'],
+            selectedValues: [selectedSeason],
             placeholder: 'Select season...',
             allowSelectAll: false,
             exclusiveMode: true,

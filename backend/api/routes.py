@@ -2,8 +2,8 @@
 API routes for sports statistics endpoints.
 """
 
+from auth import get_current_user
 from config import config
-from data.cache import get_cache, cache_key_for_endpoint
 from fastapi import APIRouter, Depends, HTTPException
 from models.api import (
     PlayerSearchResponse,
@@ -13,9 +13,10 @@ from models.api import (
     TeamSearchResponse,
 )
 from models.user import UpdateUserPreferences
-from auth import get_current_user
 from services.subscription_service import get_subscription_service
 from services.user_profile_service import get_user_profile_service
+
+from data.cache import cache_key_for_endpoint, get_cache
 
 
 def create_basic_routes(stats_system):
@@ -170,9 +171,10 @@ def create_basic_routes(stats_system):
         Requires authentication.
         """
         try:
-            from supabase_client import supabase_admin
-            from services.stripe_service import get_stripe_service
             import logging
+
+            from services.stripe_service import get_stripe_service
+            from supabase_client import supabase_admin
 
             logger = logging.getLogger(__name__)
             user_id = user["user_id"]
@@ -270,6 +272,32 @@ def create_basic_routes(stats_system):
                 ORDER BY t.full_name
                 """
                 teams = stats_system.db.execute_query(query)
+            return teams
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e)) from e
+
+    @router.get("/api/teams/dropdown")
+    async def get_teams_for_dropdown():
+        """Get all teams for filter dropdowns (current and historical)"""
+        try:
+            cache = get_cache()
+            cache_key = cache_key_for_endpoint("teams_dropdown")
+            cached_result = cache.get(cache_key)
+            if cached_result is not None:
+                return cached_result
+
+            query = """
+            SELECT DISTINCT ON (t.team_id)
+                t.team_id as id,
+                t.name,
+                t.year as last_year,
+                (t.year = (SELECT MAX(year) FROM teams)) as is_current
+            FROM teams t
+            WHERE LOWER(t.team_id) NOT LIKE '%allstar%'
+            ORDER BY t.team_id, t.year DESC
+            """
+            teams = stats_system.db.execute_query(query)
+            cache.set(cache_key, teams, ttl=3600)  # Cache for 1 hour
             return teams
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e)) from e

@@ -141,7 +141,9 @@ export class MultiSelect {
             checkbox.type = 'checkbox';
             checkbox.id = `${this.config.containerId}-${option.value}`;
             checkbox.value = String(option.value);
-            checkbox.checked = this.config.selectedValues.includes(option.value);
+            // Handle both string and number comparisons
+            checkbox.checked = this.config.selectedValues.includes(option.value) ||
+                this.config.selectedValues.some(v => String(v) === String(option.value));
             checkbox.addEventListener('change', () => this.handleOptionChange(option.value));
 
             const label = document.createElement('label');
@@ -187,7 +189,12 @@ export class MultiSelect {
         }
 
         if (count === 1) {
-            const selected = this.config.options.find(opt => opt.value === this.config.selectedValues[0]);
+            const selectedValue = this.config.selectedValues[0];
+            // Handle both string and number comparisons for flexibility
+            const selected = this.config.options.find(opt =>
+                opt.value === selectedValue ||
+                String(opt.value) === String(selectedValue)
+            );
             return selected ? selected.label : `${count} selected`;
         }
 
