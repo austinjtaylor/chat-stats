@@ -21,20 +21,16 @@
         <!-- Left Panel: Filters -->
         <aside class="filters-panel">
             <div class="filters-section">
-                <h3 class="filter-section-title">Filters</h3>
-
                 <div class="filter-group">
-                    <label for="seasonFilter">Season</label>
+                    <label for="seasonFilter" class="filter-title-gold">Season</label>
                     <div id="seasonFilter"></div>
                 </div>
 
                 <div class="filter-group">
-                    <label for="gameFilter">Game</label>
+                    <label for="gameFilter" class="filter-title-gold">Game</label>
                     <div id="gameFilter"></div>
                 </div>
-            </div>
 
-            <div class="filters-section">
                 <h3 class="filter-section-title">Teams</h3>
 
                 <div class="filter-group">
@@ -46,9 +42,7 @@
                     <label for="defTeamFilter">Defensive Team</label>
                     <div id="defTeamFilter"></div>
                 </div>
-            </div>
 
-            <div class="filters-section">
                 <h3 class="filter-section-title">Players</h3>
 
                 <div class="filter-group">
@@ -60,13 +54,11 @@
                     <label for="receiverFilter">Receiver</label>
                     <div id="receiverFilter"></div>
                 </div>
-            </div>
 
-            <div class="filters-section">
                 <h3 class="filter-section-title">Location</h3>
 
                 <div class="filter-group slider-group">
-                    <label>Origin Y (Field Position)</label>
+                    <label>Origin Y</label>
                     <div class="range-slider" id="originYSlider">
                         <input type="range" min="0" max="120" value="0" class="slider-min" id="originYMin">
                         <input type="range" min="0" max="120" value="120" class="slider-max" id="originYMax">
@@ -79,7 +71,7 @@
                 </div>
 
                 <div class="filter-group slider-group">
-                    <label>Origin X (Sideline to Sideline)</label>
+                    <label>Origin X</label>
                     <div class="range-slider" id="originXSlider">
                         <input type="range" min="-27" max="27" value="-27" class="slider-min" id="originXMin">
                         <input type="range" min="-27" max="27" value="27" class="slider-max" id="originXMax">
@@ -92,7 +84,7 @@
                 </div>
 
                 <div class="filter-group slider-group">
-                    <label>Destination Y (Field Position)</label>
+                    <label>Destination Y</label>
                     <div class="range-slider" id="destYSlider">
                         <input type="range" min="0" max="120" value="0" class="slider-min" id="destYMin">
                         <input type="range" min="0" max="120" value="120" class="slider-max" id="destYMax">
@@ -105,7 +97,7 @@
                 </div>
 
                 <div class="filter-group slider-group">
-                    <label>Destination X (Sideline to Sideline)</label>
+                    <label>Destination X</label>
                     <div class="range-slider" id="destXSlider">
                         <input type="range" min="-27" max="27" value="-27" class="slider-min" id="destXMin">
                         <input type="range" min="-27" max="27" value="27" class="slider-max" id="destXMax">
@@ -129,30 +121,86 @@
                         <span id="distanceMaxVal">100</span>
                     </div>
                 </div>
-            </div>
 
-            <div class="filters-section">
-                <h3 class="filter-section-title">Result</h3>
-                <div class="checkbox-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="resultGoal" checked>
-                        <span class="checkmark goal"></span>
-                        Goals
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="resultCompletion" checked>
-                        <span class="checkmark completion"></span>
-                        Completions
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="resultTurnover" checked>
-                        <span class="checkmark turnover"></span>
-                        Turnovers
-                    </label>
+                <h3 class="filter-section-title">Quarter</h3>
+                <div class="filter-group">
+                    <div class="filter-group-header">
+                        <div class="filter-group-actions">
+                            <button class="filter-action-btn select-all-btn" data-filter="quarters">Select all</button>
+                            <button class="filter-action-btn deselect-all-btn" data-filter="quarters">Deselect all</button>
+                        </div>
+                    </div>
+                    <div class="filter-checkbox-list" id="quarterFilters">
+                        <div class="filter-checkbox-item">
+                            <input type="checkbox" id="quarterQ1" data-filter="quarter" data-value="1" checked>
+                            <label for="quarterQ1">First quarter</label>
+                            <span class="count" id="countQ1">(0)</span>
+                        </div>
+                        <div class="filter-checkbox-item">
+                            <input type="checkbox" id="quarterQ2" data-filter="quarter" data-value="2" checked>
+                            <label for="quarterQ2">Second quarter</label>
+                            <span class="count" id="countQ2">(0)</span>
+                        </div>
+                        <div class="filter-checkbox-item">
+                            <input type="checkbox" id="quarterQ3" data-filter="quarter" data-value="3" checked>
+                            <label for="quarterQ3">Third quarter</label>
+                            <span class="count" id="countQ3">(0)</span>
+                        </div>
+                        <div class="filter-checkbox-item">
+                            <input type="checkbox" id="quarterQ4" data-filter="quarter" data-value="4" checked>
+                            <label for="quarterQ4">Fourth quarter</label>
+                            <span class="count" id="countQ4">(0)</span>
+                        </div>
+                        <div class="filter-checkbox-item">
+                            <input type="checkbox" id="quarterOT" data-filter="quarter" data-value="5" checked>
+                            <label for="quarterOT">Overtime</label>
+                            <span class="count" id="countOT">(0)</span>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <div class="filters-section">
+                <h3 class="filter-section-title">Event Type</h3>
+                <div class="filter-group">
+                    <div class="filter-group-header">
+                        <div class="filter-group-actions">
+                            <button class="filter-action-btn select-all-btn" data-filter="eventTypes">Select all</button>
+                            <button class="filter-action-btn deselect-all-btn" data-filter="eventTypes">Deselect all</button>
+                        </div>
+                    </div>
+                    <div class="filter-checkbox-list" id="eventTypeFilters">
+                        <div class="filter-checkbox-item">
+                            <input type="checkbox" id="eventThrows" data-filter="eventType" data-value="throws" checked>
+                            <label for="eventThrows">Throws</label>
+                            <span class="count" id="countThrows">(0)</span>
+                        </div>
+                        <div class="filter-checkbox-item">
+                            <input type="checkbox" id="eventCatches" data-filter="eventType" data-value="catches" checked>
+                            <label for="eventCatches">Catches</label>
+                            <span class="count" id="countCatches">(0)</span>
+                        </div>
+                        <div class="filter-checkbox-item">
+                            <input type="checkbox" id="eventAssists" data-filter="eventType" data-value="assists" checked>
+                            <label for="eventAssists">Assists</label>
+                            <span class="count" id="countAssists">(0)</span>
+                        </div>
+                        <div class="filter-checkbox-item">
+                            <input type="checkbox" id="eventGoals" data-filter="eventType" data-value="goals" checked>
+                            <label for="eventGoals">Goals</label>
+                            <span class="count" id="countGoals">(0)</span>
+                        </div>
+                        <div class="filter-checkbox-item">
+                            <input type="checkbox" id="eventThrowaways" data-filter="eventType" data-value="throwaways" checked>
+                            <label for="eventThrowaways">Throwaways</label>
+                            <span class="count" id="countThrowaways">(0)</span>
+                        </div>
+                        <div class="filter-checkbox-item">
+                            <input type="checkbox" id="eventDrops" data-filter="eventType" data-value="drops" checked>
+                            <label for="eventDrops">Drops</label>
+                            <span class="count" id="countDrops">(0)</span>
+                        </div>
+                    </div>
+                </div>
+
                 <h3 class="filter-section-title">Pass Type</h3>
                 <div class="checkbox-group">
                     <label class="checkbox-label">
@@ -209,6 +257,34 @@
                 <div class="loading-overlay" id="loadingOverlay">
                     <div class="loading-spinner"></div>
                     <span>Loading pass data...</span>
+                </div>
+            </div>
+
+            <div class="pass-plots-legend">
+                <div class="legend-item">
+                    <span class="legend-line" style="background: #3B82F6;"></span>
+                    <span class="legend-marker square" style="background: #3B82F6;"></span>
+                    <span class="legend-label">Pass</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-line" style="background: #EF4444;"></span>
+                    <span class="legend-marker circle" style="background: #EF4444;"></span>
+                    <span class="legend-label">Drop</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-line" style="background: #EF4444;"></span>
+                    <span class="legend-marker square" style="background: #EF4444;"></span>
+                    <span class="legend-label">Throwaway</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-line" style="background: #8B5CF6;"></span>
+                    <span class="legend-marker square" style="background: #8B5CF6;"></span>
+                    <span class="legend-label">Stall</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-line" style="background: #22C55E;"></span>
+                    <span class="legend-marker square" style="background: #22C55E;"></span>
+                    <span class="legend-label">Goal</span>
                 </div>
             </div>
 

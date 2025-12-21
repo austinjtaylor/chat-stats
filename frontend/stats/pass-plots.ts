@@ -259,19 +259,76 @@ export class PassPlots {
             });
         });
 
-        // Result checkboxes
-        ['Goal', 'Completion', 'Turnover'].forEach(result => {
-            const checkbox = document.getElementById(`result${result}`) as HTMLInputElement;
-            if (checkbox) {
-                checkbox.addEventListener('change', () => {
-                    if (checkbox.checked) {
-                        this.filterState.results.add(result.toLowerCase());
-                    } else {
-                        this.filterState.results.delete(result.toLowerCase());
-                    }
-                    this.loadData();
+        // Event type checkboxes
+        document.querySelectorAll('[data-filter="eventType"]').forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+                const input = e.target as HTMLInputElement;
+                const eventType = input.dataset.value!;
+                if (input.checked) {
+                    this.filterState.event_types.add(eventType);
+                } else {
+                    this.filterState.event_types.delete(eventType);
+                }
+                this.loadData();
+            });
+        });
+
+        // Event type select all/deselect all
+        document.querySelectorAll('[data-filter="eventTypes"].select-all-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                ['throws', 'catches', 'assists', 'goals', 'throwaways', 'drops'].forEach(et => {
+                    this.filterState.event_types.add(et);
+                    const checkbox = document.querySelector(`[data-filter="eventType"][data-value="${et}"]`) as HTMLInputElement;
+                    if (checkbox) checkbox.checked = true;
                 });
-            }
+                this.loadData();
+            });
+        });
+
+        document.querySelectorAll('[data-filter="eventTypes"].deselect-all-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.filterState.event_types.clear();
+                document.querySelectorAll('[data-filter="eventType"]').forEach(checkbox => {
+                    (checkbox as HTMLInputElement).checked = false;
+                });
+                this.loadData();
+            });
+        });
+
+        // Quarter checkboxes
+        document.querySelectorAll('[data-filter="quarter"]').forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+                const input = e.target as HTMLInputElement;
+                const quarter = parseInt(input.dataset.value!);
+                if (input.checked) {
+                    this.filterState.quarters.add(quarter);
+                } else {
+                    this.filterState.quarters.delete(quarter);
+                }
+                this.loadData();
+            });
+        });
+
+        // Quarter select all/deselect all
+        document.querySelectorAll('[data-filter="quarters"].select-all-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                [1, 2, 3, 4, 5].forEach(q => {
+                    this.filterState.quarters.add(q);
+                    const checkbox = document.querySelector(`[data-filter="quarter"][data-value="${q}"]`) as HTMLInputElement;
+                    if (checkbox) checkbox.checked = true;
+                });
+                this.loadData();
+            });
+        });
+
+        document.querySelectorAll('[data-filter="quarters"].deselect-all-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.filterState.quarters.clear();
+                document.querySelectorAll('[data-filter="quarter"]').forEach(checkbox => {
+                    (checkbox as HTMLInputElement).checked = false;
+                });
+                this.loadData();
+            });
         });
 
         // Pass type checkboxes

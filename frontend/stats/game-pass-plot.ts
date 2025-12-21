@@ -25,10 +25,12 @@ export interface PassPlotEvent {
 
 interface FilterState {
     team: 'home' | 'away';
-    players: Set<string>;
+    throwers: Set<string>;
+    receivers: Set<string>;
     eventTypes: Set<string>;
     lineTypes: Set<string>;
     periods: Set<number>;
+    passTypes: Set<string>;
 }
 
 interface PlayByPlayPoint {
@@ -55,10 +57,12 @@ export class GamePassPlot {
     private filterState: FilterState;
 
     // Computed counts for filter labels
-    private playerList: PlayerInfo[] = [];
+    private throwerList: PlayerInfo[] = [];
+    private receiverList: PlayerInfo[] = [];
     private eventTypeCounts: Record<string, number> = {};
     private lineTypeCounts: Record<string, number> = {};
     private periodCounts: Record<number, number> = {};
+    private passTypeCounts: Record<string, number> = {};
 
     // DOM references
     private container: HTMLElement | null = null;
@@ -76,10 +80,12 @@ export class GamePassPlot {
     private getDefaultFilterState(): FilterState {
         return {
             team: 'home',
-            players: new Set<string>(),
+            throwers: new Set<string>(),
+            receivers: new Set<string>(),
             eventTypes: new Set(['throws', 'catches', 'assists', 'goals', 'throwaways', 'drops']),
             lineTypes: new Set(['o-points', 'd-points', 'o-out-of-to', 'd-out-of-to']),
-            periods: new Set([1, 2, 3, 4])
+            periods: new Set([1, 2, 3, 4]),
+            passTypes: new Set(['huck', 'swing', 'dump', 'gainer', 'dish'])
         };
     }
 
@@ -164,32 +170,42 @@ export class GamePassPlot {
         // Filter events by current team first
         const teamEvents = this.allEvents.filter(e => e.team === this.filterState.team);
 
-        // Build player list with counts
-        const playerCounts = new Map<string, { name: string; count: number }>();
+        // Build separate thrower and receiver lists with counts
+        const throwerCounts = new Map<string, { name: string; count: number }>();
+        const receiverCounts = new Map<string, { name: string; count: number }>();
+
         teamEvents.forEach(event => {
             // Count throwers
             if (event.thrower_name) {
                 const key = event.thrower_name;
-                const existing = playerCounts.get(key) || { name: event.thrower_name, count: 0 };
+                const existing = throwerCounts.get(key) || { name: event.thrower_name, count: 0 };
                 existing.count++;
-                playerCounts.set(key, existing);
+                throwerCounts.set(key, existing);
             }
             // Count receivers
             if (event.receiver_name && event.type !== 'drop' && event.type !== 'throwaway') {
                 const key = event.receiver_name;
-                const existing = playerCounts.get(key) || { name: event.receiver_name, count: 0 };
+                const existing = receiverCounts.get(key) || { name: event.receiver_name, count: 0 };
                 existing.count++;
-                playerCounts.set(key, existing);
+                receiverCounts.set(key, existing);
             }
         });
 
-        this.playerList = Array.from(playerCounts.entries())
+        this.throwerList = Array.from(throwerCounts.entries())
             .map(([id, info]) => ({ id, name: info.name, count: info.count }))
             .sort((a, b) => a.name.localeCompare(b.name));
 
-        // If players filter is empty, select all players
-        if (this.filterState.players.size === 0) {
-            this.playerList.forEach(p => this.filterState.players.add(p.id));
+        this.receiverList = Array.from(receiverCounts.entries())
+            .map(([id, info]) => ({ id, name: info.name, count: info.count }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+
+        // If throwers filter is empty, select all throwers
+        if (this.filterState.throwers.size === 0) {
+            this.throwerList.forEach(p => this.filterState.throwers.add(p.id));
+        }
+        // If receivers filter is empty, select all receivers
+        if (this.filterState.receivers.size === 0) {
+            this.receiverList.forEach(p => this.filterState.receivers.add(p.id));
         }
 
         // Event type counts
@@ -219,6 +235,21 @@ export class GamePassPlot {
         // Update periods filter to include any quarters that exist
         const existingQuarters = Object.keys(this.periodCounts).map(Number);
         existingQuarters.forEach(q => this.filterState.periods.add(q));
+
+        // Pass type counts
+        this.passTypeCounts = {
+            huck: 0,
+            swing: 0,
+            dump: 0,
+            gainer: 0,
+            dish: 0
+        };
+        teamEvents.forEach(event => {
+            const passType = this.classifyPassType(event);
+            if (passType && this.passTypeCounts[passType] !== undefined) {
+                this.passTypeCounts[passType]++;
+            }
+        });
     }
 
     private getFilteredEvents(): PassPlotEvent[] {
@@ -226,11 +257,13 @@ export class GamePassPlot {
             // Team filter
             if (event.team !== this.filterState.team) return false;
 
-            // Player filter - check if thrower or receiver is in selected players
-            const playerMatch =
-                (event.thrower_name && this.filterState.players.has(event.thrower_name)) ||
-                (event.receiver_name && this.filterState.players.has(event.receiver_name));
-            if (!playerMatch) return false;
+            // Thrower filter - check if thrower is in selected throwers
+            if (event.thrower_name && !this.filterState.throwers.has(event.thrower_name)) return false;
+
+            // Receiver filter - check if receiver is in selected receivers (skip for turnovers)
+            if (event.receiver_name && event.type !== 'drop' && event.type !== 'throwaway') {
+                if (!this.filterState.receivers.has(event.receiver_name)) return false;
+            }
 
             // Event type filter
             let eventTypeMatch = false;
@@ -263,6 +296,10 @@ export class GamePassPlot {
             // Period filter
             if (!this.filterState.periods.has(event.quarter)) return false;
 
+            // Pass type filter
+            const passType = this.classifyPassType(event);
+            if (passType && !this.filterState.passTypes.has(passType)) return false;
+
             return true;
         });
     }
@@ -278,11 +315,14 @@ export class GamePassPlot {
         const html = `
             <div class="game-pass-plot-container">
                 <div class="game-pass-plot-filters">
-                    ${this.renderTeamFilter()}
-                    ${this.renderPlayerFilter()}
-                    ${this.renderEventTypeFilter()}
-                    ${this.renderLineTypeFilter()}
-                    ${this.renderPeriodFilter()}
+                    <div class="filters-section">
+                        ${this.renderTeamFilter()}
+                        ${this.renderPlayerFilter()}
+                        ${this.renderEventTypeFilter()}
+                        ${this.renderLineTypeFilter()}
+                        ${this.renderPassTypeFilter()}
+                        ${this.renderPeriodFilter()}
+                    </div>
                 </div>
                 <div class="game-pass-plot-canvas">
                     <div class="field-svg-wrapper">
@@ -290,6 +330,7 @@ export class GamePassPlot {
                     </div>
                     ${this.renderLegend()}
                 </div>
+                ${this.renderStatsPanel()}
             </div>
         `;
 
@@ -305,7 +346,7 @@ export class GamePassPlot {
         return `
             <div class="filter-group">
                 <div class="filter-group-header">
-                    <span class="filter-group-title">Filter by team</span>
+                    <span class="filter-group-title">Team</span>
                 </div>
                 <div class="game-pass-plot-team-toggle">
                     <button class="team-filter-btn ${this.filterState.team === 'away' ? 'active' : ''}"
@@ -319,21 +360,42 @@ export class GamePassPlot {
 
     private renderPlayerFilter(): string {
         return `
+            <h3 class="filter-section-title">Players</h3>
             <div class="filter-group">
                 <div class="filter-group-header">
-                    <span class="filter-group-title">Select Player</span>
+                    <span class="filter-subgroup-title">Thrower</span>
                     <div class="filter-group-actions">
-                        <button class="filter-action-btn select-all-btn" data-filter="players">Select all</button>
-                        <button class="filter-action-btn deselect-all-btn" data-filter="players">Deselect all</button>
+                        <button class="filter-action-btn select-all-btn" data-filter="throwers">Select all</button>
+                        <button class="filter-action-btn deselect-all-btn" data-filter="throwers">Deselect all</button>
                     </div>
                 </div>
                 <div class="filter-checkbox-list player-filter-list">
-                    ${this.playerList.map(player => `
+                    ${this.throwerList.map(player => `
                         <div class="filter-checkbox-item">
-                            <input type="checkbox" id="player-${player.id}"
-                                   data-filter="player" data-value="${player.id}"
-                                   ${this.filterState.players.has(player.id) ? 'checked' : ''}>
-                            <label for="player-${player.id}">${player.name}</label>
+                            <input type="checkbox" id="thrower-${player.id}"
+                                   data-filter="thrower" data-value="${player.id}"
+                                   ${this.filterState.throwers.has(player.id) ? 'checked' : ''}>
+                            <label for="thrower-${player.id}">${player.name}</label>
+                            <span class="count">(${player.count})</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            <div class="filter-group">
+                <div class="filter-group-header">
+                    <span class="filter-subgroup-title">Receiver</span>
+                    <div class="filter-group-actions">
+                        <button class="filter-action-btn select-all-btn" data-filter="receivers">Select all</button>
+                        <button class="filter-action-btn deselect-all-btn" data-filter="receivers">Deselect all</button>
+                    </div>
+                </div>
+                <div class="filter-checkbox-list player-filter-list">
+                    ${this.receiverList.map(player => `
+                        <div class="filter-checkbox-item">
+                            <input type="checkbox" id="receiver-${player.id}"
+                                   data-filter="receiver" data-value="${player.id}"
+                                   ${this.filterState.receivers.has(player.id) ? 'checked' : ''}>
+                            <label for="receiver-${player.id}">${player.name}</label>
                             <span class="count">(${player.count})</span>
                         </div>
                     `).join('')}
@@ -353,9 +415,9 @@ export class GamePassPlot {
         ];
 
         return `
+            <h3 class="filter-section-title">Event Type</h3>
             <div class="filter-group">
                 <div class="filter-group-header">
-                    <span class="filter-group-title">Select Event</span>
                     <div class="filter-group-actions">
                         <button class="filter-action-btn select-all-btn" data-filter="eventTypes">Select all</button>
                         <button class="filter-action-btn deselect-all-btn" data-filter="eventTypes">Deselect all</button>
@@ -385,9 +447,9 @@ export class GamePassPlot {
         ];
 
         return `
+            <h3 class="filter-section-title">Line Type</h3>
             <div class="filter-group">
                 <div class="filter-group-header">
-                    <span class="filter-group-title">Select Line</span>
                     <div class="filter-group-actions">
                         <button class="filter-action-btn select-all-btn" data-filter="lineTypes">Select all</button>
                         <button class="filter-action-btn deselect-all-btn" data-filter="lineTypes">Deselect all</button>
@@ -422,9 +484,9 @@ export class GamePassPlot {
         }
 
         return `
+            <h3 class="filter-section-title">Quarter</h3>
             <div class="filter-group">
                 <div class="filter-group-header">
-                    <span class="filter-group-title">Select Period</span>
                     <div class="filter-group-actions">
                         <button class="filter-action-btn select-all-btn" data-filter="periods">Select all</button>
                         <button class="filter-action-btn deselect-all-btn" data-filter="periods">Deselect all</button>
@@ -438,6 +500,39 @@ export class GamePassPlot {
                                    ${this.filterState.periods.has(p.id) ? 'checked' : ''}>
                             <label for="period-${p.id}">${p.label}</label>
                             <span class="count">(${this.periodCounts[p.id] || 0})</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    private renderPassTypeFilter(): string {
+        const passTypes = [
+            { id: 'huck', label: 'Hucks', count: this.passTypeCounts.huck || 0 },
+            { id: 'swing', label: 'Swings', count: this.passTypeCounts.swing || 0 },
+            { id: 'dump', label: 'Dumps', count: this.passTypeCounts.dump || 0 },
+            { id: 'gainer', label: 'Gainers', count: this.passTypeCounts.gainer || 0 },
+            { id: 'dish', label: 'Dishes', count: this.passTypeCounts.dish || 0 }
+        ];
+
+        return `
+            <h3 class="filter-section-title">Pass Type</h3>
+            <div class="filter-group">
+                <div class="filter-group-header">
+                    <div class="filter-group-actions">
+                        <button class="filter-action-btn select-all-btn" data-filter="passTypes">Select all</button>
+                        <button class="filter-action-btn deselect-all-btn" data-filter="passTypes">Deselect all</button>
+                    </div>
+                </div>
+                <div class="filter-checkbox-list">
+                    ${passTypes.map(pt => `
+                        <div class="filter-checkbox-item">
+                            <input type="checkbox" id="passType-${pt.id}"
+                                   data-filter="passType" data-value="${pt.id}"
+                                   ${this.filterState.passTypes.has(pt.id) ? 'checked' : ''}>
+                            <label for="passType-${pt.id}">${pt.label}</label>
+                            <span class="count">(${pt.count})</span>
                         </div>
                     `).join('')}
                 </div>
@@ -632,6 +727,224 @@ export class GamePassPlot {
         `;
     }
 
+    private renderStatsPanel(): string {
+        const stats = this.computeStats();
+        return `
+            <aside class="game-pass-plot-stats">
+                <h3 class="stats-title">Statistics</h3>
+
+                <div class="stats-summary">
+                    <div class="stat-row">
+                        <span class="stat-label">Total Throws</span>
+                        <span class="stat-value">${stats.totalThrows}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Completions</span>
+                        <span class="stat-value">${stats.completions} <small>(${stats.completionsPct}%)</small></span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Turnovers</span>
+                        <span class="stat-value">${stats.turnovers} <small>(${stats.turnoversPct}%)</small></span>
+                    </div>
+                    <div class="stat-row highlight">
+                        <span class="stat-label">Goals</span>
+                        <span class="stat-value">${stats.goals} <small>(${stats.goalsPct}%)</small></span>
+                    </div>
+                </div>
+
+                <div class="stats-divider"></div>
+
+                <div class="stats-summary">
+                    <div class="stat-row">
+                        <span class="stat-label">Avg Yards/Throw</span>
+                        <span class="stat-value">${stats.avgYardsPerThrow.toFixed(1)}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Avg Yards/Completion</span>
+                        <span class="stat-value">${stats.avgYardsPerCompletion.toFixed(1)}</span>
+                    </div>
+                </div>
+
+                <div class="stats-divider"></div>
+
+                <h4 class="stats-subtitle">By Pass Type</h4>
+                <div class="stats-by-type">
+                    <div class="stat-row">
+                        <span class="stat-label">Hucks</span>
+                        <span class="stat-value">${stats.byType.huck.count} <small>(${stats.byType.huck.pct}%)</small></span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Swings</span>
+                        <span class="stat-value">${stats.byType.swing.count} <small>(${stats.byType.swing.pct}%)</small></span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Dumps</span>
+                        <span class="stat-value">${stats.byType.dump.count} <small>(${stats.byType.dump.pct}%)</small></span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Gainers</span>
+                        <span class="stat-value">${stats.byType.gainer.count} <small>(${stats.byType.gainer.pct}%)</small></span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Dishes</span>
+                        <span class="stat-value">${stats.byType.dish.count} <small>(${stats.byType.dish.pct}%)</small></span>
+                    </div>
+                </div>
+
+                <div class="stats-divider"></div>
+
+                <div class="type-definitions">
+                    <h4 class="stats-subtitle">Definitions</h4>
+                    <div class="definition"><strong>Huck:</strong> 40+ yard throw</div>
+                    <div class="definition"><strong>Swing:</strong> Lateral throw</div>
+                    <div class="definition"><strong>Dump:</strong> Short backward throw</div>
+                    <div class="definition"><strong>Gainer:</strong> Short-medium forward</div>
+                    <div class="definition"><strong>Dish:</strong> Under 5 yards</div>
+                </div>
+            </aside>
+        `;
+    }
+
+    private computeStats(): {
+        totalThrows: number;
+        completions: number;
+        completionsPct: number;
+        turnovers: number;
+        turnoversPct: number;
+        goals: number;
+        goalsPct: number;
+        avgYardsPerThrow: number;
+        avgYardsPerCompletion: number;
+        byType: Record<string, { count: number; pct: number }>;
+    } {
+        const filteredEvents = this.getFilteredEvents();
+
+        let totalThrows = 0;
+        let completions = 0;
+        let turnovers = 0;
+        let goals = 0;
+        let totalYards = 0;
+        let completionYards = 0;
+
+        const byType: Record<string, { count: number; pct: number }> = {
+            huck: { count: 0, pct: 0 },
+            swing: { count: 0, pct: 0 },
+            dump: { count: 0, pct: 0 },
+            gainer: { count: 0, pct: 0 },
+            dish: { count: 0, pct: 0 },
+        };
+
+        for (const event of filteredEvents) {
+            // Count throws (pass, goal, throwaway events)
+            if (['pass', 'goal', 'throwaway'].includes(event.type)) {
+                totalThrows++;
+
+                // Calculate yards
+                const yards = this.calculateYards(event);
+                if (yards !== null) {
+                    totalYards += yards;
+                }
+
+                // Classify pass type and count
+                const passType = this.classifyPassType(event);
+                if (passType && byType[passType]) {
+                    byType[passType].count++;
+                }
+            }
+
+            // Count results
+            if (event.type === 'goal') {
+                goals++;
+                completions++;
+                const yards = this.calculateYards(event);
+                if (yards !== null) {
+                    completionYards += yards;
+                }
+            } else if (event.type === 'pass') {
+                completions++;
+                const yards = this.calculateYards(event);
+                if (yards !== null) {
+                    completionYards += yards;
+                }
+            } else if (['throwaway', 'drop', 'stall'].includes(event.type)) {
+                turnovers++;
+            }
+        }
+
+        // Calculate percentages
+        const completionsPct = totalThrows > 0 ? Math.round(completions / totalThrows * 100) : 0;
+        const turnoversPct = totalThrows > 0 ? Math.round(turnovers / totalThrows * 100) : 0;
+        const goalsPct = totalThrows > 0 ? Math.round(goals / totalThrows * 100) : 0;
+        const avgYardsPerThrow = totalThrows > 0 ? totalYards / totalThrows : 0;
+        const avgYardsPerCompletion = completions > 0 ? completionYards / completions : 0;
+
+        // Calculate pass type percentages
+        for (const type in byType) {
+            byType[type].pct = totalThrows > 0 ? Math.round(byType[type].count / totalThrows * 100) : 0;
+        }
+
+        return {
+            totalThrows,
+            completions,
+            completionsPct,
+            turnovers,
+            turnoversPct,
+            goals,
+            goalsPct,
+            avgYardsPerThrow,
+            avgYardsPerCompletion,
+            byType,
+        };
+    }
+
+    private calculateYards(event: PassPlotEvent): number | null {
+        const destY = event.receiver_y ?? event.turnover_y;
+        if (event.thrower_y === null || destY === null) {
+            return null;
+        }
+        return destY - event.thrower_y;
+    }
+
+    private classifyPassType(event: PassPlotEvent): string | null {
+        const destX = event.receiver_x ?? event.turnover_x;
+        const destY = event.receiver_y ?? event.turnover_y;
+
+        if (event.thrower_x === null || event.thrower_y === null || destX === null || destY === null) {
+            return null;
+        }
+
+        const verticalYards = destY - event.thrower_y;
+        const horizontalYards = Math.abs(destX - event.thrower_x);
+        const distance = Math.sqrt(verticalYards ** 2 + horizontalYards ** 2);
+
+        // Huck: 40+ yards forward
+        if (verticalYards >= 40) {
+            return 'huck';
+        }
+
+        // Dish: Under 5 yards total distance
+        if (distance < 5) {
+            return 'dish';
+        }
+
+        // Dump: Short backward throw (negative yards)
+        if (verticalYards < 0 && distance < 15) {
+            return 'dump';
+        }
+
+        // Swing: Lateral throw (more horizontal than vertical, or slightly negative)
+        if (horizontalYards > Math.abs(verticalYards) || (verticalYards <= 0 && horizontalYards > 5)) {
+            return 'swing';
+        }
+
+        // Gainer: Short-medium forward throw
+        if (verticalYards > 0 && verticalYards < 40) {
+            return 'gainer';
+        }
+
+        return null;
+    }
+
     private attachEventListeners(): void {
         // Team filter buttons
         document.querySelectorAll('.game-pass-plot-team-toggle .team-filter-btn').forEach(button => {
@@ -640,22 +953,37 @@ export class GamePassPlot {
                 if (team && team !== this.filterState.team) {
                     this.filterState.team = team;
                     // Reset player selection when team changes
-                    this.filterState.players.clear();
+                    this.filterState.throwers.clear();
+                    this.filterState.receivers.clear();
                     this.computeFilterCounts();
                     this.renderPassPlot();
                 }
             });
         });
 
-        // Player checkboxes
-        document.querySelectorAll('[data-filter="player"]').forEach(checkbox => {
+        // Thrower checkboxes
+        document.querySelectorAll('[data-filter="thrower"]').forEach(checkbox => {
             checkbox.addEventListener('change', (e) => {
                 const input = e.target as HTMLInputElement;
                 const playerId = input.dataset.value!;
                 if (input.checked) {
-                    this.filterState.players.add(playerId);
+                    this.filterState.throwers.add(playerId);
                 } else {
-                    this.filterState.players.delete(playerId);
+                    this.filterState.throwers.delete(playerId);
+                }
+                this.renderEventsOnField();
+            });
+        });
+
+        // Receiver checkboxes
+        document.querySelectorAll('[data-filter="receiver"]').forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+                const input = e.target as HTMLInputElement;
+                const playerId = input.dataset.value!;
+                if (input.checked) {
+                    this.filterState.receivers.add(playerId);
+                } else {
+                    this.filterState.receivers.delete(playerId);
                 }
                 this.renderEventsOnField();
             });
@@ -703,6 +1031,20 @@ export class GamePassPlot {
             });
         });
 
+        // Pass type checkboxes
+        document.querySelectorAll('[data-filter="passType"]').forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+                const input = e.target as HTMLInputElement;
+                const passType = input.dataset.value!;
+                if (input.checked) {
+                    this.filterState.passTypes.add(passType);
+                } else {
+                    this.filterState.passTypes.delete(passType);
+                }
+                this.renderEventsOnField();
+            });
+        });
+
         // Select all buttons
         document.querySelectorAll('.select-all-btn').forEach(button => {
             button.addEventListener('click', (e) => {
@@ -722,8 +1064,11 @@ export class GamePassPlot {
 
     private selectAll(filterType: string): void {
         switch (filterType) {
-            case 'players':
-                this.playerList.forEach(p => this.filterState.players.add(p.id));
+            case 'throwers':
+                this.throwerList.forEach(p => this.filterState.throwers.add(p.id));
+                break;
+            case 'receivers':
+                this.receiverList.forEach(p => this.filterState.receivers.add(p.id));
                 break;
             case 'eventTypes':
                 ['throws', 'catches', 'assists', 'goals', 'throwaways', 'drops'].forEach(et =>
@@ -736,14 +1081,21 @@ export class GamePassPlot {
             case 'periods':
                 [1, 2, 3, 4, 5].forEach(p => this.filterState.periods.add(p));
                 break;
+            case 'passTypes':
+                ['huck', 'swing', 'dump', 'gainer', 'dish'].forEach(pt =>
+                    this.filterState.passTypes.add(pt));
+                break;
         }
         this.renderPassPlot();
     }
 
     private deselectAll(filterType: string): void {
         switch (filterType) {
-            case 'players':
-                this.filterState.players.clear();
+            case 'throwers':
+                this.filterState.throwers.clear();
+                break;
+            case 'receivers':
+                this.filterState.receivers.clear();
                 break;
             case 'eventTypes':
                 this.filterState.eventTypes.clear();
@@ -753,6 +1105,9 @@ export class GamePassPlot {
                 break;
             case 'periods':
                 this.filterState.periods.clear();
+                break;
+            case 'passTypes':
+                this.filterState.passTypes.clear();
                 break;
         }
         this.renderPassPlot();

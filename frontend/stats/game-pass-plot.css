@@ -14,26 +14,53 @@
 
 .game-pass-plot-container {
     display: flex;
-    gap: 20px;
-    padding: 20px;
-    max-width: 1400px;
-    margin: 0 auto;
+    gap: 0;
+    padding: 0;
+    max-width: none;
+    margin: 0;
     width: 100%;
+    height: 100%;
 }
 
-/* Filters Panel */
+/* Filters Panel - matches main pass-plots */
 .game-pass-plot-filters {
     flex: 0 0 280px;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    overflow-y: auto;
+    padding: 16px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 8px;
 }
 
-.filter-group {
-    background: var(--bg-secondary);
+/* Filter Sections - matches main pass-plots */
+.filters-section {
+    background: var(--bg-primary);
     border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 12px;
+}
+
+.filter-section-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin: 0 0 12px 0;
+    letter-spacing: 0.5px;
+}
+
+.game-pass-plot-filters .filter-group {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    margin-bottom: 12px;
+}
+
+.game-pass-plot-filters .filter-group:last-child {
+    margin-bottom: 0;
 }
 
 .filter-group-header {
@@ -47,7 +74,26 @@
 
 .filter-group-title {
     font-weight: 600;
-    font-size: 14px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.filter-section-title {
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 16px 0 12px 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.filter-subgroup-title {
+    font-weight: 600;
+    font-size: 12px;
     color: var(--text-primary);
 }
 
@@ -118,11 +164,15 @@
     accent-color: var(--primary-color);
 }
 
-.filter-checkbox-item label {
+.filter-checkbox-item label,
+.game-pass-plot-filters .filter-group label {
     flex: 1;
     font-size: 13px;
     color: var(--text-primary);
     cursor: pointer;
+    text-transform: none !important;
+    font-weight: 400;
+    letter-spacing: normal;
 }
 
 .filter-checkbox-item .count {
@@ -144,7 +194,7 @@
     border-radius: 6px;
     color: var(--text-primary);
     font-weight: 500;
-    font-size: 14px;
+    font-size: 12px;
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -159,28 +209,124 @@
     color: white;
 }
 
-/* Field Canvas Container */
+/* Field Panel (Center) - matches main pass-plots */
 .game-pass-plot-canvas {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    background: var(--bg-primary);
+    overflow: hidden;
     min-width: 0;
 }
 
 .field-svg-wrapper {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 16px;
+    flex: 1;
     display: flex;
     justify-content: center;
+    align-items: center;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
 }
 
 .game-pass-plot-svg {
-    max-width: 300px;
-    width: 100%;
+    max-width: 400px;
+    max-height: calc(100% - 40px);
+    width: auto;
     height: auto;
+}
+
+/* Stats Panel (Right) - matches main pass-plots */
+.game-pass-plot-stats {
+    flex: 0 0 240px;
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border-color);
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.stats-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 16px 0;
+}
+
+.stats-subtitle {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin: 0 0 12px 0;
+    letter-spacing: 0.5px;
+}
+
+.stats-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.stats-by-type {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.stat-row.highlight {
+    padding: 8px;
+    background: rgba(34, 197, 94, 0.1);
+    border-radius: 6px;
+    margin: 4px -8px;
+}
+
+.stat-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.stat-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.stat-value small {
+    font-weight: 400;
+    color: var(--text-secondary);
+}
+
+.stats-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 16px 0;
+}
+
+/* Type Definitions */
+.type-definitions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.type-definitions .stats-subtitle {
+    margin-bottom: 4px;
+}
+
+.definition {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.definition strong {
+    color: var(--text-primary);
 }
 
 /* Field styling */
@@ -261,38 +407,84 @@
     color: var(--text-secondary);
 }
 
-/* Responsive */
-@media (max-width: 900px) {
+/* Responsive - matches main pass-plots breakpoints */
+@media (max-width: 1200px) {
+    .game-pass-plot-stats {
+        flex: 0 0 200px;
+    }
+}
+
+@media (max-width: 1000px) {
     .game-pass-plot-container {
         flex-direction: column;
+        height: auto;
+        min-height: 100%;
     }
 
     .game-pass-plot-filters {
         flex: none;
         flex-direction: row;
         flex-wrap: wrap;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        max-height: 300px;
     }
 
-    .filter-group {
+    .filters-section {
         flex: 1 1 200px;
     }
 
-    .field-svg-wrapper {
-        padding: 12px;
+    .game-pass-plot-canvas {
+        min-height: 500px;
     }
 
-    .game-pass-plot-svg {
-        max-width: 250px;
+    .game-pass-plot-stats {
+        flex: none;
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .game-pass-plot-stats .stats-summary,
+    .game-pass-plot-stats .stats-by-type {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .game-pass-plot-stats .stat-row {
+        flex: 1 1 150px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
     }
 }
 
 @media (max-width: 600px) {
     .game-pass-plot-container {
-        padding: 12px;
-        gap: 12px;
+        height: 100%;
+        min-height: auto;
+        overflow-y: auto;
     }
 
-    .filter-group {
+    .game-pass-plot-filters {
+        padding: 12px;
+        max-height: 180px;
+    }
+
+    .game-pass-plot-canvas {
+        min-height: auto;
+        flex: none;
+    }
+
+    .field-svg-wrapper {
+        height: calc(100vh - 280px);
+        padding: 12px;
+    }
+
+    .game-pass-plot-svg {
+        max-height: calc(100vh - 310px);
+    }
+
+    .filters-section {
         flex: 1 1 100%;
     }
 

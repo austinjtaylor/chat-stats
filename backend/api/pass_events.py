@@ -31,6 +31,14 @@ def create_pass_events_routes(stats_system):
         results: str | None = Query(
             None, description="Comma-separated results: goal,completion,turnover"
         ),
+        event_types: str | None = Query(
+            None,
+            description="Comma-separated event types: throws,catches,assists,goals,throwaways,drops",
+        ),
+        quarters: str | None = Query(
+            None,
+            description="Comma-separated quarters: 1,2,3,4,5 (5=overtime)",
+        ),
         origin_x_min: float | None = Query(
             None, description="Min thrower X coordinate"
         ),
@@ -145,6 +153,54 @@ def create_pass_events_routes(stats_system):
                 result_conditions.append("ge.event_type IN (20, 22)")
             if result_conditions:
                 query += f" AND ({' OR '.join(result_conditions)})"
+
+        # Event types filter (alternative to results, more granular)
+        # Maps: throws (18,19,22), catches (18,19), assists (19), goals (19),
+        #       throwaways (22), drops (20)
+        if event_types:
+            event_types_list = [et.strip() for et in event_types.split(",")]
+            event_conditions = []
+            # Event type 18 (pass): matches 'throws' or 'catches'
+            if "throws" in event_types_list or "catches" in event_types_list:
+                event_conditions.append("ge.event_type = 18")
+            # Event type 19 (goal): matches 'throws', 'catches', 'assists', or 'goals'
+            if any(
+                et in event_types_list
+                for et in ["throws", "catches", "assists", "goals"]
+            ):
+                event_conditions.append("ge.event_type = 19")
+            # Event type 20 (drop): matches 'drops'
+            if "drops" in event_types_list:
+                event_conditions.append("ge.event_type = 20")
+            # Event type 22 (throwaway): matches 'throws' or 'throwaways'
+            if "throws" in event_types_list or "throwaways" in event_types_list:
+                event_conditions.append("ge.event_type = 22")
+            if event_conditions:
+                query += f" AND ({' OR '.join(event_conditions)})"
+
+        # Quarter filter (calculated from event_time)
+        # Q1: 0-720s, Q2: 720-1440s, Q3: 1440-2160s, Q4: 2160-2880s, OT: 2880+
+        if quarters:
+            quarters_list = [int(q.strip()) for q in quarters.split(",")]
+            quarter_conditions = []
+            if 1 in quarters_list:
+                quarter_conditions.append("ge.event_time < 720")
+            if 2 in quarters_list:
+                quarter_conditions.append(
+                    "(ge.event_time >= 720 AND ge.event_time < 1440)"
+                )
+            if 3 in quarters_list:
+                quarter_conditions.append(
+                    "(ge.event_time >= 1440 AND ge.event_time < 2160)"
+                )
+            if 4 in quarters_list:
+                quarter_conditions.append(
+                    "(ge.event_time >= 2160 AND ge.event_time < 2880)"
+                )
+            if 5 in quarters_list:  # Overtime
+                quarter_conditions.append("ge.event_time >= 2880")
+            if quarter_conditions:
+                query += f" AND ({' OR '.join(quarter_conditions)})"
 
         # Coordinate filters
         if origin_x_min is not None:
