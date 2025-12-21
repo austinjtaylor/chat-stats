@@ -152,6 +152,7 @@ export class PassPlots {
                         team_id: this.filterState.off_team_id ?? undefined,
                         game_id: this.filterState.game_id ?? undefined
                     });
+                    this.updateTeamSelects();
                     this.updatePlayerSelects();
                     this.loadData();
                 }

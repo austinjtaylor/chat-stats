@@ -15,16 +15,10 @@ def create_pass_events_routes(stats_system):
     async def get_pass_events(
         season: int | None = Query(None, description="Filter by season year"),
         game_id: str | None = Query(None, description="Filter by specific game"),
-        off_team_id: str | None = Query(
-            None, description="Filter by offensive team"
-        ),
-        def_team_id: str | None = Query(
-            None, description="Filter by defensive team"
-        ),
+        off_team_id: str | None = Query(None, description="Filter by offensive team"),
+        def_team_id: str | None = Query(None, description="Filter by defensive team"),
         thrower_id: str | None = Query(None, description="Filter by thrower player"),
-        receiver_id: str | None = Query(
-            None, description="Filter by receiver player"
-        ),
+        receiver_id: str | None = Query(None, description="Filter by receiver player"),
         pass_types: str | None = Query(
             None, description="Comma-separated pass types: huck,swing,dump,gainer,dish"
         ),
@@ -51,21 +45,15 @@ def create_pass_events_routes(stats_system):
         origin_y_max: float | None = Query(
             None, description="Max thrower Y coordinate"
         ),
-        dest_x_min: float | None = Query(
-            None, description="Min receiver X coordinate"
-        ),
-        dest_x_max: float | None = Query(
-            None, description="Max receiver X coordinate"
-        ),
-        dest_y_min: float | None = Query(
-            None, description="Min receiver Y coordinate"
-        ),
-        dest_y_max: float | None = Query(
-            None, description="Max receiver Y coordinate"
-        ),
+        dest_x_min: float | None = Query(None, description="Min receiver X coordinate"),
+        dest_x_max: float | None = Query(None, description="Max receiver X coordinate"),
+        dest_y_min: float | None = Query(None, description="Min receiver Y coordinate"),
+        dest_y_max: float | None = Query(None, description="Max receiver Y coordinate"),
         distance_min: float | None = Query(None, description="Min throw distance"),
         distance_max: float | None = Query(None, description="Max throw distance"),
-        limit: int | None = Query(None, description="Max events to return (no limit if not specified)"),
+        limit: int | None = Query(
+            None, description="Max events to return (no limit if not specified)"
+        ),
     ):
         """
         Get pass events with comprehensive filtering.
@@ -400,19 +388,30 @@ def create_pass_events_routes(stats_system):
         seasons_rows = stats_system.db.execute_query(seasons_query, {})
         seasons = [row["year"] for row in seasons_rows]
 
-        # Get teams (optionally filtered by season)
-        teams_query = """
-        SELECT DISTINCT t.team_id, t.full_name, t.abbrev
-        FROM teams t
-        """
+        # Get teams (optionally filtered by season or game)
         teams_params = {}
-        conditions = []
-        if season:
-            conditions.append("t.year = :season")
-            teams_params["season"] = season
-        if conditions:
-            teams_query += " WHERE " + " AND ".join(conditions)
-        teams_query += " ORDER BY t.full_name"
+        if game_id:
+            # When game is selected, only return the two teams in that game
+            teams_query = """
+            SELECT DISTINCT t.team_id, t.full_name, t.abbrev
+            FROM teams t
+            JOIN games g ON (t.team_id = g.home_team_id OR t.team_id = g.away_team_id) AND t.year = g.year
+            WHERE g.game_id = :game_id
+            ORDER BY t.full_name
+            """
+            teams_params["game_id"] = game_id
+        else:
+            teams_query = """
+            SELECT DISTINCT t.team_id, t.full_name, t.abbrev
+            FROM teams t
+            """
+            conditions = []
+            if season:
+                conditions.append("t.year = :season")
+                teams_params["season"] = season
+            if conditions:
+                teams_query += " WHERE " + " AND ".join(conditions)
+            teams_query += " ORDER BY t.full_name"
 
         teams_rows = stats_system.db.execute_query(teams_query, teams_params)
         # Deduplicate teams by team_id
@@ -421,11 +420,13 @@ def create_pass_events_routes(stats_system):
         for row in teams_rows:
             if row["team_id"] not in seen_teams:
                 seen_teams.add(row["team_id"])
-                teams.append({
-                    "team_id": row["team_id"],
-                    "name": row["full_name"],
-                    "abbrev": row["abbrev"],
-                })
+                teams.append(
+                    {
+                        "team_id": row["team_id"],
+                        "name": row["full_name"],
+                        "abbrev": row["abbrev"],
+                    }
+                )
 
         # Get players with pass events - filtered by season, team, or game
         players_query = """
@@ -471,7 +472,9 @@ def create_pass_events_routes(stats_system):
             games_query += " AND g.year = :season"
             games_params["season"] = season
         if team_id:
-            games_query += " AND (g.home_team_id = :team_id OR g.away_team_id = :team_id)"
+            games_query += (
+                " AND (g.home_team_id = :team_id OR g.away_team_id = :team_id)"
+            )
             games_params["team_id"] = team_id
         games_query += " ORDER BY g.start_timestamp DESC LIMIT 500"
 
