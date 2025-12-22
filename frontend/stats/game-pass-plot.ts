@@ -79,7 +79,7 @@ export class GamePassPlot {
 
     private getDefaultFilterState(): FilterState {
         return {
-            team: 'home',
+            team: 'away',
             throwers: new Set<string>(),
             receivers: new Set<string>(),
             eventTypes: new Set(['throws', 'catches', 'assists', 'goals', 'throwaways', 'drops']),

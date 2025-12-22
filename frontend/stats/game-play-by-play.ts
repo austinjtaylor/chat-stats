@@ -37,7 +37,7 @@ export interface PlayByPlayData {
 export class GamePlayByPlay {
     private playByPlayData: PlayByPlayData | null = null;
     private expandedPoints: Set<number> = new Set();
-    private playByPlayFilter: 'home' | 'away' = 'home';
+    private playByPlayFilter: 'home' | 'away' = 'away';
     private homeCity: string | undefined;
     private awayCity: string | undefined;
 
