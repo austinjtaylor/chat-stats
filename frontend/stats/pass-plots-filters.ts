@@ -117,11 +117,6 @@ export function resetAllFilters(
         const checkbox = document.getElementById(`event${type}`) as HTMLInputElement;
         if (checkbox) checkbox.checked = true;
     });
-    // Reset quarter checkboxes
-    ['Q1', 'Q2', 'Q3', 'Q4', 'OT'].forEach(q => {
-        const checkbox = document.getElementById(`quarter${q}`) as HTMLInputElement;
-        if (checkbox) checkbox.checked = true;
-    });
     // Reset pass type checkboxes
     ['Huck', 'Swing', 'Dump', 'Gainer', 'Dish'].forEach(type => {
         const checkbox = document.getElementById(`type${type}`) as HTMLInputElement;
@@ -166,11 +161,6 @@ export function buildQueryParams(filterState: FilterState): string {
     // Event types filter (new, more granular)
     if (filterState.event_types.size > 0 && filterState.event_types.size < 6) {
         params.set('event_types', Array.from(filterState.event_types).join(','));
-    }
-
-    // Quarters filter
-    if (filterState.quarters.size > 0 && filterState.quarters.size < 5) {
-        params.set('quarters', Array.from(filterState.quarters).join(','));
     }
 
     // Pass types filter

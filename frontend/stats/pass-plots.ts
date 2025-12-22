@@ -309,42 +309,6 @@ export class PassPlots {
             });
         });
 
-        // Quarter checkboxes
-        document.querySelectorAll('[data-filter="quarter"]').forEach(checkbox => {
-            checkbox.addEventListener('change', (e) => {
-                const input = e.target as HTMLInputElement;
-                const quarter = parseInt(input.dataset.value!);
-                if (input.checked) {
-                    this.filterState.quarters.add(quarter);
-                } else {
-                    this.filterState.quarters.delete(quarter);
-                }
-                this.loadData();
-            });
-        });
-
-        // Quarter select all/deselect all
-        document.querySelectorAll('[data-filter="quarters"].select-all-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                [1, 2, 3, 4, 5].forEach(q => {
-                    this.filterState.quarters.add(q);
-                    const checkbox = document.querySelector(`[data-filter="quarter"][data-value="${q}"]`) as HTMLInputElement;
-                    if (checkbox) checkbox.checked = true;
-                });
-                this.loadData();
-            });
-        });
-
-        document.querySelectorAll('[data-filter="quarters"].deselect-all-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                this.filterState.quarters.clear();
-                document.querySelectorAll('[data-filter="quarter"]').forEach(checkbox => {
-                    (checkbox as HTMLInputElement).checked = false;
-                });
-                this.loadData();
-            });
-        });
-
         // Pass type checkboxes
         ['Huck', 'Swing', 'Dump', 'Gainer', 'Dish'].forEach(type => {
             const checkbox = document.getElementById(`type${type}`) as HTMLInputElement;

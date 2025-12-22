@@ -29,10 +29,6 @@ def create_pass_events_routes(stats_system):
             None,
             description="Comma-separated event types: throws,catches,assists,goals,throwaways,drops",
         ),
-        quarters: str | None = Query(
-            None,
-            description="Comma-separated quarters: 1,2,3,4,5 (5=overtime)",
-        ),
         origin_x_min: float | None = Query(
             None, description="Min thrower X coordinate"
         ),
@@ -165,30 +161,6 @@ def create_pass_events_routes(stats_system):
                 event_conditions.append("ge.event_type = 22")
             if event_conditions:
                 query += f" AND ({' OR '.join(event_conditions)})"
-
-        # Quarter filter (calculated from event_time)
-        # Q1: 0-720s, Q2: 720-1440s, Q3: 1440-2160s, Q4: 2160-2880s, OT: 2880+
-        if quarters:
-            quarters_list = [int(q.strip()) for q in quarters.split(",")]
-            quarter_conditions = []
-            if 1 in quarters_list:
-                quarter_conditions.append("ge.event_time < 720")
-            if 2 in quarters_list:
-                quarter_conditions.append(
-                    "(ge.event_time >= 720 AND ge.event_time < 1440)"
-                )
-            if 3 in quarters_list:
-                quarter_conditions.append(
-                    "(ge.event_time >= 1440 AND ge.event_time < 2160)"
-                )
-            if 4 in quarters_list:
-                quarter_conditions.append(
-                    "(ge.event_time >= 2160 AND ge.event_time < 2880)"
-                )
-            if 5 in quarters_list:  # Overtime
-                quarter_conditions.append("ge.event_time >= 2880")
-            if quarter_conditions:
-                query += f" AND ({' OR '.join(quarter_conditions)})"
 
         # Coordinate filters
         if origin_x_min is not None:

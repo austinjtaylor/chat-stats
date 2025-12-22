@@ -63,7 +63,6 @@ export interface FilterState {
     receiver_id: string | null;
     results: Set<string>;
     event_types: Set<string>;
-    quarters: Set<number>;
     pass_types: Set<string>;
     origin_x_min: number;
     origin_x_max: number;
@@ -87,7 +86,6 @@ export function getDefaultFilterState(): FilterState {
         receiver_id: null,
         results: new Set(['goal', 'completion', 'turnover']),
         event_types: new Set(['throws', 'catches', 'assists', 'goals', 'throwaways', 'drops']),
-        quarters: new Set([1, 2, 3, 4, 5]),
         pass_types: new Set(['huck', 'swing', 'dump', 'gainer', 'dish']),
         origin_x_min: -27,
         origin_x_max: 27,
