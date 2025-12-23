@@ -111,16 +111,9 @@ export class GamePassPlot {
         this.allEvents = [];
 
         for (const point of this.playByPlayData.points) {
-            // Track if we've seen a turnover in this point (for detecting "out of turnover" scenarios)
-            let hasSeenTurnover = false;
-
             for (const event of point.events) {
-                // Skip events we don't visualize, but track turnovers for "out of turnover" marking
+                // Skip events we don't visualize
                 if (!['pass', 'goal', 'drop', 'throwaway', 'stall'].includes(event.type)) {
-                    // Mark that a turnover occurred (block, opponent_turnover, etc.)
-                    if (['block', 'opponent_turnover'].includes(event.type)) {
-                        hasSeenTurnover = true;
-                    }
                     continue;
                 }
 
@@ -130,9 +123,6 @@ export class GamePassPlot {
                                   (event.turnover_x !== null && event.turnover_x !== undefined);
 
                 if (!hasCoords) continue;
-
-                // Capture whether this event happened after a turnover (before marking current event as turnover)
-                const isAfterTurnover = hasSeenTurnover;
 
                 // Extract player names - "from X" for passes, "by X" for turnovers
                 const throwerName = event.description?.match(/from (\w+)/)?.[1] ||
@@ -153,16 +143,59 @@ export class GamePassPlot {
                     receiver_id: event.receiver_id,
                     quarter: point.quarter,
                     point_number: point.point_number,
-                    line_type: point.line_type,
+                    // Use timeout_line_type for events after timeout (accounts for turnovers)
+                    // Fall back to point's line_type for normal events
+                    line_type: event.timeout_line_type || point.line_type,
                     team: point.team,
-                    is_after_turnover: isAfterTurnover
+                    is_after_turnover: event.out_of_timeout || false  // From backend event
                 });
-
-                // Mark turnover AFTER adding the event so the turnover itself isn't marked as "after turnover"
-                if (['drop', 'throwaway', 'stall'].includes(event.type)) {
-                    hasSeenTurnover = true;
-                }
             }
+        }
+    }
+
+    /**
+     * Check if the disc traveled more than 1 yard for a turnover event.
+     * Used to determine if a throwaway/drop should count as a "throw" in event types.
+     */
+    private discTraveled(e: PassPlotEvent): boolean {
+        if (e.thrower_x === null || e.thrower_y === null) return false;
+        // For throwaways, check distance to turnover location
+        if (e.type === 'throwaway') {
+            if (e.turnover_x === null || e.turnover_y === null) return false;
+            const dist = Math.sqrt(
+                Math.pow(e.turnover_x - e.thrower_x, 2) +
+                Math.pow(e.turnover_y - e.thrower_y, 2)
+            );
+            return dist > 1;
+        }
+        // For drops, check distance to receiver location
+        if (e.type === 'drop') {
+            if (e.receiver_x === null || e.receiver_y === null) return false;
+            const dist = Math.sqrt(
+                Math.pow(e.receiver_x - e.thrower_x, 2) +
+                Math.pow(e.receiver_y - e.thrower_y, 2)
+            );
+            return dist > 1;
+        }
+        return true;
+    }
+
+    /**
+     * Get the number of "actions" an event represents for filter counts.
+     * This matches how event types count actions (throws, catches, assists, goals).
+     * Turnovers that traveled count as 2 (they appear in both Throws and Throwaways/Drops).
+     */
+    private getActionCount(event: PassPlotEvent): number {
+        switch (event.type) {
+            case 'pass': return 2;      // throw + catch
+            case 'goal': return 2;      // assist + goal
+            case 'throwaway':
+            case 'drop':
+                // If disc traveled, counts as throw + turnover = 2
+                // Otherwise just turnover = 1
+                return this.discTraveled(event) ? 2 : 1;
+            case 'stall': return 1;     // stall only
+            default: return 0;
         }
     }
 
@@ -170,23 +203,25 @@ export class GamePassPlot {
         // Filter events by current team first
         const teamEvents = this.allEvents.filter(e => e.team === this.filterState.team);
 
-        // Build separate thrower and receiver lists with counts
+        // Build separate thrower and receiver lists with counts (using action counts)
         const throwerCounts = new Map<string, { name: string; count: number }>();
         const receiverCounts = new Map<string, { name: string; count: number }>();
 
         teamEvents.forEach(event => {
-            // Count throwers
+            const actions = this.getActionCount(event);
+
+            // Count throwers (all events have a thrower)
             if (event.thrower_name) {
                 const key = event.thrower_name;
                 const existing = throwerCounts.get(key) || { name: event.thrower_name, count: 0 };
-                existing.count++;
+                existing.count += actions;
                 throwerCounts.set(key, existing);
             }
-            // Count receivers
+            // Count receivers (only pass/goal events have receivers)
             if (event.receiver_name && event.type !== 'drop' && event.type !== 'throwaway') {
                 const key = event.receiver_name;
                 const existing = receiverCounts.get(key) || { name: event.receiver_name, count: 0 };
-                existing.count++;
+                existing.count += actions;
                 receiverCounts.set(key, existing);
             }
         });
@@ -208,35 +243,53 @@ export class GamePassPlot {
             this.receiverList.forEach(p => this.filterState.receivers.add(p.id));
         }
 
-        // Event type counts
+        // Event type counts - matching UFA methodology
+        // "Throws" counts passes + turnovers where the disc actually traveled (>1 yard)
+        // "Catches" counts passes only (goals are counted separately)
         this.eventTypeCounts = {
-            throws: teamEvents.filter(e => ['pass', 'goal', 'throwaway'].includes(e.type)).length,
-            catches: teamEvents.filter(e => ['pass', 'goal'].includes(e.type)).length,
+            // Throws = passes + turnovers where disc traveled (not goals/assists)
+            throws: teamEvents.filter(e =>
+                (e.type === 'pass') ||
+                ((e.type === 'throwaway' || e.type === 'drop') && this.discTraveled(e))
+            ).length,
+            // Catches = passes only (not goals)
+            catches: teamEvents.filter(e => e.type === 'pass').length,
+            // Assists = goals (from thrower perspective)
             assists: teamEvents.filter(e => e.type === 'goal').length,
+            // Goals = goals (from receiver perspective)
             goals: teamEvents.filter(e => e.type === 'goal').length,
             throwaways: teamEvents.filter(e => e.type === 'throwaway').length,
             drops: teamEvents.filter(e => e.type === 'drop').length
         };
 
-        // Line type counts
+        // Line type counts (using action counts)
+        let oPoints = 0, dPoints = 0, oOutOfTo = 0, dOutOfTo = 0;
+        teamEvents.forEach(e => {
+            const actions = this.getActionCount(e);
+            if (e.line_type === 'O-Line' && !e.is_after_turnover) oPoints += actions;
+            else if (e.line_type === 'D-Line' && !e.is_after_turnover) dPoints += actions;
+            else if (e.line_type === 'O-Line' && e.is_after_turnover) oOutOfTo += actions;
+            else if (e.line_type === 'D-Line' && e.is_after_turnover) dOutOfTo += actions;
+        });
         this.lineTypeCounts = {
-            'o-points': teamEvents.filter(e => e.line_type === 'O-Line' && !e.is_after_turnover).length,
-            'd-points': teamEvents.filter(e => e.line_type === 'D-Line' && !e.is_after_turnover).length,
-            'o-out-of-to': teamEvents.filter(e => e.line_type === 'O-Line' && e.is_after_turnover).length,
-            'd-out-of-to': teamEvents.filter(e => e.line_type === 'D-Line' && e.is_after_turnover).length
+            'o-points': oPoints,
+            'd-points': dPoints,
+            'o-out-of-to': oOutOfTo,
+            'd-out-of-to': dOutOfTo
         };
 
-        // Period counts
+        // Period counts (using action counts)
         this.periodCounts = {};
         teamEvents.forEach(event => {
-            this.periodCounts[event.quarter] = (this.periodCounts[event.quarter] || 0) + 1;
+            const actions = this.getActionCount(event);
+            this.periodCounts[event.quarter] = (this.periodCounts[event.quarter] || 0) + actions;
         });
 
         // Update periods filter to include any quarters that exist
         const existingQuarters = Object.keys(this.periodCounts).map(Number);
         existingQuarters.forEach(q => this.filterState.periods.add(q));
 
-        // Pass type counts
+        // Pass type counts (using action counts)
         this.passTypeCounts = {
             huck: 0,
             swing: 0,
@@ -247,7 +300,8 @@ export class GamePassPlot {
         teamEvents.forEach(event => {
             const passType = this.classifyPassType(event);
             if (passType && this.passTypeCounts[passType] !== undefined) {
-                this.passTypeCounts[passType]++;
+                const actions = this.getActionCount(event);
+                this.passTypeCounts[passType] += actions;
             }
         });
     }

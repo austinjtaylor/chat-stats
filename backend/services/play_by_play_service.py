@@ -34,6 +34,11 @@ def process_team_events(
     points = []
     current_point = None
     current_point_events = []
+    timeout_in_current_point = False  # Track if timeout occurred in current point
+    turnovers_in_current_point = (
+        0  # Track turnover count to determine current O/D state
+    )
+    timeout_line_type = None  # Line type at time of timeout (may differ from starting)
 
     # Initialize point builder and event handlers
     point_builder = PointBuilder()
@@ -41,6 +46,22 @@ def process_team_events(
 
     for event in events:
         event_type = event["event_type"]
+
+        # Mid-point timeout - mark subsequent events in this point as "out of timeout"
+        if event_type in [3, 5]:  # TIMEOUT_MID_RECORDING or TIMEOUT_MID_OPPOSING
+            timeout_in_current_point = True
+            # Calculate current line type based on turnover count
+            # Even turnovers = same as starting, odd turnovers = opposite
+            starting_line_type = (
+                current_point["line_type"] if current_point else "O-Line"
+            )
+            if turnovers_in_current_point % 2 == 0:
+                timeout_line_type = starting_line_type
+            else:
+                timeout_line_type = (
+                    "D-Line" if starting_line_type == "O-Line" else "O-Line"
+                )
+            continue
 
         # Quarter end events
         if event_type in [28, 29, 30, 31]:  # Quarter/half/regulation ends
@@ -72,6 +93,9 @@ def process_team_events(
 
             # Create new point
             current_point = point_builder.create_point(event, team, player_lookup)
+            timeout_in_current_point = False  # Reset timeout tracking for new point
+            turnovers_in_current_point = 0  # Reset turnover tracking for new point
+            timeout_line_type = None  # Reset timeout line type for new point
             current_point_events = []
 
             # Add initial pull event if this team pulls
@@ -94,6 +118,9 @@ def process_team_events(
         elif event_type == 18:  # PASS
             pass_event = handlers.handle_pass_event(event)
             if pass_event:
+                pass_event["out_of_timeout"] = timeout_in_current_point
+                if timeout_in_current_point:
+                    pass_event["timeout_line_type"] = timeout_line_type
                 current_point_events.append(pass_event)
 
         # Goal events
@@ -101,6 +128,9 @@ def process_team_events(
             point_builder.update_score_for_goal(team, current_point)
             goal_event = handlers.handle_goal_event(event)
             if goal_event:
+                goal_event["out_of_timeout"] = timeout_in_current_point
+                if timeout_in_current_point:
+                    goal_event["timeout_line_type"] = timeout_line_type
                 current_point_events.append(goal_event)
 
         elif event_type == 15:  # SCORE_BY_OPPOSING (opponent scored)
@@ -110,31 +140,46 @@ def process_team_events(
 
         # Block events
         elif event_type == 11:  # BLOCK (this team got a block)
+            turnovers_in_current_point += 1  # Opponent lost possession
             block_event = handlers.handle_block_event(event)
             if block_event:
                 current_point_events.append(block_event)
 
         elif event_type == 12:  # BLOCK_BY_OPPOSING (opponent got a block)
+            turnovers_in_current_point += 1  # We lost possession
             opponent_block = handlers.handle_opponent_block_event(event)
             current_point_events.append(opponent_block)
 
         # Other turnovers
         elif event_type == 20:  # DROP
+            turnovers_in_current_point += 1  # We lost possession
             drop_event = handlers.handle_drop_event(event)
             if drop_event:
+                drop_event["out_of_timeout"] = timeout_in_current_point
+                if timeout_in_current_point:
+                    drop_event["timeout_line_type"] = timeout_line_type
                 current_point_events.append(drop_event)
 
         elif event_type == 22:  # THROWAWAY
+            turnovers_in_current_point += 1  # We lost possession
             throwaway_event = handlers.handle_throwaway_event(event)
             if throwaway_event:
+                throwaway_event["out_of_timeout"] = timeout_in_current_point
+                if timeout_in_current_point:
+                    throwaway_event["timeout_line_type"] = timeout_line_type
                 current_point_events.append(throwaway_event)
 
         elif event_type == 24:  # STALL
+            turnovers_in_current_point += 1  # We lost possession
             stall_event = handlers.handle_stall_event(event)
+            stall_event["out_of_timeout"] = timeout_in_current_point
+            if timeout_in_current_point:
+                stall_event["timeout_line_type"] = timeout_line_type
             current_point_events.append(stall_event)
 
         # Opponent turnovers
         elif event_type in [13, 14]:  # THROWAWAY_BY_OPPOSING or STALL_ON_OPPOSING
+            turnovers_in_current_point += 1  # Opponent lost possession
             turnover_type = "Throwaway" if event_type == 13 else "Stall"
             opponent_turnover = handlers.handle_opponent_turnover_event(
                 event, turnover_type
