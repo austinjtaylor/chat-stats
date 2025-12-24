@@ -3,6 +3,7 @@
  */
 
 import type { PassPlotEvent } from './game-pass-plot-types';
+import { classifyPassType } from './game-pass-plot-stats';
 
 /**
  * Info about which players are selected in filters (for solid/hollow styling)
@@ -124,25 +125,61 @@ function getOrCreateTooltip(): HTMLElement {
 }
 
 /**
+ * Calculate vertical yards for an event
+ */
+function calculateVerticalYards(event: PassPlotEvent): number | null {
+    const destY = event.receiver_y ?? event.turnover_y;
+    if (event.thrower_y === null || destY === null) {
+        return null;
+    }
+    return Math.round(destY - event.thrower_y);
+}
+
+/**
+ * Format pass type label
+ */
+function formatPassType(passType: string | null): string {
+    if (!passType) return '';
+    const labels: Record<string, string> = {
+        huck: 'Huck',
+        swing: 'Swing',
+        dump: 'Dump',
+        gainer: 'Gainer',
+        dish: 'Dish'
+    };
+    return labels[passType] || passType;
+}
+
+/**
  * Format tooltip content based on event type
  */
 function formatTooltipContent(event: PassPlotEvent): string {
     const thrower = event.thrower_name || 'Unknown';
     const receiver = event.receiver_name || 'Unknown';
+    const verticalYards = calculateVerticalYards(event);
+    const passType = classifyPassType(event);
+
+    // Build yards string (e.g., "+15 yds" or "-5 yds")
+    const yardsStr = verticalYards !== null
+        ? ` (${verticalYards >= 0 ? '+' : ''}${verticalYards} yds)`
+        : '';
+
+    // Build pass type string
+    const passTypeStr = passType ? ` · ${formatPassType(passType)}` : '';
 
     switch (event.type) {
         case 'pass':
-            return `${thrower} → ${receiver}`;
+            return `${thrower} → ${receiver}${yardsStr}${passTypeStr}`;
         case 'goal':
-            return `${thrower} → ${receiver} - Goal`;
+            return `${thrower} → ${receiver} - Goal${yardsStr}${passTypeStr}`;
         case 'drop':
-            return `${thrower} → ${receiver} - Drop`;
+            return `${thrower} → ${receiver} - Drop${yardsStr}${passTypeStr}`;
         case 'throwaway':
-            return `${thrower} - Throwaway`;
+            return `${thrower} - Throwaway${yardsStr}${passTypeStr}`;
         case 'stall':
             return `${thrower} - Stall`;
         default:
-            return `${thrower} → ${receiver}`;
+            return `${thrower} → ${receiver}${yardsStr}`;
     }
 }
 
