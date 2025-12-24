@@ -234,6 +234,7 @@ class EventHandlers:
             Drop event dict or None
         """
         receiver_last = event.get("receiver_last")
+        thrower_last = event.get("thrower_last")
         if not receiver_last:
             return None
 
@@ -241,14 +242,25 @@ class EventHandlers:
             int(event["turnover_y"]) if event.get("turnover_y") is not None else None
         )
 
+        # Format description like pass events so frontend can extract names
+        if thrower_last:
+            description = f"Dropped pass from {thrower_last} to {receiver_last}"
+        else:
+            description = f"Drop by {receiver_last}"
+
         return {
             "type": "drop",
-            "description": f"Drop by {receiver_last}",
+            "description": description,
             "yard_line": yard_line,
             "thrower_x": event.get("thrower_x"),
             "thrower_y": event.get("thrower_y"),
+            # Use turnover location as receiver location (where they tried to catch)
+            "receiver_x": event.get("receiver_x") or event.get("turnover_x"),
+            "receiver_y": event.get("receiver_y") or event.get("turnover_y"),
             "turnover_x": event.get("turnover_x"),
             "turnover_y": event.get("turnover_y"),
+            "thrower_id": event.get("thrower_id"),
+            "receiver_id": event.get("receiver_id"),
         }
 
     @staticmethod

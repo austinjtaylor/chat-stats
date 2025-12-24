@@ -64,6 +64,13 @@ export class GamePassPlot {
     private periodCounts: Record<number, number> = {};
     private passTypeCounts: Record<string, number> = {};
 
+    // Master lists of all players on the team (unfiltered) - used to keep players visible with 0 count
+    private masterThrowerList: PlayerInfo[] = [];
+    private masterReceiverList: PlayerInfo[] = [];
+
+    // Track if filters have been initialized (to differentiate first load vs user interaction)
+    private filtersInitialized = false;
+
     // DOM references
     private container: HTMLElement | null = null;
 
@@ -154,117 +161,175 @@ export class GamePassPlot {
     }
 
     /**
-     * Check if the disc traveled more than 1 yard for a turnover event.
-     * Used to determine if a throwaway/drop should count as a "throw" in event types.
-     */
-    private discTraveled(e: PassPlotEvent): boolean {
-        if (e.thrower_x === null || e.thrower_y === null) return false;
-        // For throwaways, check distance to turnover location
-        if (e.type === 'throwaway') {
-            if (e.turnover_x === null || e.turnover_y === null) return false;
-            const dist = Math.sqrt(
-                Math.pow(e.turnover_x - e.thrower_x, 2) +
-                Math.pow(e.turnover_y - e.thrower_y, 2)
-            );
-            return dist > 1;
-        }
-        // For drops, check distance to receiver location
-        if (e.type === 'drop') {
-            if (e.receiver_x === null || e.receiver_y === null) return false;
-            const dist = Math.sqrt(
-                Math.pow(e.receiver_x - e.thrower_x, 2) +
-                Math.pow(e.receiver_y - e.thrower_y, 2)
-            );
-            return dist > 1;
-        }
-        return true;
-    }
-
-    /**
      * Get the number of "actions" an event represents for filter counts.
-     * This matches how event types count actions (throws, catches, assists, goals).
-     * Turnovers that traveled count as 2 (they appear in both Throws and Throwaways/Drops).
+     * This matches UFA methodology:
+     * - Pass = 2 (throw + catch)
+     * - Goal = 2 (assist + goal)
+     * - Throwaway = 1 (just the turnover, throw not counted separately)
+     * - Drop = 2 (throw + drop, since receiver attempted catch)
+     * - Stall = 1
      */
     private getActionCount(event: PassPlotEvent): number {
         switch (event.type) {
             case 'pass': return 2;      // throw + catch
             case 'goal': return 2;      // assist + goal
-            case 'throwaway':
-            case 'drop':
-                // If disc traveled, counts as throw + turnover = 2
-                // Otherwise just turnover = 1
-                return this.discTraveled(event) ? 2 : 1;
+            case 'throwaway': return 1; // just the turnover (UFA methodology)
+            case 'drop': return 2;      // throw + drop (UFA methodology)
             case 'stall': return 1;     // stall only
             default: return 0;
         }
     }
 
-    private computeFilterCounts(): void {
-        // Filter events by current team first
+    private getEventsForFilterCount(excludeFilter: 'thrower' | 'receiver' | 'eventType' | 'lineType' | 'passType' | 'period'): PassPlotEvent[] {
+        return this.allEvents.filter(event => {
+            // Always apply team filter
+            if (event.team !== this.filterState.team) return false;
+
+            // Apply thrower filter (unless excluded or empty = all selected)
+            if (excludeFilter !== 'thrower' && this.filterState.throwers.size > 0 && event.thrower_name) {
+                if (!this.filterState.throwers.has(event.thrower_name)) return false;
+            }
+
+            // Apply receiver filter (unless excluded or empty = all selected)
+            if (excludeFilter !== 'receiver' && this.filterState.receivers.size > 0 &&
+                event.receiver_name && event.type !== 'drop' && event.type !== 'throwaway') {
+                if (!this.filterState.receivers.has(event.receiver_name)) return false;
+            }
+
+            // Apply event type filter (unless excluded or empty = all selected)
+            if (excludeFilter !== 'eventType' && this.filterState.eventTypes.size > 0) {
+                let eventTypeMatch = false;
+                if (event.type === 'pass') {
+                    eventTypeMatch = this.filterState.eventTypes.has('throws') ||
+                                    this.filterState.eventTypes.has('catches');
+                } else if (event.type === 'goal') {
+                    eventTypeMatch = this.filterState.eventTypes.has('goals') ||
+                                    this.filterState.eventTypes.has('assists');
+                } else if (event.type === 'throwaway') {
+                    eventTypeMatch = this.filterState.eventTypes.has('throwaways');
+                } else if (event.type === 'drop') {
+                    eventTypeMatch = this.filterState.eventTypes.has('drops');
+                }
+                if (!eventTypeMatch) return false;
+            }
+
+            // Apply line type filter (unless excluded or empty = all selected)
+            if (excludeFilter !== 'lineType' && this.filterState.lineTypes.size > 0) {
+                let lineTypeMatch = false;
+                if (event.line_type === 'O-Line') {
+                    lineTypeMatch = event.is_after_turnover
+                        ? this.filterState.lineTypes.has('o-out-of-to')
+                        : this.filterState.lineTypes.has('o-points');
+                } else if (event.line_type === 'D-Line') {
+                    lineTypeMatch = event.is_after_turnover
+                        ? this.filterState.lineTypes.has('d-out-of-to')
+                        : this.filterState.lineTypes.has('d-points');
+                }
+                if (!lineTypeMatch) return false;
+            }
+
+            // Apply period filter (unless excluded or empty = all selected)
+            if (excludeFilter !== 'period' && this.filterState.periods.size > 0) {
+                if (!this.filterState.periods.has(event.quarter)) return false;
+            }
+
+            // Apply pass type filter (unless excluded or empty = all selected)
+            if (excludeFilter !== 'passType' && this.filterState.passTypes.size > 0) {
+                const passType = this.classifyPassType(event);
+                if (passType && !this.filterState.passTypes.has(passType)) return false;
+            }
+
+            return true;
+        });
+    }
+
+    /**
+     * Build master player lists from ALL team events (unfiltered).
+     * This ensures all players remain visible in filter lists even when their count is 0.
+     */
+    private buildMasterPlayerLists(): void {
         const teamEvents = this.allEvents.filter(e => e.team === this.filterState.team);
 
-        // Build separate thrower and receiver lists with counts (using action counts)
-        const throwerCounts = new Map<string, { name: string; count: number }>();
-        const receiverCounts = new Map<string, { name: string; count: number }>();
-
+        // Build master thrower list from ALL team events
+        const allThrowers = new Map<string, string>();
         teamEvents.forEach(event => {
-            const actions = this.getActionCount(event);
-
-            // Count throwers (all events have a thrower)
-            if (event.thrower_name) {
-                const key = event.thrower_name;
-                const existing = throwerCounts.get(key) || { name: event.thrower_name, count: 0 };
-                existing.count += actions;
-                throwerCounts.set(key, existing);
-            }
-            // Count receivers (only pass/goal events have receivers)
-            if (event.receiver_name && event.type !== 'drop' && event.type !== 'throwaway') {
-                const key = event.receiver_name;
-                const existing = receiverCounts.get(key) || { name: event.receiver_name, count: 0 };
-                existing.count += actions;
-                receiverCounts.set(key, existing);
+            if (event.thrower_name && ['pass', 'goal', 'throwaway'].includes(event.type)) {
+                allThrowers.set(event.thrower_name, event.thrower_name);
             }
         });
-
-        this.throwerList = Array.from(throwerCounts.entries())
-            .map(([id, info]) => ({ id, name: info.name, count: info.count }))
+        this.masterThrowerList = Array.from(allThrowers.keys())
+            .map(name => ({ id: name, name, count: 0 }))
             .sort((a, b) => a.name.localeCompare(b.name));
 
-        this.receiverList = Array.from(receiverCounts.entries())
-            .map(([id, info]) => ({ id, name: info.name, count: info.count }))
+        // Build master receiver list from ALL team events
+        const allReceivers = new Map<string, string>();
+        teamEvents.forEach(event => {
+            if (event.receiver_name && ['pass', 'goal', 'drop'].includes(event.type)) {
+                allReceivers.set(event.receiver_name, event.receiver_name);
+            }
+        });
+        this.masterReceiverList = Array.from(allReceivers.keys())
+            .map(name => ({ id: name, name, count: 0 }))
             .sort((a, b) => a.name.localeCompare(b.name));
+    }
 
-        // If throwers filter is empty, select all throwers
-        if (this.filterState.throwers.size === 0) {
-            this.throwerList.forEach(p => this.filterState.throwers.add(p.id));
-        }
-        // If receivers filter is empty, select all receivers
-        if (this.filterState.receivers.size === 0) {
-            this.receiverList.forEach(p => this.filterState.receivers.add(p.id));
+    private computeFilterCounts(): void {
+        // Build master player lists on first load (before calculating filtered counts)
+        if (!this.filtersInitialized) {
+            this.buildMasterPlayerLists();
         }
 
-        // Event type counts - matching UFA methodology
-        // "Throws" counts passes + turnovers where the disc actually traveled (>1 yard)
-        // "Catches" counts passes only (goals are counted separately)
+        // Thrower counts - use master list to keep all players visible
+        const eventsForThrowers = this.getEventsForFilterCount('thrower');
+        const throwerCounts = new Map<string, number>();
+        eventsForThrowers.forEach(event => {
+            if (event.thrower_name && ['pass', 'goal', 'throwaway'].includes(event.type)) {
+                throwerCounts.set(event.thrower_name, (throwerCounts.get(event.thrower_name) || 0) + 1);
+            }
+        });
+        this.throwerList = this.masterThrowerList.map(p => ({
+            ...p,
+            count: throwerCounts.get(p.id) || 0
+        }));
+
+        // Receiver counts - use master list to keep all players visible
+        const eventsForReceivers = this.getEventsForFilterCount('receiver');
+        const receiverCounts = new Map<string, number>();
+        eventsForReceivers.forEach(event => {
+            if (event.receiver_name && ['pass', 'goal', 'drop'].includes(event.type)) {
+                receiverCounts.set(event.receiver_name, (receiverCounts.get(event.receiver_name) || 0) + 1);
+            }
+        });
+        this.receiverList = this.masterReceiverList.map(p => ({
+            ...p,
+            count: receiverCounts.get(p.id) || 0
+        }));
+
+        // Only auto-select all on first load (not when user deselects all)
+        if (!this.filtersInitialized) {
+            if (this.filterState.throwers.size === 0) {
+                this.throwerList.forEach(p => this.filterState.throwers.add(p.id));
+            }
+            if (this.filterState.receivers.size === 0) {
+                this.receiverList.forEach(p => this.filterState.receivers.add(p.id));
+            }
+        }
+
+        // Event type counts - exclude event type filter
+        const eventsForEventTypes = this.getEventsForFilterCount('eventType');
         this.eventTypeCounts = {
-            // Throws = passes + turnovers where disc traveled (not goals/assists)
-            throws: teamEvents.filter(e =>
-                (e.type === 'pass') ||
-                ((e.type === 'throwaway' || e.type === 'drop') && this.discTraveled(e))
-            ).length,
-            // Catches = passes only (not goals)
-            catches: teamEvents.filter(e => e.type === 'pass').length,
-            // Assists = goals (from thrower perspective)
-            assists: teamEvents.filter(e => e.type === 'goal').length,
-            // Goals = goals (from receiver perspective)
-            goals: teamEvents.filter(e => e.type === 'goal').length,
-            throwaways: teamEvents.filter(e => e.type === 'throwaway').length,
-            drops: teamEvents.filter(e => e.type === 'drop').length
+            throws: eventsForEventTypes.filter(e => e.type === 'pass' || e.type === 'drop').length,
+            catches: eventsForEventTypes.filter(e => e.type === 'pass').length,
+            assists: eventsForEventTypes.filter(e => e.type === 'goal').length,
+            goals: eventsForEventTypes.filter(e => e.type === 'goal').length,
+            throwaways: eventsForEventTypes.filter(e => e.type === 'throwaway').length,
+            drops: eventsForEventTypes.filter(e => e.type === 'drop').length
         };
 
-        // Line type counts (using action counts)
+        // Line type counts - exclude line type filter
+        const eventsForLineTypes = this.getEventsForFilterCount('lineType');
         let oPoints = 0, dPoints = 0, oOutOfTo = 0, dOutOfTo = 0;
-        teamEvents.forEach(e => {
+        eventsForLineTypes.forEach(e => {
             const actions = this.getActionCount(e);
             if (e.line_type === 'O-Line' && !e.is_after_turnover) oPoints += actions;
             else if (e.line_type === 'D-Line' && !e.is_after_turnover) dPoints += actions;
@@ -278,30 +343,30 @@ export class GamePassPlot {
             'd-out-of-to': dOutOfTo
         };
 
-        // Period counts (using action counts)
+        // Period counts - exclude period filter
+        const eventsForPeriods = this.getEventsForFilterCount('period');
         this.periodCounts = {};
-        teamEvents.forEach(event => {
+        eventsForPeriods.forEach(event => {
             const actions = this.getActionCount(event);
             this.periodCounts[event.quarter] = (this.periodCounts[event.quarter] || 0) + actions;
         });
 
-        // Update periods filter to include any quarters that exist
-        const existingQuarters = Object.keys(this.periodCounts).map(Number);
-        existingQuarters.forEach(q => this.filterState.periods.add(q));
+        // Only auto-select periods on first load
+        if (!this.filtersInitialized) {
+            if (this.filterState.periods.size === 0) {
+                const existingQuarters = Object.keys(this.periodCounts).map(Number);
+                existingQuarters.forEach(q => this.filterState.periods.add(q));
+            }
+            this.filtersInitialized = true;
+        }
 
-        // Pass type counts (using action counts)
-        this.passTypeCounts = {
-            huck: 0,
-            swing: 0,
-            dump: 0,
-            gainer: 0,
-            dish: 0
-        };
-        teamEvents.forEach(event => {
+        // Pass type counts - exclude pass type filter
+        const eventsForPassTypes = this.getEventsForFilterCount('passType');
+        this.passTypeCounts = { huck: 0, swing: 0, dump: 0, gainer: 0, dish: 0 };
+        eventsForPassTypes.forEach(event => {
             const passType = this.classifyPassType(event);
             if (passType && this.passTypeCounts[passType] !== undefined) {
-                const actions = this.getActionCount(event);
-                this.passTypeCounts[passType] += actions;
+                this.passTypeCounts[passType] += 1;
             }
         });
     }
@@ -311,48 +376,59 @@ export class GamePassPlot {
             // Team filter
             if (event.team !== this.filterState.team) return false;
 
-            // Thrower filter - check if thrower is in selected throwers
-            if (event.thrower_name && !this.filterState.throwers.has(event.thrower_name)) return false;
+            // Thrower filter (empty = all selected)
+            if (this.filterState.throwers.size > 0 && event.thrower_name) {
+                if (!this.filterState.throwers.has(event.thrower_name)) return false;
+            }
 
-            // Receiver filter - check if receiver is in selected receivers (skip for turnovers)
-            if (event.receiver_name && event.type !== 'drop' && event.type !== 'throwaway') {
+            // Receiver filter (empty = all selected, skip for turnovers)
+            if (this.filterState.receivers.size > 0 && event.receiver_name &&
+                event.type !== 'drop' && event.type !== 'throwaway') {
                 if (!this.filterState.receivers.has(event.receiver_name)) return false;
             }
 
-            // Event type filter
-            let eventTypeMatch = false;
-            if (event.type === 'pass') {
-                eventTypeMatch = this.filterState.eventTypes.has('throws') ||
-                                this.filterState.eventTypes.has('catches');
-            } else if (event.type === 'goal') {
-                eventTypeMatch = this.filterState.eventTypes.has('goals') ||
-                                this.filterState.eventTypes.has('assists');
-            } else if (event.type === 'throwaway') {
-                eventTypeMatch = this.filterState.eventTypes.has('throwaways');
-            } else if (event.type === 'drop') {
-                eventTypeMatch = this.filterState.eventTypes.has('drops');
+            // Event type filter (empty = all selected)
+            if (this.filterState.eventTypes.size > 0) {
+                let eventTypeMatch = false;
+                if (event.type === 'pass') {
+                    eventTypeMatch = this.filterState.eventTypes.has('throws') ||
+                                    this.filterState.eventTypes.has('catches');
+                } else if (event.type === 'goal') {
+                    eventTypeMatch = this.filterState.eventTypes.has('goals') ||
+                                    this.filterState.eventTypes.has('assists');
+                } else if (event.type === 'throwaway') {
+                    eventTypeMatch = this.filterState.eventTypes.has('throwaways');
+                } else if (event.type === 'drop') {
+                    eventTypeMatch = this.filterState.eventTypes.has('drops');
+                }
+                if (!eventTypeMatch) return false;
             }
-            if (!eventTypeMatch) return false;
 
-            // Line type filter
-            let lineTypeMatch = false;
-            if (event.line_type === 'O-Line') {
-                lineTypeMatch = event.is_after_turnover
-                    ? this.filterState.lineTypes.has('o-out-of-to')
-                    : this.filterState.lineTypes.has('o-points');
-            } else if (event.line_type === 'D-Line') {
-                lineTypeMatch = event.is_after_turnover
-                    ? this.filterState.lineTypes.has('d-out-of-to')
-                    : this.filterState.lineTypes.has('d-points');
+            // Line type filter (empty = all selected)
+            if (this.filterState.lineTypes.size > 0) {
+                let lineTypeMatch = false;
+                if (event.line_type === 'O-Line') {
+                    lineTypeMatch = event.is_after_turnover
+                        ? this.filterState.lineTypes.has('o-out-of-to')
+                        : this.filterState.lineTypes.has('o-points');
+                } else if (event.line_type === 'D-Line') {
+                    lineTypeMatch = event.is_after_turnover
+                        ? this.filterState.lineTypes.has('d-out-of-to')
+                        : this.filterState.lineTypes.has('d-points');
+                }
+                if (!lineTypeMatch) return false;
             }
-            if (!lineTypeMatch) return false;
 
-            // Period filter
-            if (!this.filterState.periods.has(event.quarter)) return false;
+            // Period filter (empty = all selected)
+            if (this.filterState.periods.size > 0) {
+                if (!this.filterState.periods.has(event.quarter)) return false;
+            }
 
-            // Pass type filter
-            const passType = this.classifyPassType(event);
-            if (passType && !this.filterState.passTypes.has(passType)) return false;
+            // Pass type filter (empty = all selected)
+            if (this.filterState.passTypes.size > 0) {
+                const passType = this.classifyPassType(event);
+                if (passType && !this.filterState.passTypes.has(passType)) return false;
+            }
 
             return true;
         });
@@ -659,6 +735,23 @@ export class GamePassPlot {
         return (fieldX * 10) + 266.5;
     }
 
+    private onFilterChange(): void {
+        // Save scroll position before re-render (the scrollable element is .game-pass-plot-filters)
+        const filtersPanel = document.querySelector('.game-pass-plot-filters');
+        const scrollTop = filtersPanel?.scrollTop ?? 0;
+
+        // Recalculate all filter counts based on current selections
+        this.computeFilterCounts();
+        // Re-render the entire pass plot with updated counts
+        this.renderPassPlot();
+
+        // Restore scroll position after re-render
+        const newFiltersPanel = document.querySelector('.game-pass-plot-filters');
+        if (newFiltersPanel) {
+            newFiltersPanel.scrollTop = scrollTop;
+        }
+    }
+
     private renderEventsOnField(): void {
         const eventsLayer = document.getElementById('fieldEventsLayer');
         if (!eventsLayer) return;
@@ -889,8 +982,8 @@ export class GamePassPlot {
         };
 
         for (const event of filteredEvents) {
-            // Count throws (pass, goal, throwaway events)
-            if (['pass', 'goal', 'throwaway'].includes(event.type)) {
+            // Count throws (pass, goal, throwaway, drop events)
+            if (['pass', 'goal', 'throwaway', 'drop'].includes(event.type)) {
                 totalThrows++;
 
                 // Calculate yards
@@ -899,7 +992,7 @@ export class GamePassPlot {
                     totalYards += yards;
                 }
 
-                // Classify pass type and count
+                // Classify pass type and count (includes turnovers)
                 const passType = this.classifyPassType(event);
                 if (passType && byType[passType]) {
                     byType[passType].count++;
@@ -1006,9 +1099,10 @@ export class GamePassPlot {
                 const team = (e.target as HTMLElement).dataset.team as 'home' | 'away';
                 if (team && team !== this.filterState.team) {
                     this.filterState.team = team;
-                    // Reset player selection when team changes
+                    // Reset player selection and rebuild master lists when team changes
                     this.filterState.throwers.clear();
                     this.filterState.receivers.clear();
+                    this.filtersInitialized = false;  // Force rebuild of master player lists
                     this.computeFilterCounts();
                     this.renderPassPlot();
                 }
@@ -1025,7 +1119,7 @@ export class GamePassPlot {
                 } else {
                     this.filterState.throwers.delete(playerId);
                 }
-                this.renderEventsOnField();
+                this.onFilterChange();
             });
         });
 
@@ -1039,7 +1133,7 @@ export class GamePassPlot {
                 } else {
                     this.filterState.receivers.delete(playerId);
                 }
-                this.renderEventsOnField();
+                this.onFilterChange();
             });
         });
 
@@ -1053,7 +1147,7 @@ export class GamePassPlot {
                 } else {
                     this.filterState.eventTypes.delete(eventType);
                 }
-                this.renderEventsOnField();
+                this.onFilterChange();
             });
         });
 
@@ -1067,7 +1161,7 @@ export class GamePassPlot {
                 } else {
                     this.filterState.lineTypes.delete(lineType);
                 }
-                this.renderEventsOnField();
+                this.onFilterChange();
             });
         });
 
@@ -1081,7 +1175,7 @@ export class GamePassPlot {
                 } else {
                     this.filterState.periods.delete(period);
                 }
-                this.renderEventsOnField();
+                this.onFilterChange();
             });
         });
 
@@ -1095,7 +1189,7 @@ export class GamePassPlot {
                 } else {
                     this.filterState.passTypes.delete(passType);
                 }
-                this.renderEventsOnField();
+                this.onFilterChange();
             });
         });
 
@@ -1140,7 +1234,7 @@ export class GamePassPlot {
                     this.filterState.passTypes.add(pt));
                 break;
         }
-        this.renderPassPlot();
+        this.onFilterChange();
     }
 
     private deselectAll(filterType: string): void {
@@ -1164,7 +1258,7 @@ export class GamePassPlot {
                 this.filterState.passTypes.clear();
                 break;
         }
-        this.renderPassPlot();
+        this.onFilterChange();
     }
 }
 
