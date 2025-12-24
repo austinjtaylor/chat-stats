@@ -20,7 +20,8 @@ import {
 import {
     renderSVGField,
     renderEventsOnField,
-    renderLegend
+    renderLegend,
+    type HighlightInfo
 } from './game-pass-plot-field';
 import { computeStats, renderStatsPanel } from './game-pass-plot-stats';
 import {
@@ -158,7 +159,13 @@ export class GamePassPlot {
         `;
 
         this.container.innerHTML = html;
-        renderEventsOnField(filteredEvents);
+
+        // Pass highlight info for solid/hollow marker styling
+        const highlightInfo: HighlightInfo = {
+            selectedThrowers: this.filterState.throwers,
+            selectedReceivers: this.filterState.receivers
+        };
+        renderEventsOnField(filteredEvents, highlightInfo);
         this.attachEventListeners();
     }
 
