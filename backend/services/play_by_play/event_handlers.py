@@ -379,3 +379,101 @@ class EventHandlers:
             "description": "They scored",
             "yard_line": None,
         }
+
+    @staticmethod
+    def handle_timeout_event(
+        previous_line: list[str],
+        current_line: list[str],
+        player_lookup: dict[str, dict[str, str]],
+    ) -> dict[str, Any]:
+        """
+        Handle timeout event with substitution tracking.
+
+        Args:
+            previous_line: Player IDs on field before timeout
+            current_line: Player IDs on field after timeout
+            player_lookup: Dictionary mapping player_id to dict with full_name and last_name
+
+        Returns:
+            Timeout event dict with substitution info
+        """
+        previous_set = set(previous_line) if previous_line else set()
+        current_set = set(current_line) if current_line else set()
+
+        players_off = previous_set - current_set
+        players_on = current_set - previous_set
+
+        # Convert player IDs to last names
+        def get_last_name(player_id: str) -> str:
+            player = player_lookup.get(player_id, {})
+            return player.get("last_name", player_id)
+
+        off_names = sorted([get_last_name(p) for p in players_off])
+        on_names = sorted([get_last_name(p) for p in players_on])
+
+        # Build description
+        if len(players_on) >= 7:
+            # Wholesale substitution (entire line changed)
+            description = f"Timeout; Wholesale; {', '.join(on_names)} came on"
+        elif players_on or players_off:
+            # Partial substitution
+            parts = ["Timeout"]
+            if off_names:
+                parts.append(f"{', '.join(off_names)} came off")
+            if on_names:
+                parts.append(f"{', '.join(on_names)} came on")
+            description = "; ".join(parts)
+        else:
+            description = "Timeout"
+
+        return {
+            "type": "timeout",
+            "description": description,
+            "yard_line": None,
+        }
+
+    @staticmethod
+    def handle_injury_event(
+        previous_line: list[str],
+        current_line: list[str],
+        player_lookup: dict[str, dict[str, str]],
+    ) -> dict[str, Any]:
+        """
+        Handle injury event with substitution tracking.
+
+        Args:
+            previous_line: Player IDs on field before injury
+            current_line: Player IDs on field after injury
+            player_lookup: Dictionary mapping player_id to dict with full_name and last_name
+
+        Returns:
+            Injury event dict with substitution info
+        """
+        previous_set = set(previous_line) if previous_line else set()
+        current_set = set(current_line) if current_line else set()
+
+        players_off = previous_set - current_set
+        players_on = current_set - previous_set
+
+        # Convert player IDs to last names
+        def get_last_name(player_id: str) -> str:
+            player = player_lookup.get(player_id, {})
+            return player.get("last_name", player_id)
+
+        off_names = sorted([get_last_name(p) for p in players_off])
+        on_names = sorted([get_last_name(p) for p in players_on])
+
+        # Build description
+        parts = ["Injury"]
+        if off_names:
+            parts.append(f"{', '.join(off_names)} came off")
+        if on_names:
+            parts.append(f"{', '.join(on_names)} came on")
+
+        description = "; ".join(parts) if len(parts) > 1 else "Injury"
+
+        return {
+            "type": "injury",
+            "description": description,
+            "yard_line": None,
+        }

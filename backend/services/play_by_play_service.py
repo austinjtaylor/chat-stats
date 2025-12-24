@@ -12,9 +12,20 @@ See backend/services/play_by_play/ for the new modular structure:
 Total: 739 lines across 3 focused service modules (was 577 lines in 1 monolithic file)
 """
 
+import json
 from typing import Any
 
 from .play_by_play import EventHandlers, PlayerEnrichment, PointBuilder
+
+
+def parse_line_players(line_players_json: str | None) -> list[str]:
+    """Parse line_players JSON string to list of player IDs."""
+    if not line_players_json:
+        return []
+    try:
+        return json.loads(line_players_json)
+    except (json.JSONDecodeError, TypeError):
+        return []
 
 
 def process_team_events(
@@ -39,16 +50,22 @@ def process_team_events(
         0  # Track turnover count to determine current O/D state
     )
     timeout_line_type = None  # Line type at time of timeout (may differ from starting)
+    current_line: list[str] = []  # Track current players on the field
 
     # Initialize point builder and event handlers
     point_builder = PointBuilder()
     handlers = EventHandlers()
 
     for event in events:
+        # Update current line if this event has line_players
+        previous_line = current_line.copy()
+        event_line = parse_line_players(event.get("line_players"))
+        if event_line:
+            current_line = event_line
         event_type = event["event_type"]
 
-        # Mid-point timeout - mark subsequent events in this point as "out of timeout"
-        if event_type in [3, 5]:  # TIMEOUT_MID_RECORDING or TIMEOUT_MID_OPPOSING
+        # Timeout events - add event and mark subsequent events as "out of timeout"
+        if event_type in [3, 4, 5, 6]:  # All timeout types
             timeout_in_current_point = True
             # Calculate current line type based on turnover count
             # Even turnovers = same as starting, odd turnovers = opposite
@@ -61,6 +78,19 @@ def process_team_events(
                 timeout_line_type = (
                     "D-Line" if starting_line_type == "O-Line" else "O-Line"
                 )
+            # Add timeout event to the play-by-play
+            timeout_event = handlers.handle_timeout_event(
+                previous_line, current_line, player_lookup
+            )
+            current_point_events.append(timeout_event)
+            continue
+
+        # Injury events
+        if event_type == 25:  # INJURY
+            injury_event = handlers.handle_injury_event(
+                previous_line, current_line, player_lookup
+            )
+            current_point_events.append(injury_event)
             continue
 
         # Quarter end events
