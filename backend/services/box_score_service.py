@@ -140,10 +140,14 @@ def calculate_team_stats(
 
     # Add red zone stats if available
     if redzone_stats:
+        rz_goals = redzone_stats.get("redzone_goals", 0)
+        rz_attempts = redzone_stats.get("redzone_attempts", 0)
+        rz_pct = round((rz_goals / rz_attempts * 100), 1) if rz_attempts > 0 else 0
+
         result["redzone_conversion"] = {
-            "percentage": redzone_stats.get("percentage", 0),
-            "made": redzone_stats.get("goals", 0),
-            "total": redzone_stats.get("possessions", 0),
+            "percentage": rz_pct,
+            "made": rz_goals,
+            "total": rz_attempts,
         }
 
     return result
