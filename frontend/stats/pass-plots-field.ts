@@ -78,6 +78,10 @@ export function createFieldSVG(): SVGSVGElement {
     return svg;
 }
 
+// Marker sizes
+const SQUARE_HALF_SIZE = 5;
+const CIRCLE_RADIUS = 5;
+
 export function createEventElement(event: PassEvent): SVGGElement | null {
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     g.classList.add('field-event');
@@ -93,28 +97,54 @@ export function createEventElement(event: PassEvent): SVGGElement | null {
         return null;
     }
 
-    // Draw line
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('x1', String(fieldXToSVG(startX)));
-    line.setAttribute('y1', String(fieldYToSVG(startY)));
-    line.setAttribute('x2', String(fieldXToSVG(endX)));
-    line.setAttribute('y2', String(fieldYToSVG(endY)));
-    line.setAttribute('stroke', color);
-    line.setAttribute('stroke-width', '2');
-    line.setAttribute('stroke-opacity', '0.5');
-    g.appendChild(line);
+    const svgStartX = fieldXToSVG(startX);
+    const svgStartY = fieldYToSVG(startY);
+    const svgEndX = fieldXToSVG(endX);
+    const svgEndY = fieldYToSVG(endY);
 
-    // Draw end marker
-    const svgX = fieldXToSVG(endX);
-    const svgY = fieldYToSVG(endY);
+    // Calculate line endpoints that stop at marker edges
+    const dx = svgEndX - svgStartX;
+    const dy = svgEndY - svgStartY;
+    const length = Math.sqrt(dx * dx + dy * dy);
 
+    if (length > 0) {
+        const nx = dx / length;
+        const ny = dy / length;
+
+        const lineStartX = svgStartX + nx * SQUARE_HALF_SIZE;
+        const lineStartY = svgStartY + ny * SQUARE_HALF_SIZE;
+        const lineEndX = svgEndX - nx * CIRCLE_RADIUS;
+        const lineEndY = svgEndY - ny * CIRCLE_RADIUS;
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', String(lineStartX));
+        line.setAttribute('y1', String(lineStartY));
+        line.setAttribute('x2', String(lineEndX));
+        line.setAttribute('y2', String(lineEndY));
+        line.setAttribute('stroke', color);
+        line.setAttribute('stroke-width', '2');
+        line.setAttribute('stroke-opacity', '0.5');
+        g.appendChild(line);
+    }
+
+    // Draw end marker (circle) FIRST so square overlays when at same position
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    circle.setAttribute('cx', String(svgX));
-    circle.setAttribute('cy', String(svgY));
-    circle.setAttribute('r', '4');
+    circle.setAttribute('cx', String(svgEndX));
+    circle.setAttribute('cy', String(svgEndY));
+    circle.setAttribute('r', String(CIRCLE_RADIUS));
     circle.setAttribute('fill', color);
     circle.setAttribute('fill-opacity', '0.7');
     g.appendChild(circle);
+
+    // Draw start marker (square) LAST so it overlays circle
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', String(svgStartX - SQUARE_HALF_SIZE));
+    rect.setAttribute('y', String(svgStartY - SQUARE_HALF_SIZE));
+    rect.setAttribute('width', String(SQUARE_HALF_SIZE * 2));
+    rect.setAttribute('height', String(SQUARE_HALF_SIZE * 2));
+    rect.setAttribute('fill', color);
+    rect.setAttribute('fill-opacity', '0.7');
+    g.appendChild(rect);
 
     return g;
 }

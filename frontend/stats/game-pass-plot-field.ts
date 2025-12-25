@@ -218,8 +218,12 @@ export function createEventElement(event: PassPlotEvent, highlightInfo: Highligh
         endY = event.turnover_y;
     }
 
-    // Calculate line endpoints that stop at marker edges
-    if (startX !== null && startY !== null && endX !== null && endY !== null) {
+    // Determine if this event type uses an end marker
+    const usesCircleEnd = event.type === 'pass' || event.type === 'goal' || event.type === 'drop';
+    const usesEndMarker = usesCircleEnd || event.type === 'stall'; // throwaway has no end marker
+
+    // Calculate line endpoints that stop at marker edges (skip line for stall)
+    if (startX !== null && startY !== null && endX !== null && endY !== null && event.type !== 'stall') {
         const svgStartX = fieldXToSVG(startX);
         const svgStartY = fieldYToSVG(startY);
         const svgEndX = fieldXToSVG(endX);
@@ -238,8 +242,9 @@ export function createEventElement(event: PassPlotEvent, highlightInfo: Highligh
             // Shorten line by marker sizes at each end
             const lineStartX = svgStartX + nx * SQUARE_HALF_SIZE;
             const lineStartY = svgStartY + ny * SQUARE_HALF_SIZE;
-            const lineEndX = svgEndX - nx * CIRCLE_RADIUS;
-            const lineEndY = svgEndY - ny * CIRCLE_RADIUS;
+            // Only shorten end if there's an end marker
+            const lineEndX = usesEndMarker ? svgEndX - nx * CIRCLE_RADIUS : svgEndX;
+            const lineEndY = usesEndMarker ? svgEndY - ny * CIRCLE_RADIUS : svgEndY;
 
             const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
             line.setAttribute('x1', String(lineStartX));
@@ -253,13 +258,11 @@ export function createEventElement(event: PassPlotEvent, highlightInfo: Highligh
         }
     }
 
-    // Draw end marker (circle) FIRST so square overlays it when at same position
-    if (endX !== null && endY !== null) {
+    // Draw end marker (circle for catches, square for stall only)
+    // Throwaway has no end marker
+    if (endX !== null && endY !== null && usesEndMarker) {
         const svgX = fieldXToSVG(endX);
         const svgY = fieldYToSVG(endY);
-
-        // For passes and goals, use circle at end; for turnovers use square
-        const usesCircleEnd = event.type === 'pass' || event.type === 'goal' || event.type === 'drop';
 
         if (usesCircleEnd) {
             const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -276,15 +279,14 @@ export function createEventElement(event: PassPlotEvent, highlightInfo: Highligh
                 circle.setAttribute('stroke-width', '1.5');
             }
             g.appendChild(circle);
-        } else {
-            // Throwaway and stall use square at end
+        } else if (event.type === 'stall') {
+            // Stall: just a square at turnover position (no line)
             const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
             rect.setAttribute('x', String(svgX - SQUARE_HALF_SIZE));
             rect.setAttribute('y', String(svgY - SQUARE_HALF_SIZE));
             rect.setAttribute('width', String(SQUARE_HALF_SIZE * 2));
             rect.setAttribute('height', String(SQUARE_HALF_SIZE * 2));
 
-            // For turnovers, the end marker inherits thrower's highlight state
             if (throwerHighlighted) {
                 rect.setAttribute('fill', color);
                 rect.setAttribute('fill-opacity', '0.8');
@@ -367,13 +369,13 @@ export function renderEventsOnField(filteredEvents: PassPlotEvent[], highlightIn
  */
 export function renderLegend(): string {
     // Legend items with start/end marker info
-    // startShape: 'square' | null, endShape: 'square' | 'circle'
+    // startShape: 'square' | null, endShape: 'square' | 'circle' | null, hasLine: boolean
     const legendItems = [
-        { label: 'Pass', color: '#3B82F6', startShape: 'square', endShape: 'circle' },
-        { label: 'Drop', color: '#EF4444', startShape: 'square', endShape: 'circle' },
-        { label: 'Throwaway', color: '#EF4444', startShape: 'square', endShape: 'square' },
-        { label: 'Stall', color: '#8B5CF6', startShape: null, endShape: 'square' },
-        { label: 'Score', color: '#22C55E', startShape: 'square', endShape: 'circle' }
+        { label: 'Pass', color: '#3B82F6', startShape: 'square', endShape: 'circle', hasLine: true },
+        { label: 'Drop', color: '#EF4444', startShape: 'square', endShape: 'circle', hasLine: true },
+        { label: 'Throwaway', color: '#EF4444', startShape: 'square', endShape: null, hasLine: true },
+        { label: 'Stall', color: '#8B5CF6', startShape: 'square', endShape: null, hasLine: false },
+        { label: 'Score', color: '#22C55E', startShape: 'square', endShape: 'circle', hasLine: true }
     ];
 
     return `
@@ -381,8 +383,8 @@ export function renderLegend(): string {
             ${legendItems.map(item => `
                 <div class="legend-item">
                     ${item.startShape ? `<span class="legend-marker square" style="background: ${item.color};"></span>` : ''}
-                    <span class="legend-line" style="background: ${item.color};"></span>
-                    <span class="legend-marker ${item.endShape}" style="background: ${item.color};"></span>
+                    ${item.hasLine ? `<span class="legend-line" style="background: ${item.color};"></span>` : ''}
+                    ${item.endShape ? `<span class="legend-marker ${item.endShape}" style="background: ${item.color};"></span>` : ''}
                     <span class="legend-label">${item.label}</span>
                 </div>
             `).join('')}
