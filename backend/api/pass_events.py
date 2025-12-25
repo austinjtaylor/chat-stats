@@ -122,8 +122,7 @@ def create_pass_events_routes(stats_system):
 
         if pass_types:
             types_list = [t.strip() for t in pass_types.split(",")]
-            # Include NULL pass_types (unclassified throws) along with selected types
-            query += " AND (ge.pass_type IN :pass_types OR ge.pass_type IS NULL)"
+            query += " AND ge.pass_type IN :pass_types"
             params["pass_types"] = tuple(types_list)
 
         if results:

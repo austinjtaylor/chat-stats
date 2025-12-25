@@ -165,27 +165,40 @@
                 </div>
 
                 <h3 class="filter-section-title">Pass Type</h3>
-                <div class="checkbox-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="typeHuck" checked>
-                        Hucks
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="typeSwing" checked>
-                        Swings
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="typeDump" checked>
-                        Dumps
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="typeGainer" checked>
-                        Gainers
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="typeDish" checked>
-                        Dishes
-                    </label>
+                <div class="filter-group">
+                    <div class="filter-group-header">
+                        <div class="filter-group-actions">
+                            <button class="filter-action-btn select-all-btn" data-filter="passTypes">Select all</button>
+                            <button class="filter-action-btn deselect-all-btn" data-filter="passTypes">Deselect all</button>
+                        </div>
+                    </div>
+                    <div class="filter-checkbox-list" id="passTypeFilters">
+                        <div class="filter-checkbox-item">
+                            <input type="checkbox" id="typeHuck" checked>
+                            <label for="typeHuck">Hucks</label>
+                            <span class="count" id="countHucks">(0)</span>
+                        </div>
+                        <div class="filter-checkbox-item">
+                            <input type="checkbox" id="typeSwing" checked>
+                            <label for="typeSwing">Swings</label>
+                            <span class="count" id="countSwings">(0)</span>
+                        </div>
+                        <div class="filter-checkbox-item">
+                            <input type="checkbox" id="typeDump" checked>
+                            <label for="typeDump">Dumps</label>
+                            <span class="count" id="countDumps">(0)</span>
+                        </div>
+                        <div class="filter-checkbox-item">
+                            <input type="checkbox" id="typeGainer" checked>
+                            <label for="typeGainer">Gainers</label>
+                            <span class="count" id="countGainers">(0)</span>
+                        </div>
+                        <div class="filter-checkbox-item">
+                            <input type="checkbox" id="typeDish" checked>
+                            <label for="typeDish">Dishes</label>
+                            <span class="count" id="countDishes">(0)</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 

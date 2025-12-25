@@ -324,6 +324,29 @@ export class PassPlots {
             }
         });
 
+        // Pass type select all/deselect all
+        document.querySelectorAll('[data-filter="passTypes"].select-all-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                ['huck', 'swing', 'dump', 'gainer', 'dish'].forEach(pt => {
+                    this.filterState.pass_types.add(pt);
+                    const checkbox = document.getElementById(`type${pt.charAt(0).toUpperCase() + pt.slice(1)}`) as HTMLInputElement;
+                    if (checkbox) checkbox.checked = true;
+                });
+                this.loadData();
+            });
+        });
+
+        document.querySelectorAll('[data-filter="passTypes"].deselect-all-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.filterState.pass_types.clear();
+                ['Huck', 'Swing', 'Dump', 'Gainer', 'Dish'].forEach(type => {
+                    const checkbox = document.getElementById(`type${type}`) as HTMLInputElement;
+                    if (checkbox) checkbox.checked = false;
+                });
+                this.loadData();
+            });
+        });
+
         // Range sliders
         this.setupRangeSlider('originY', (min, max) => {
             this.filterState.origin_y_min = min;
@@ -438,6 +461,7 @@ export class PassPlots {
             this.updateEventCount();
             this.updateStatsPanel();
             this.updateEventTypeCounts();
+            this.updatePassTypeCounts();
             this.renderVisualization();
         } catch (error) {
             console.error('Failed to load pass events:', error);
@@ -528,6 +552,28 @@ export class PassPlots {
     private setCountValue(id: string, count: number): void {
         const el = document.getElementById(id);
         if (el) el.textContent = `(${count.toLocaleString()})`;
+    }
+
+    private updatePassTypeCounts(): void {
+        const counts: Record<string, number> = {
+            huck: 0,
+            swing: 0,
+            dump: 0,
+            gainer: 0,
+            dish: 0
+        };
+
+        for (const event of this.events) {
+            if (event.pass_type && event.pass_type in counts) {
+                counts[event.pass_type]++;
+            }
+        }
+
+        this.setCountValue('countHucks', counts.huck);
+        this.setCountValue('countSwings', counts.swing);
+        this.setCountValue('countDumps', counts.dump);
+        this.setCountValue('countGainers', counts.gainer);
+        this.setCountValue('countDishes', counts.dish);
     }
 
     private renderVisualization(): void {
