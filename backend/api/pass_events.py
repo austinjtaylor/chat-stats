@@ -139,25 +139,25 @@ def create_pass_events_routes(stats_system):
                 query += f" AND ({' OR '.join(result_conditions)})"
 
         # Event types filter (alternative to results, more granular)
-        # Maps: throws (18,19,22), catches (18,19), assists (19), goals (19),
-        #       throwaways (22), drops (20)
+        # Each checkbox controls specific event types independently:
+        # - throws/catches: completions (18)
+        # - assists/goals: scoring plays (19)
+        # - throwaways: throwaway turnovers (22)
+        # - drops: drop turnovers (20)
         if event_types:
             event_types_list = [et.strip() for et in event_types.split(",")]
             event_conditions = []
-            # Event type 18 (pass): matches 'throws' or 'catches'
+            # Event type 18 (completion): controlled by 'throws' or 'catches'
             if "throws" in event_types_list or "catches" in event_types_list:
                 event_conditions.append("ge.event_type = 18")
-            # Event type 19 (goal): matches 'throws', 'catches', 'assists', or 'goals'
-            if any(
-                et in event_types_list
-                for et in ["throws", "catches", "assists", "goals"]
-            ):
+            # Event type 19 (goal): controlled by 'assists' or 'goals'
+            if "assists" in event_types_list or "goals" in event_types_list:
                 event_conditions.append("ge.event_type = 19")
-            # Event type 20 (drop): matches 'drops'
+            # Event type 20 (drop): controlled by 'drops' only
             if "drops" in event_types_list:
                 event_conditions.append("ge.event_type = 20")
-            # Event type 22 (throwaway): matches 'throws' or 'throwaways'
-            if "throws" in event_types_list or "throwaways" in event_types_list:
+            # Event type 22 (throwaway): controlled by 'throwaways' only
+            if "throwaways" in event_types_list:
                 event_conditions.append("ge.event_type = 22")
             if event_conditions:
                 query += f" AND ({' OR '.join(event_conditions)})"

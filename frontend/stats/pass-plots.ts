@@ -403,15 +403,41 @@ export class PassPlots {
         this.showLoading(true);
 
         try {
-            const params = buildQueryParams(this.filterState);
-            const response = await fetch(`${API_BASE_URL}/api/pass-events?${params}`);
-            const data: PassEventsResponse = await response.json();
+            // If no event types are selected, show empty results
+            if (this.filterState.event_types.size === 0) {
+                this.events = [];
+                this.stats = {
+                    total_throws: 0,
+                    completions: 0,
+                    completions_pct: 0,
+                    turnovers: 0,
+                    turnovers_pct: 0,
+                    goals: 0,
+                    goals_pct: 0,
+                    total_yards: 0,
+                    completion_yards: 0,
+                    avg_yards_per_throw: 0,
+                    avg_yards_per_completion: 0,
+                    by_type: {
+                        huck: { count: 0, pct: 0 },
+                        swing: { count: 0, pct: 0 },
+                        dump: { count: 0, pct: 0 },
+                        gainer: { count: 0, pct: 0 },
+                        dish: { count: 0, pct: 0 }
+                    }
+                };
+            } else {
+                const params = buildQueryParams(this.filterState);
+                const response = await fetch(`${API_BASE_URL}/api/pass-events?${params}`);
+                const data: PassEventsResponse = await response.json();
 
-            this.events = data.events;
-            this.stats = data.stats;
+                this.events = data.events;
+                this.stats = data.stats;
+            }
 
             this.updateEventCount();
             this.updateStatsPanel();
+            this.updateEventTypeCounts();
             this.renderVisualization();
         } catch (error) {
             console.error('Failed to load pass events:', error);
@@ -463,6 +489,45 @@ export class PassPlots {
     private setStatValue(id: string, value: string): void {
         const el = document.getElementById(id);
         if (el) el.innerHTML = value;
+    }
+
+    private updateEventTypeCounts(): void {
+        // Count by event_type from the API
+        let throws = 0;      // All events have throws
+        let catches = 0;     // Completions (18, 19)
+        let assists = 0;     // Goals (19) - the throw
+        let goals = 0;       // Goals (19) - the catch
+        let throwaways = 0;  // Event type 22
+        let drops = 0;       // Event type 20
+
+        for (const event of this.events) {
+            throws++;  // Every event is a throw
+
+            if (event.event_type === 18) {
+                catches++;
+            } else if (event.event_type === 19) {
+                catches++;
+                assists++;
+                goals++;
+            } else if (event.event_type === 20) {
+                drops++;
+            } else if (event.event_type === 22) {
+                throwaways++;
+            }
+        }
+
+        // Update DOM
+        this.setCountValue('countThrows', throws);
+        this.setCountValue('countCatches', catches);
+        this.setCountValue('countAssists', assists);
+        this.setCountValue('countGoals', goals);
+        this.setCountValue('countThrowaways', throwaways);
+        this.setCountValue('countDrops', drops);
+    }
+
+    private setCountValue(id: string, count: number): void {
+        const el = document.getElementById(id);
+        if (el) el.textContent = `(${count.toLocaleString()})`;
     }
 
     private renderVisualization(): void {
