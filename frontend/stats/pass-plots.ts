@@ -21,7 +21,7 @@ import {
     buildQueryParams,
     getDefaultFilterState
 } from './pass-plots-filters';
-import { renderThrowLines } from './pass-plots-field';
+import { renderThrowLines, type HighlightInfo } from './pass-plots-field';
 import { renderHeatmap } from './pass-plots-heatmap';
 
 // Get API base URL from environment
@@ -46,6 +46,10 @@ export class PassPlots {
 
     // Debounce timer for slider changes
     private sliderDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    // Base counts for filter categories (not affected by selections within same category)
+    private baseEventTypeCounts: Record<string, number> = {};
+    private basePassTypeCounts: Record<string, number> = {};
 
     constructor() {
         this.filterState = getDefaultFilterState();
@@ -283,7 +287,7 @@ export class PassPlots {
                 } else {
                     this.filterState.event_types.delete(eventType);
                 }
-                this.loadData();
+                this.loadData('eventTypes');
             });
         });
 
@@ -295,7 +299,7 @@ export class PassPlots {
                     const checkbox = document.querySelector(`[data-filter="eventType"][data-value="${et}"]`) as HTMLInputElement;
                     if (checkbox) checkbox.checked = true;
                 });
-                this.loadData();
+                this.loadData('eventTypes');
             });
         });
 
@@ -305,7 +309,7 @@ export class PassPlots {
                 document.querySelectorAll('[data-filter="eventType"]').forEach(checkbox => {
                     (checkbox as HTMLInputElement).checked = false;
                 });
-                this.loadData();
+                this.loadData('eventTypes');
             });
         });
 
@@ -319,7 +323,7 @@ export class PassPlots {
                     } else {
                         this.filterState.pass_types.delete(type.toLowerCase());
                     }
-                    this.loadData();
+                    this.loadData('passTypes');
                 });
             }
         });
@@ -332,7 +336,7 @@ export class PassPlots {
                     const checkbox = document.getElementById(`type${pt.charAt(0).toUpperCase() + pt.slice(1)}`) as HTMLInputElement;
                     if (checkbox) checkbox.checked = true;
                 });
-                this.loadData();
+                this.loadData('passTypes');
             });
         });
 
@@ -343,7 +347,7 @@ export class PassPlots {
                     const checkbox = document.getElementById(`type${type}`) as HTMLInputElement;
                     if (checkbox) checkbox.checked = false;
                 });
-                this.loadData();
+                this.loadData('passTypes');
             });
         });
 
@@ -422,7 +426,11 @@ export class PassPlots {
         this.loadData();
     }
 
-    private async loadData(): Promise<void> {
+    // changedFilter: 'eventTypes' | 'passTypes' | 'other' | null
+    // - 'eventTypes': event type checkbox changed, don't update event type counts
+    // - 'passTypes': pass type checkbox changed, don't update pass type counts
+    // - 'other' or null: other filter changed, update all counts
+    private async loadData(changedFilter: 'eventTypes' | 'passTypes' | 'other' | null = null): Promise<void> {
         this.showLoading(true);
 
         try {
@@ -460,8 +468,22 @@ export class PassPlots {
 
             this.updateEventCount();
             this.updateStatsPanel();
-            this.updateEventTypeCounts();
-            this.updatePassTypeCounts();
+
+            // Only update counts for categories that weren't the source of the change
+            if (changedFilter !== 'eventTypes') {
+                this.updateEventTypeCounts();
+            } else {
+                // Still display the stored base counts
+                this.displayEventTypeCounts();
+            }
+
+            if (changedFilter !== 'passTypes') {
+                this.updatePassTypeCounts();
+            } else {
+                // Still display the stored base counts
+                this.displayPassTypeCounts();
+            }
+
             this.renderVisualization();
         } catch (error) {
             console.error('Failed to load pass events:', error);
@@ -540,13 +562,20 @@ export class PassPlots {
             }
         }
 
+        // Store base counts for when event type selections change
+        this.baseEventTypeCounts = { throws, catches, assists, goals, throwaways, drops };
+
         // Update DOM
-        this.setCountValue('countThrows', throws);
-        this.setCountValue('countCatches', catches);
-        this.setCountValue('countAssists', assists);
-        this.setCountValue('countGoals', goals);
-        this.setCountValue('countThrowaways', throwaways);
-        this.setCountValue('countDrops', drops);
+        this.displayEventTypeCounts();
+    }
+
+    private displayEventTypeCounts(): void {
+        this.setCountValue('countThrows', this.baseEventTypeCounts.throws ?? 0);
+        this.setCountValue('countCatches', this.baseEventTypeCounts.catches ?? 0);
+        this.setCountValue('countAssists', this.baseEventTypeCounts.assists ?? 0);
+        this.setCountValue('countGoals', this.baseEventTypeCounts.goals ?? 0);
+        this.setCountValue('countThrowaways', this.baseEventTypeCounts.throwaways ?? 0);
+        this.setCountValue('countDrops', this.baseEventTypeCounts.drops ?? 0);
     }
 
     private setCountValue(id: string, count: number): void {
@@ -569,11 +598,19 @@ export class PassPlots {
             }
         }
 
-        this.setCountValue('countHucks', counts.huck);
-        this.setCountValue('countSwings', counts.swing);
-        this.setCountValue('countDumps', counts.dump);
-        this.setCountValue('countGainers', counts.gainer);
-        this.setCountValue('countDishes', counts.dish);
+        // Store base counts for when pass type selections change
+        this.basePassTypeCounts = counts;
+
+        // Update DOM
+        this.displayPassTypeCounts();
+    }
+
+    private displayPassTypeCounts(): void {
+        this.setCountValue('countHucks', this.basePassTypeCounts.huck ?? 0);
+        this.setCountValue('countSwings', this.basePassTypeCounts.swing ?? 0);
+        this.setCountValue('countDumps', this.basePassTypeCounts.dump ?? 0);
+        this.setCountValue('countGainers', this.basePassTypeCounts.gainer ?? 0);
+        this.setCountValue('countDishes', this.basePassTypeCounts.dish ?? 0);
     }
 
     private renderVisualization(): void {
@@ -585,7 +622,15 @@ export class PassPlots {
         if (overlay) container.appendChild(overlay);
 
         if (this.graphType === 'throw-lines') {
-            renderThrowLines(container, this.events);
+            const highlightInfo: HighlightInfo = {
+                throwsInFocus: this.filterState.event_types.has('throws'),
+                catchesInFocus: this.filterState.event_types.has('catches'),
+                assistsInFocus: this.filterState.event_types.has('assists'),
+                goalsInFocus: this.filterState.event_types.has('goals'),
+                throwawaysInFocus: this.filterState.event_types.has('throwaways'),
+                dropsInFocus: this.filterState.event_types.has('drops')
+            };
+            renderThrowLines(container, this.events, highlightInfo);
         } else {
             renderHeatmap(container, this.events, this.graphType === 'origin-heatmap' ? 'origin' : 'dest');
         }

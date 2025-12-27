@@ -703,3 +703,28 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* Tooltip */
+.pass-plot-tooltip {
+    position: fixed;
+    background: rgba(31, 41, 55, 0.95);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    pointer-events: none;
+    z-index: 10001;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.pass-plot-tooltip.visible {
+    opacity: 1;
+}
+
+/* Make event markers interactive */
+.field-event {
+    cursor: pointer;
+}

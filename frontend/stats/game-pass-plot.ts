@@ -163,7 +163,12 @@ export class GamePassPlot {
         // Pass highlight info for solid/hollow marker styling
         const highlightInfo: HighlightInfo = {
             selectedThrowers: this.filterState.throwers,
-            selectedReceivers: this.filterState.receivers
+            selectedReceivers: this.filterState.receivers,
+            throwsInFocus: this.filterState.eventTypes.has('throws'),
+            catchesInFocus: this.filterState.eventTypes.has('catches'),
+            assistsInFocus: this.filterState.eventTypes.has('assists'),
+            goalsInFocus: this.filterState.eventTypes.has('goals'),
+            throwawaysInFocus: this.filterState.eventTypes.has('throwaways')
         };
         renderEventsOnField(filteredEvents, highlightInfo);
         this.attachEventListeners();

@@ -11,6 +11,11 @@ import { classifyPassType } from './game-pass-plot-stats';
 export interface HighlightInfo {
     selectedThrowers: Set<string>;
     selectedReceivers: Set<string>;
+    throwsInFocus: boolean;      // Is "Throws" event type selected?
+    catchesInFocus: boolean;     // Is "Catches" event type selected?
+    assistsInFocus: boolean;     // Is "Assists" event type selected?
+    goalsInFocus: boolean;       // Is "Goals" event type selected?
+    throwawaysInFocus: boolean;  // Is "Throwaways" event type selected?
 }
 
 /**
@@ -190,7 +195,11 @@ export function createEventElement(event: PassPlotEvent, highlightInfo: Highligh
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     g.classList.add('field-event');
 
-    const color = getEventColor(event.type);
+    const eventColor = getEventColor(event.type);
+    // For drops: thrower threw a good pass (blue), receiver dropped it (red)
+    const throwerColor = event.type === 'drop' ? '#3B82F6' : eventColor;
+    const receiverColor = eventColor;
+    const lineColor = eventColor;
 
     // Determine if thrower/receiver are highlighted (selected in filters)
     // Use thrower_name/receiver_name since that's what the filter uses as IDs
@@ -208,7 +217,13 @@ export function createEventElement(event: PassPlotEvent, highlightInfo: Highligh
         startY = event.thrower_y;
         endX = event.receiver_x;
         endY = event.receiver_y;
-    } else if (event.type === 'throwaway' || event.type === 'drop') {
+    } else if (event.type === 'drop') {
+        startX = event.thrower_x;
+        startY = event.thrower_y;
+        // Use receiver coords (backend falls back to turnover coords for drops)
+        endX = event.receiver_x ?? event.turnover_x ?? event.thrower_x;
+        endY = event.receiver_y ?? event.turnover_y ?? event.thrower_y;
+    } else if (event.type === 'throwaway') {
         startX = event.thrower_x;
         startY = event.thrower_y;
         endX = event.turnover_x ?? event.thrower_x;
@@ -251,16 +266,48 @@ export function createEventElement(event: PassPlotEvent, highlightInfo: Highligh
             line.setAttribute('y1', String(lineStartY));
             line.setAttribute('x2', String(lineEndX));
             line.setAttribute('y2', String(lineEndY));
-            line.setAttribute('stroke', color);
+            line.setAttribute('stroke', lineColor);
             line.setAttribute('stroke-width', '2');
             line.setAttribute('stroke-opacity', '0.6');
             g.appendChild(line);
         }
     }
 
-    // Draw end marker (circle for catches, square for stall only)
-    // Throwaway has no end marker
-    if (endX !== null && endY !== null && usesEndMarker) {
+    // Helper to create start marker (square)
+    const createStartMarker = (): SVGRectElement | null => {
+        if (startX === null || startY === null) return null;
+        const svgX = fieldXToSVG(startX);
+        const svgY = fieldYToSVG(startY);
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', String(svgX - SQUARE_HALF_SIZE));
+        rect.setAttribute('y', String(svgY - SQUARE_HALF_SIZE));
+        rect.setAttribute('width', String(SQUARE_HALF_SIZE * 2));
+        rect.setAttribute('height', String(SQUARE_HALF_SIZE * 2));
+
+        // Thrower square is filled if:
+        // - Thrower is highlighted AND throws are in focus (for passes)
+        // - Or thrower is highlighted AND assists are in focus (for goals)
+        // - Or thrower is highlighted AND throwaways are in focus (for throwaways)
+        // - But never for drops (focus is on the drop, not the throw)
+        const shouldFill = throwerHighlighted && event.type !== 'drop' && (
+            (event.type === 'pass' && highlightInfo.throwsInFocus) ||
+            (event.type === 'goal' && highlightInfo.assistsInFocus) ||
+            (event.type === 'throwaway' && highlightInfo.throwawaysInFocus)
+        );
+        if (shouldFill) {
+            rect.setAttribute('fill', throwerColor);
+            rect.setAttribute('fill-opacity', '0.8');
+        } else {
+            rect.setAttribute('fill', 'transparent');
+            rect.setAttribute('stroke', throwerColor);
+            rect.setAttribute('stroke-width', '1.5');
+        }
+        return rect;
+    };
+
+    // Helper to create end marker (circle for catches/drops, square for stall)
+    const createEndMarker = (): SVGElement | null => {
+        if (endX === null || endY === null || !usesEndMarker) return null;
         const svgX = fieldXToSVG(endX);
         const svgY = fieldYToSVG(endY);
 
@@ -270,15 +317,24 @@ export function createEventElement(event: PassPlotEvent, highlightInfo: Highligh
             circle.setAttribute('cy', String(svgY));
             circle.setAttribute('r', String(CIRCLE_RADIUS));
 
-            if (receiverHighlighted) {
-                circle.setAttribute('fill', color);
+            // Receiver circle is filled if:
+            // - Receiver is highlighted AND catches are in focus (for passes)
+            // - Or receiver is highlighted AND goals are in focus (for goals)
+            // - Or receiver is highlighted for drops (drops always focus on receiver)
+            const shouldFillCircle = receiverHighlighted && (
+                event.type === 'drop' ||
+                (event.type === 'goal' && highlightInfo.goalsInFocus) ||
+                (event.type === 'pass' && highlightInfo.catchesInFocus)
+            );
+            if (shouldFillCircle) {
+                circle.setAttribute('fill', receiverColor);
                 circle.setAttribute('fill-opacity', '0.8');
             } else {
                 circle.setAttribute('fill', 'transparent');
-                circle.setAttribute('stroke', color);
+                circle.setAttribute('stroke', receiverColor);
                 circle.setAttribute('stroke-width', '1.5');
             }
-            g.appendChild(circle);
+            return circle;
         } else if (event.type === 'stall') {
             // Stall: just a square at turnover position (no line)
             const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -288,36 +344,31 @@ export function createEventElement(event: PassPlotEvent, highlightInfo: Highligh
             rect.setAttribute('height', String(SQUARE_HALF_SIZE * 2));
 
             if (throwerHighlighted) {
-                rect.setAttribute('fill', color);
+                rect.setAttribute('fill', eventColor);
                 rect.setAttribute('fill-opacity', '0.8');
             } else {
                 rect.setAttribute('fill', 'transparent');
-                rect.setAttribute('stroke', color);
+                rect.setAttribute('stroke', eventColor);
                 rect.setAttribute('stroke-width', '1.5');
             }
-            g.appendChild(rect);
+            return rect;
         }
-    }
+        return null;
+    };
 
-    // Draw start marker (square) LAST so it overlays circle when at same position
-    if (startX !== null && startY !== null) {
-        const svgX = fieldXToSVG(startX);
-        const svgY = fieldYToSVG(startY);
-        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        rect.setAttribute('x', String(svgX - SQUARE_HALF_SIZE));
-        rect.setAttribute('y', String(svgY - SQUARE_HALF_SIZE));
-        rect.setAttribute('width', String(SQUARE_HALF_SIZE * 2));
-        rect.setAttribute('height', String(SQUARE_HALF_SIZE * 2));
-
-        if (throwerHighlighted) {
-            rect.setAttribute('fill', color);
-            rect.setAttribute('fill-opacity', '0.8');
-        } else {
-            rect.setAttribute('fill', 'transparent');
-            rect.setAttribute('stroke', color);
-            rect.setAttribute('stroke-width', '1.5');
-        }
-        g.appendChild(rect);
+    // Draw markers in correct order based on event type
+    // For drops: square first, then circle (red circle overlays blue square at same position)
+    // For other events: circle first, then square (square overlays circle at same position)
+    if (event.type === 'drop') {
+        const startMarker = createStartMarker();
+        if (startMarker) g.appendChild(startMarker);
+        const endMarker = createEndMarker();
+        if (endMarker) g.appendChild(endMarker);
+    } else {
+        const endMarker = createEndMarker();
+        if (endMarker) g.appendChild(endMarker);
+        const startMarker = createStartMarker();
+        if (startMarker) g.appendChild(startMarker);
     }
 
     // Add hover event listeners for tooltip
@@ -370,9 +421,17 @@ export function renderEventsOnField(filteredEvents: PassPlotEvent[], highlightIn
 export function renderLegend(): string {
     // Legend items with start/end marker info
     // startShape: 'square' | null, endShape: 'square' | 'circle' | null, hasLine: boolean
-    const legendItems = [
+    // startColor: optional different color for start marker (e.g., drops have blue thrower)
+    const legendItems: Array<{
+        label: string;
+        color: string;
+        startColor?: string;
+        startShape: 'square' | null;
+        endShape: 'square' | 'circle' | null;
+        hasLine: boolean;
+    }> = [
         { label: 'Pass', color: '#3B82F6', startShape: 'square', endShape: 'circle', hasLine: true },
-        { label: 'Drop', color: '#EF4444', startShape: 'square', endShape: 'circle', hasLine: true },
+        { label: 'Drop', color: '#EF4444', startColor: '#3B82F6', startShape: 'square', endShape: 'circle', hasLine: true },
         { label: 'Throwaway', color: '#EF4444', startShape: 'square', endShape: null, hasLine: true },
         { label: 'Stall', color: '#8B5CF6', startShape: 'square', endShape: null, hasLine: false },
         { label: 'Score', color: '#22C55E', startShape: 'square', endShape: 'circle', hasLine: true }
@@ -382,7 +441,7 @@ export function renderLegend(): string {
         <div class="game-pass-plot-legend">
             ${legendItems.map(item => `
                 <div class="legend-item">
-                    ${item.startShape ? `<span class="legend-marker square" style="background: ${item.color};"></span>` : ''}
+                    ${item.startShape ? `<span class="legend-marker square" style="background: ${item.startColor || item.color};"></span>` : ''}
                     ${item.hasLine ? `<span class="legend-line" style="background: ${item.color};"></span>` : ''}
                     ${item.endShape ? `<span class="legend-marker ${item.endShape}" style="background: ${item.color};"></span>` : ''}
                     <span class="legend-label">${item.label}</span>
