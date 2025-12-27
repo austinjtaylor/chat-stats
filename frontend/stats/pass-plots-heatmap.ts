@@ -247,7 +247,7 @@ export function renderHeatmap(
     const height = 1200;
     canvas.width = width;
     canvas.height = height;
-    canvas.style.maxWidth = '400px';
+    canvas.style.maxWidth = '600px';
     canvas.style.height = 'auto';
 
     const ctx = canvas.getContext('2d');

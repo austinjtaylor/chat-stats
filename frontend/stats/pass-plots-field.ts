@@ -60,7 +60,7 @@ export function createFieldSVG(): SVGSVGElement {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('viewBox', '0 0 533 1200');
     svg.classList.add('field-map-svg');
-    svg.style.maxWidth = '400px';
+    svg.style.maxWidth = '600px';
     svg.style.height = 'auto';
 
     svg.innerHTML = `

@@ -391,8 +391,8 @@
 
 .field-container svg,
 .field-container canvas {
-    max-width: 400px;
-    max-height: calc(100% - 40px);
+    max-width: 600px;
+    max-height: 100%;
     width: auto;
     height: auto;
 }
@@ -678,7 +678,7 @@
 
     .field-container svg,
     .field-container canvas {
-        max-height: calc(100vh - 310px);
+        max-height: 100%;
     }
 
     .filters-section {
